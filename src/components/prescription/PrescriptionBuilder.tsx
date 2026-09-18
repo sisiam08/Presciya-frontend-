@@ -49,14 +49,23 @@ function PatientSearchCombobox({
   const [open, setOpen] = useState(false);
   const [selectedName, setSelectedName] = useState("");
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   const fetchRecentPatients = async () => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     setSearching(true);
     try {
-      const res = await apiClient.get<any>(API_ROUTES.PATIENTS.LIST);
+      const res = await apiClient.get<any>(API_ROUTES.PATIENTS.LIST, {
+        signal: controller.signal,
+      });
       const list = res.data?.data || res.data || [];
       setResults(Array.isArray(list) ? list.slice(0, 8) : []);
-    } catch { setResults([]); }
+    } catch (e: any) {
+      if (e?.name === "CanceledError" || e?.code === "ERR_CANCELED") return;
+      setResults([]);
+    }
     setSearching(false);
   };
 
@@ -65,11 +74,21 @@ function PatientSearchCombobox({
       fetchRecentPatients();
       return;
     }
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     setSearching(true);
     try {
-      const res = await apiClient.get<any>(`${API_ROUTES.PATIENTS.SEARCH}?q=${encodeURIComponent(q)}&limit=8`);
-      setResults(res.data?.data || res.data || []);
-    } catch { setResults([]); }
+      const res = await apiClient.get<any>(
+        `${API_ROUTES.PATIENTS.SEARCH}?q=${encodeURIComponent(q)}&limit=8`,
+        { signal: controller.signal },
+      );
+      const list = res.data?.data || res.data || [];
+      setResults(Array.isArray(list) ? list : []);
+    } catch (e: any) {
+      if (e?.name === "CanceledError" || e?.code === "ERR_CANCELED") return;
+      setResults([]);
+    }
     setSearching(false);
   };
 
@@ -372,13 +391,26 @@ function MedicineRow({
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSug, setShowSug] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   const searchMed = async (q: string) => {
-    if (!q.trim()) { setSuggestions([]); return; }
+    // Abort any in-flight request so a slow earlier response cannot overwrite
+    // the results for the latest keystroke.
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     try {
-      const res = await apiClient.get<any>(`${API_ROUTES.MEDICINES.SEARCH}?q=${encodeURIComponent(q)}&limit=6`);
-      setSuggestions(res.data?.data || res.data || []);
-    } catch { setSuggestions([]); }
+      const res = await apiClient.get<any>(
+        `${API_ROUTES.MEDICINES.SEARCH}?q=${encodeURIComponent(q)}&limit=6`,
+        { signal: controller.signal },
+      );
+      const list = res.data?.data || res.data || [];
+      setSuggestions(Array.isArray(list) ? list : []);
+    } catch (e: any) {
+      if (e?.name === "CanceledError" || e?.code === "ERR_CANCELED") return;
+      setSuggestions([]);
+    }
   };
 
   const handleBrandChange = (v: string) => {
@@ -388,11 +420,19 @@ function MedicineRow({
     setShowSug(true);
   };
 
+  // Empty-state: surface the doctor's frequently used medicines before typing.
+  const handleBrandFocus = () => {
+    setShowSug(true);
+    if (!med.brandName?.trim()) {
+      searchMed("");
+    }
+  };
+
   const selectSuggestion = (s: any) => {
     onChange(index, "brandName", s.brandName || "");
-    onChange(index, "generic", s.genericName || s.generic || s.brandName || "");
+    onChange(index, "generic", s.generic || s.genericName || s.brandName || "");
     onChange(index, "strength", s.strength || "");
-    onChange(index, "type", s.form || s.type || "Tablet");
+    onChange(index, "type", s.dosageForm || s.form || s.type || "Tablet");
     setSuggestions([]);
     setShowSug(false);
   };
@@ -431,6 +471,8 @@ function MedicineRow({
           <Input
             value={med.brandName}
             onChange={(e) => handleBrandChange(e.target.value)}
+            onFocus={handleBrandFocus}
+            onBlur={() => setTimeout(() => setShowSug(false), 150)}
             placeholder="e.g. Napa, Fexo…"
             className="h-8 text-xs pl-8"
           />
@@ -439,13 +481,18 @@ function MedicineRow({
           <div className="absolute z-50 mt-1 w-full bg-surface border border-outline-variant rounded-lg shadow-lg max-h-40 overflow-y-auto">
             {suggestions.map((s, si) => (
               <button
-                key={si}
+                key={s.id || si}
                 type="button"
                 className="w-full text-left px-3 py-2 hover:bg-surface-container transition-colors"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => selectSuggestion(s)}
               >
                 <p className="text-xs font-semibold text-on-surface">{s.brandName}</p>
-                <p className="text-[10px] text-on-surface-variant">{s.genericName} {s.strength && `· ${s.strength}`}</p>
+                <p className="text-[10px] text-on-surface-variant">
+                  {[s.generic || s.genericName, s.strength, s.dosageForm || s.form]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
               </button>
             ))}
           </div>
