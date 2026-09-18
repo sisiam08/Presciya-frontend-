@@ -596,16 +596,26 @@ export default function PrescriptionBuilder({
   const [diagnosis, setDiagnosis] = useState(prescription?.diagnosis || "General Consultation");
   const [clinicalNotes, setClinicalNotes] = useState(prescription?.clinicalNotes || "");
   const [advises, setAdvises] = useState(prescription?.advises || "");
-  const [nextVisit, setNextVisit] = useState(prescription?.nextVisitDate || "");
+  // Normalize the stored ISO date to the YYYY-MM-DD the date input expects.
+  const [nextVisit, setNextVisit] = useState(() => {
+    const value = (prescription as any)?.nextVisitDate;
+    if (!value) return "";
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
+  });
   const [status, setStatus] = useState<"DRAFT" | "FINALIZED">(
     (prescription?.status as "DRAFT" | "FINALIZED") || "DRAFT"
   );
-  const [vitals, setVitals] = useState({
-    bloodPressure: "",
-    pulse: "",
-    temperature: "",
-    weight: "",
-    height: "",
+  // Pre-populate vitals from the latest clinical observation when editing.
+  const [vitals, setVitals] = useState(() => {
+    const obs = (prescription as any)?.clinicalObservations?.[0];
+    return {
+      bloodPressure: obs?.bloodPressure ?? "",
+      pulse: obs?.pulse != null ? String(obs.pulse) : "",
+      temperature: obs?.temperature != null ? String(obs.temperature) : "",
+      weight: obs?.weight != null ? String(obs.weight) : "",
+      height: obs?.height ?? "",
+    };
   });
   const [meds, setMeds] = useState<MedRow[]>(
     prescription?.medicines?.length
@@ -614,6 +624,7 @@ export default function PrescriptionBuilder({
   );
   const [saving, setSaving] = useState(false);
   const medCounter = useRef(meds.length);
+  const submittingRef = useRef(false);
 
   const addMed = () => {
     medCounter.current += 1;
@@ -844,6 +855,11 @@ export default function PrescriptionBuilder({
     }
     setFieldErrors({});
 
+    // Guard against duplicate submissions (double click / Enter + click) that
+    // would otherwise create two prescriptions before `saving` re-renders.
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+
     setSaving(true);
     // Always save the record as DRAFT, then finalize through the dedicated
     // endpoint so the verification gate, serial and code are applied.
@@ -875,6 +891,7 @@ export default function PrescriptionBuilder({
       const msg = e?.response?.data?.message || e?.response?.data?.error || e?.message || "Failed to save prescription";
       showError(msg);
     } finally {
+      submittingRef.current = false;
       setSaving(false);
     }
   };
