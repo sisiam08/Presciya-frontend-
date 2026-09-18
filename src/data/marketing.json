@@ -1,0 +1,86 @@
+{
+  "hero": {
+    "badge": "Designed for Bangladeshi Doctors & Hospitals",
+    "title": "Empowering Healthcare with Digital Prescriptions",
+    "description": "Presciya is the premium, ultra-fast Digital Prescription platform crafted for clinics, hospitals, and personal doctors in Bangladesh. Streamline workflows, search local medicines instantly, and focus on patient care.",
+    "ctaPrimary": "Start Free Trial",
+    "ctaSecondary": "Watch Demo"
+  },
+  "features": [
+    {
+      "id": "prescription-engine",
+      "title": "Prescription Engine",
+      "description": "Write prescriptions in less than 60 seconds with auto-complete, saved templates, and built-in local medicine databases.",
+      "icon": "Activity"
+    },
+    {
+      "id": "bangladesh-medicine",
+      "title": "Local Medicine Database",
+      "description": "Comprehensive, up-to-date database of generic and brand-name medications approved by DGDA Bangladesh.",
+      "icon": "Database"
+    },
+    {
+      "id": "multi-chamber",
+      "title": "Multi-Chamber Management",
+      "description": "Switch between multiple chambers seamlessly. Keep patients, histories, and analytics organized per practice location.",
+      "icon": "Home"
+    },
+    {
+      "id": "rbac-security",
+      "title": "Enterprise Grade Roles",
+      "description": "Role-based access control (RBAC) designed for Personal Doctors, Assistants, Clinics, and Medical Institutions.",
+      "icon": "Shield"
+    }
+  ],
+  "pricing": {
+    "title": "Simple, Transparent Pricing",
+    "description": "Choose the perfect plan for your practice size. Start writing prescriptions today.",
+    "tiers": [
+      {
+        "name": "Personal Lite",
+        "price": "৳1,499",
+        "period": "month",
+        "description": "Perfect for independent practitioners starting out.",
+        "features": [
+          "Up to 2 Chambers",
+          "500 Prescriptions/mo",
+          "DGDA Medicine Database",
+          "Basic Patient Records",
+          "Email Support"
+        ],
+        "buttonText": "Get Started",
+        "popular": false
+      },
+      {
+        "name": "Personal Pro",
+        "price": "৳2,999",
+        "period": "month",
+        "description": "Ideal for established doctors with active practices.",
+        "features": [
+          "Unlimited Chambers",
+          "Unlimited Prescriptions",
+          "Advanced Patient History",
+          "SMS Prescription Sharing",
+          "Priority 24/7 Support"
+        ],
+        "buttonText": "Go Pro",
+        "popular": true
+      },
+      {
+        "name": "Clinic / Institution",
+        "price": "৳7,499",
+        "period": "month",
+        "description": "Designed for multi-doctor facilities and small clinics.",
+        "features": [
+          "Up to 5 Doctors",
+          "Unlimited Assistant Accounts",
+          "Institution Settings & Branding",
+          "Custom Header/Footer design",
+          "Dedicated Account Manager"
+        ],
+        "buttonText": "Contact Sales",
+        "popular": false
+      }
+    ]
+  }
+}
