@@ -27,6 +27,7 @@ const emptyMed = (id: number): MedRow => ({
   generic: "",
   strength: "",
   type: "Tablet",
+  usageType: "DAILY",
   frequency: "1+1+1+0",
   duration: "7 days",
   mealTiming: "AFTER_MEAL",
@@ -206,7 +207,7 @@ function ChamberSelect({
 
   return (
     <div>
-      <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Chamber (optional)</label>
+      <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Chamber *</label>
       <div className="relative">
         <select
           value={value}
@@ -392,6 +393,7 @@ function MedicineRow({
   const [showSug, setShowSug] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const usageType = (med.usageType || "DAILY") as string;
 
   const searchMed = async (q: string) => {
     // Abort any in-flight request so a slow earlier response cannot overwrite
@@ -503,28 +505,79 @@ function MedicineRow({
         {field("Generic", "generic", "Paracetamol")}
         {field("Strength", "strength", "500mg")}
         {field("Type", "type", "Tablet")}
-        <DosageCheckboxPicker
-          value={med.frequency || "1+1+1+0"}
-          onChange={(newFreq) => onChange(index, "frequency", newFreq)}
-        />
-        <DurationPicker
-          value={med.duration || "7 Days"}
-          onChange={(newDur) => onChange(index, "duration", newDur)}
-        />
         <div>
-          <label className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wide">Meal Timing</label>
+          <label className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wide">Schedule Type</label>
           <select
-            value={med.mealTiming || "AFTER_MEAL"}
-            onChange={(e) => onChange(index, "mealTiming", e.target.value)}
+            value={usageType}
+            onChange={(e) => onChange(index, "usageType", e.target.value)}
             className="w-full h-8 px-2 text-xs bg-surface border border-gray-200 dark:border-slate-800 rounded-md text-on-surface mt-0.5 focus:outline-none"
           >
-            <option value="AFTER_MEAL">After Meal</option>
-            <option value="BEFORE_MEAL">Before Meal</option>
-            <option value="WITH_MEAL">With Meal</option>
-            <option value="EMPTY_STOMACH">Empty Stomach</option>
+            <option value="DAILY">Tablet / Oral</option>
+            <option value="WEEKLY">Weekly / Interval</option>
+            <option value="TOPICAL">Topical</option>
+            <option value="CUSTOM">Custom</option>
           </select>
         </div>
       </div>
+
+      {usageType === "DAILY" && (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          <DosageCheckboxPicker
+            value={med.frequency || "1+1+1+0"}
+            onChange={(newFreq) => onChange(index, "frequency", newFreq)}
+          />
+          <DurationPicker
+            value={med.duration || "7 Days"}
+            onChange={(newDur) => onChange(index, "duration", newDur)}
+          />
+          <div>
+            <label className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wide">Meal Timing</label>
+            <select
+              value={med.mealTiming || "AFTER_MEAL"}
+              onChange={(e) => onChange(index, "mealTiming", e.target.value)}
+              className="w-full h-8 px-2 text-xs bg-surface border border-gray-200 dark:border-slate-800 rounded-md text-on-surface mt-0.5 focus:outline-none"
+            >
+              <option value="AFTER_MEAL">After Meal</option>
+              <option value="BEFORE_MEAL">Before Meal</option>
+              <option value="WITH_MEAL">With Meal</option>
+              <option value="EMPTY_STOMACH">Empty Stomach</option>
+            </select>
+          </div>
+        </div>
+      )}
+
+      {usageType === "WEEKLY" && (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          {field("Dose", "dose", "Apply once")}
+          {field("Interval (days)", "intervalDays", "7")}
+          <DurationPicker
+            value={med.duration || "4 weeks"}
+            onChange={(newDur) => onChange(index, "duration", newDur)}
+          />
+        </div>
+      )}
+
+      {usageType === "TOPICAL" && (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          {field("Amount", "applicationAmount", "Thin layer")}
+          {field("Area", "applicationArea", "Affected area")}
+          {field("Frequency", "applicationFrequency", "Twice daily")}
+          <DurationPicker
+            value={med.duration || "7 Days"}
+            onChange={(newDur) => onChange(index, "duration", newDur)}
+          />
+        </div>
+      )}
+
+      {usageType === "CUSTOM" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          {field("Custom schedule", "instruction", "Day 1: 1 dose, Day 2: 1 dose, Day 3: none")}
+          <DurationPicker
+            value={med.duration || "7 Days"}
+            onChange={(newDur) => onChange(index, "duration", newDur)}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -580,6 +633,9 @@ export default function PrescriptionBuilder({
     if (!patientId || patientId.trim() === "") {
       errs.patientId = "Please search and select a patient from the list or click Quick Add";
     }
+    if (!chamberId || chamberId.trim() === "") {
+      errs.chamberId = "Please select a chamber for this prescription";
+    }
     if (!diagnosis.trim()) {
       errs.diagnosis = "Diagnosis is required";
     }
@@ -597,22 +653,47 @@ export default function PrescriptionBuilder({
 
     const formattedMedicines = meds
       .filter((m) => m.brandName.trim())
-      .map(({ _id, ...m }) => ({
-        brandName: m.brandName.trim(),
-        generic: m.generic?.trim() || m.brandName.trim(),
-        type: m.type?.trim() || "Tablet",
-        usageType: ["DAILY", "TOPICAL", "WEEKLY", "CUSTOM"].includes((m.usageType as string) || "")
-          ? (m.usageType as any)
-          : "DAILY",
-        duration: m.duration?.trim() || "7 days",
-        strength: m.strength?.trim() || undefined,
-        dosagePattern: m.dosagePattern?.trim() || m.frequency?.trim() || "1+0+1",
-        frequency: m.frequency?.trim() || undefined,
-        mealTiming: ["BEFORE_MEAL", "AFTER_MEAL", "WITH_MEAL", "AFTER_FULL_MEAL", "EMPTY_STOMACH"].includes((m.mealTiming as string) || "")
-          ? (m.mealTiming as any)
-          : "AFTER_MEAL",
-        instruction: m.instruction?.trim() || undefined,
-      }));
+      .map(({ _id, ...m }) => {
+        const usageType = ["DAILY", "TOPICAL", "WEEKLY", "CUSTOM"].includes(
+          (m.usageType as string) || "",
+        )
+          ? (m.usageType as "DAILY" | "TOPICAL" | "WEEKLY" | "CUSTOM")
+          : "DAILY";
+        const intervalDays =
+          m.intervalDays !== undefined && String(m.intervalDays).trim() !== ""
+            ? Number(m.intervalDays)
+            : undefined;
+        const instruction = m.instruction?.trim() || undefined;
+
+        return {
+          brandName: m.brandName.trim(),
+          generic: m.generic?.trim() || m.brandName.trim(),
+          type: m.type?.trim() || "Tablet",
+          usageType,
+          duration: m.duration?.trim() || "7 days",
+          strength: m.strength?.trim() || undefined,
+          dosagePattern: m.dosagePattern?.trim() || m.frequency?.trim() || "1+0+1",
+          frequency: m.frequency?.trim() || undefined,
+          mealTiming:
+            usageType === "DAILY" &&
+            ["BEFORE_MEAL", "AFTER_MEAL", "WITH_MEAL", "AFTER_FULL_MEAL", "EMPTY_STOMACH"].includes(
+              (m.mealTiming as string) || "",
+            )
+              ? (m.mealTiming as any)
+              : undefined,
+          instruction,
+          // Structured instruction fields (Section 13.1)
+          dose: m.dose?.trim() || undefined,
+          intervalDays: usageType === "WEEKLY" ? intervalDays : undefined,
+          applicationAmount: m.applicationAmount?.trim() || undefined,
+          applicationArea: m.applicationArea?.trim() || undefined,
+          applicationFrequency: m.applicationFrequency?.trim() || undefined,
+          customScheduleJson:
+            usageType === "CUSTOM" && instruction
+              ? { schedule: instruction }
+              : undefined,
+        };
+      });
 
     const payload = {
       patientId,

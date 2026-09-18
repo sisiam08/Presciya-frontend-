@@ -182,9 +182,19 @@ export interface PrescriptionMedicine {
   noon?: number;
   night?: number;
   intervalDays?: number;
-  specificDays?: string[];
+  specificDays?: string[] | string;
   applicationArea?: string;
   applicationAmount?: string;
+  applicationFrequency?: string;
+  dose?: string;
+  frequencyMorning?: number;
+  frequencyNoon?: number;
+  frequencyNight?: number;
+  durationValue?: number;
+  durationUnit?: string;
+  customScheduleJson?: Record<string, unknown>;
+  notes?: string;
+  quantity?: number;
 }
 
 export interface Prescription {
