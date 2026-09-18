@@ -31,6 +31,8 @@ export default function AdminVerificationsPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | VerificationStatus>("all");
   const [selectedReq, setSelectedReq] = useState<VerificationRequest | null>(null);
+  const [detail, setDetail] = useState<any>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
   const [processing, setProcessing] = useState(false);
 
   const load = async () => {
@@ -43,6 +45,58 @@ export default function AdminVerificationsPage() {
   };
 
   useEffect(() => { load(); }, []);
+
+  // Open the review panel and load the full request detail (which carries the
+  // doctor profile incl. BMDC number).
+  const openReview = async (req: VerificationRequest) => {
+    setSelectedReq(req);
+    setDetail(null);
+    setLoadingDetail(true);
+    try {
+      const res = await apiClient.get<any>(API_ROUTES.VERIFICATION.GET(req.id));
+      setDetail(res.data?.data || res.data);
+    } catch {
+      setDetail(null);
+    }
+    setLoadingDetail(false);
+  };
+
+  const closeReview = () => {
+    setSelectedReq(null);
+    setDetail(null);
+  };
+
+  // BMDC registration number of the applicant (doctor profiles only).
+  const submittedData: any =
+    detail?.submittedData ?? selectedReq?.submittedData ?? {};
+  const bmdcNumber: string =
+    detail?.profile?.bmdcNumber ||
+    submittedData?.bmdcNumber ||
+    submittedData?.registrationNo ||
+    submittedData?.bmdcId ||
+    "";
+  const hasBmdc = Boolean(bmdcNumber);
+
+  // Copy the BMDC number to the clipboard and open the official BMDC
+  // verification portal in a new tab.
+  const verifyBmdc = async () => {
+    if (!bmdcNumber) return;
+    try {
+      await navigator.clipboard.writeText(bmdcNumber);
+      toast({
+        title: "BMDC number copied",
+        description: `${bmdcNumber} copied to clipboard. Verify it on the BMDC portal.`,
+        variant: "success",
+      });
+    } catch {
+      toast({
+        title: "Copy failed",
+        description: `BMDC number: ${bmdcNumber}. Please copy it manually.`,
+        variant: "destructive",
+      });
+    }
+    window.open("https://verify.bmdc.org.bd", "_blank", "noopener,noreferrer");
+  };
 
   const handleAction = async (id: string, action: "under-review" | "approve" | "reject") => {
     setProcessing(true);
@@ -179,10 +233,23 @@ export default function AdminVerificationsPage() {
                   <span className="text-xs text-slate-400">
                     Submitted: {formatDateTime(selectedReq.submittedAt)}
                   </span>
+                  <span
+                    className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-md ${
+                      hasBmdc
+                        ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300"
+                        : "bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300"
+                    }`}
+                  >
+                    {loadingDetail
+                      ? "BMDC: loading…"
+                      : hasBmdc
+                        ? `BMDC: ${bmdcNumber}`
+                        : "No BMDC on file"}
+                  </span>
                 </div>
               </div>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => setSelectedReq(null)}>Close</Button>
+            <Button variant="ghost" size="sm" onClick={closeReview}>Close</Button>
           </div>
 
           {selectedReq.submittedData && (
@@ -196,21 +263,50 @@ export default function AdminVerificationsPage() {
             </div>
           )}
 
-          <div className="flex items-center gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+          <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={verifyBmdc}
+              disabled={processing || !hasBmdc}
+              title={
+                hasBmdc
+                  ? `Copy ${bmdcNumber} and open verify.bmdc.org.bd`
+                  : "No BMDC registration number on file"
+              }
+            >
+              <BadgeCheck className="h-4 w-4 mr-1.5" /> Verify BMDC
+            </Button>
             {selectedReq.status === VerificationStatus.PENDING && (
-              <Button size="sm" onClick={() => handleAction(selectedReq.id, "under-review")} disabled={processing}>
+              <Button
+                size="sm"
+                onClick={() => handleAction(selectedReq.id, "under-review")}
+                disabled={processing || !hasBmdc}
+                title={!hasBmdc ? "BMDC registration number is required" : undefined}
+              >
                 <Shield className="h-4 w-4 mr-1.5" /> Start Review Process
               </Button>
             )}
             {[VerificationStatus.PENDING, VerificationStatus.UNDER_REVIEW].includes(selectedReq.status) && (
               <>
-                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold" onClick={() => handleAction(selectedReq.id, "approve")} disabled={processing}>
+                <Button
+                  size="sm"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                  onClick={() => handleAction(selectedReq.id, "approve")}
+                  disabled={processing || !hasBmdc}
+                  title={!hasBmdc ? "BMDC registration number is required" : undefined}
+                >
                   <CheckCircle className="h-4 w-4 mr-1.5" /> Approve Credential
                 </Button>
                 <Button size="sm" variant="outline" className="text-rose-600 border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-950/40 font-bold" onClick={() => handleAction(selectedReq.id, "reject")} disabled={processing}>
                   <XCircle className="h-4 w-4 mr-1.5" /> Reject Request
                 </Button>
               </>
+            )}
+            {!hasBmdc && !loadingDetail && (
+              <span className="text-xs font-semibold text-rose-500">
+                BMDC registration number missing — only rejection is allowed.
+              </span>
             )}
           </div>
         </div>
@@ -266,7 +362,7 @@ export default function AdminVerificationsPage() {
                       </td>
                       <td className="py-3.5 px-5 text-xs font-medium text-slate-500 dark:text-slate-400">{formatDateTime(req.submittedAt)}</td>
                       <td className="py-3.5 px-5">
-                        <Button variant="outline" size="sm" className="h-8 text-xs font-bold" onClick={() => setSelectedReq(req)}>
+                        <Button variant="outline" size="sm" className="h-8 text-xs font-bold" onClick={() => openReview(req)}>
                           <Eye className="h-3.5 w-3.5 mr-1" /> Review
                         </Button>
                       </td>
