@@ -7,12 +7,14 @@ import { toast } from "@/components/ui/use-toast";
 import { Input } from "@/components/ui/input";
 import { apiClient } from "@/lib/api-client";
 import { API_ROUTES } from "@/lib/constants";
+import { useConfirm } from "@/components/ui/confirm";
 
 function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`animate-pulse rounded-xl bg-outline-variant/30 ${className}`} />;
 }
 
 export default function InstitutionDoctorsPage() {
+  const confirm = useConfirm();
   const [doctors, setDoctors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -49,7 +51,14 @@ export default function InstitutionDoctorsPage() {
   };
 
   const removeDoctor = async (doctorId: string) => {
-    if (!confirm("Remove this doctor from the institution?")) return;
+    const ok = await confirm({
+      title: "Remove this doctor?",
+      description:
+        "The doctor will be removed from this institution. Their personal account is unaffected.",
+      confirmLabel: "Remove doctor",
+      variant: "danger",
+    });
+    if (!ok) return;
     try {
       await apiClient.delete(API_ROUTES.INSTITUTION.REMOVE_DOCTOR(doctorId));
       setDoctors((prev) => prev.filter((d) => d.id !== doctorId));

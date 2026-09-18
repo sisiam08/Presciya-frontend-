@@ -3,6 +3,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/toaster";
+import { ConfirmProvider } from "@/components/ui/confirm";
 
 export const metadata = {
   title: "Presciya – Digital Prescription",
@@ -39,8 +40,10 @@ export default function RootLayout({
           enableSystem={true}
         >
           <AuthProvider>
-            <main className="flex-1 flex flex-col">{children}</main>
-            <Toaster />
+            <ConfirmProvider>
+              <main className="flex-1 flex flex-col">{children}</main>
+              <Toaster />
+            </ConfirmProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

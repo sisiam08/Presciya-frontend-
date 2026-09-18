@@ -19,6 +19,7 @@ import { apiClient } from "@/lib/api-client";
 import { API_ROUTES } from "@/lib/constants";
 import { formatDate } from "@/lib/utils";
 import { useNotification } from "@/hooks/useNotification";
+import { useConfirm } from "@/components/ui/confirm";
 
 function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`animate-pulse rounded-xl bg-outline-variant/30 ${className}`} />;
@@ -26,6 +27,7 @@ function Skeleton({ className = "" }: { className?: string }) {
 
 export default function SubscriptionPage() {
   const { success, error: showError } = useNotification();
+  const confirm = useConfirm();
   const [subscription, setSubscription] = useState<any>(null);
   const [plans, setPlans] = useState<any[]>([]);
   const [billingHistory, setBillingHistory] = useState<any[]>([]);
@@ -93,7 +95,14 @@ export default function SubscriptionPage() {
   };
 
   const handleCancel = async () => {
-    if (!confirm("Cancel your subscription? You can still use it until the billing period ends.")) return;
+    const ok = await confirm({
+      title: "Cancel your subscription?",
+      description:
+        "You can still use the plan until the current billing period ends.",
+      confirmLabel: "Cancel subscription",
+      variant: "danger",
+    });
+    if (!ok) return;
     setCancelling(true);
     try {
       await apiClient.post(API_ROUTES.SUBSCRIPTION.CANCEL);

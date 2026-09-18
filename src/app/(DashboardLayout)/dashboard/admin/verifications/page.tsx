@@ -308,11 +308,6 @@ export default function AdminVerificationsPage() {
                 </Button>
               </>
             )}
-            {!hasBmdc && !loadingDetail && (
-              <span className="text-xs font-semibold text-rose-500">
-                BMDC registration number missing — only rejection is allowed.
-              </span>
-            )}
           </div>
         </div>
       )}

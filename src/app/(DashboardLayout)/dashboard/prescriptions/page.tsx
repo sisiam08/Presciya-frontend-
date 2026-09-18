@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useMutation, useQuery } from "@/hooks/useApi";
 import { useNotification } from "@/hooks/useNotification";
+import { useConfirm } from "@/components/ui/confirm";
 import { API_ROUTES } from "@/lib/constants";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { Prescription, PrescriptionStatus } from "@/types";
@@ -39,6 +40,7 @@ export default function PrescriptionsPage() {
   const [editingPrescription, setEditingPrescription] = useState<Prescription | null>(null);
 
   const { success, error: showError } = useNotification();
+  const confirm = useConfirm();
 
   // Load prescriptions from backend
   const { data: prescriptionsData, loading, refetch } = useQuery<any>(
@@ -103,9 +105,15 @@ export default function PrescriptionsPage() {
   });
 
   const handleDelete = async (id: string) => {
-    if (window.confirm("Delete this prescription?")) {
-      await deletePrescription(API_ROUTES.PRESCRIPTIONS.DELETE(id));
-    }
+    const ok = await confirm({
+      title: "Delete this prescription?",
+      description:
+        "The prescription will be removed from the list. Finalized records remain auditable.",
+      confirmLabel: "Delete prescription",
+      variant: "danger",
+    });
+    if (!ok) return;
+    await deletePrescription(API_ROUTES.PRESCRIPTIONS.DELETE(id));
   };
 
   const handleEdit = (rx: Prescription) => {

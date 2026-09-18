@@ -21,6 +21,7 @@ import { apiClient } from "@/lib/api-client";
 import { API_ROUTES } from "@/lib/constants";
 import { Chamber } from "@/types";
 import { useNotification } from "@/hooks/useNotification";
+import { useConfirm } from "@/components/ui/confirm";
 
 function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`animate-pulse rounded-xl bg-outline-variant/30 ${className}`} />;
@@ -250,6 +251,7 @@ function ChamberModal({
 
 export default function ChambersPage() {
   const { success, error: showError } = useNotification();
+  const confirm = useConfirm();
   const [chambers, setChambers] = useState<Chamber[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -271,7 +273,13 @@ export default function ChambersPage() {
   }, []);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this chamber? This action cannot be undone.")) return;
+    const ok = await confirm({
+      title: "Delete this chamber?",
+      description: "The chamber will be deactivated. Existing prescriptions and appointments are preserved.",
+      confirmLabel: "Delete chamber",
+      variant: "danger",
+    });
+    if (!ok) return;
     try {
       await apiClient.delete(API_ROUTES.CHAMBERS.DELETE(id));
       success("Chamber deleted");

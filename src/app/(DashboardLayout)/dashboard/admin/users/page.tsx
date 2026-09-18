@@ -9,6 +9,7 @@ import { apiClient } from "@/lib/api-client";
 import { API_ROUTES } from "@/lib/constants";
 import { User, SystemRole } from "@/types";
 import { formatDate } from "@/lib/utils";
+import { useConfirm } from "@/components/ui/confirm";
 
 function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`animate-pulse rounded-xl bg-slate-200 dark:bg-slate-800 ${className}`} />;
@@ -19,6 +20,7 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<"all" | SystemRole>("all");
+  const confirm = useConfirm();
 
   const load = async () => {
     setLoading(true);
@@ -43,7 +45,13 @@ export default function AdminUsersPage() {
 
   const toggleRole = async (user: User) => {
     const newRole = user.systemRole === SystemRole.SUPER_ADMIN ? SystemRole.USER : SystemRole.SUPER_ADMIN;
-    if (!confirm(`Change system role of ${user.name} to ${newRole}?`)) return;
+    const ok = await confirm({
+      title: "Change system role?",
+      description: `Change ${user.name}'s system role to ${newRole}?`,
+      confirmLabel: "Change role",
+      variant: "default",
+    });
+    if (!ok) return;
     try {
       await apiClient.patch(API_ROUTES.ADMIN.UPDATE_USER(user.id), { systemRole: newRole });
       setUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, systemRole: newRole } : u));
@@ -54,13 +62,23 @@ export default function AdminUsersPage() {
   };
 
   const deleteUser = async (id: string, name: string) => {
-    if (!confirm(`Delete user account "${name}"? This action is irreversible.`)) return;
+    const ok = await confirm({
+      title: "Deactivate user account?",
+      description: `Deactivate "${name}"? The account will be signed out and its memberships set inactive. Workspaces, prescriptions and patient records are preserved.`,
+      confirmLabel: "Deactivate",
+      variant: "danger",
+    });
+    if (!ok) return;
     try {
       await apiClient.delete(API_ROUTES.ADMIN.DELETE_USER(id));
-      setUsers((prev) => prev.filter((u) => u.id !== id));
-      toast({ title: "User Deleted", description: "User account permanently deleted.", variant: "default" });
+      toast({
+        title: "User Deactivated",
+        description: `${name}'s account has been deactivated.`,
+        variant: "default",
+      });
+      load();
     } catch (e: any) {
-      toast({ title: "Error", description: e?.response?.data?.message || "Failed to delete user.", variant: "destructive" });
+      toast({ title: "Error", description: e?.response?.data?.message || "Failed to deactivate user.", variant: "destructive" });
     }
   };
 
@@ -251,7 +269,7 @@ export default function AdminUsersPage() {
                           size="sm"
                           className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 h-8 px-2"
                           onClick={() => deleteUser(user.id, user.name)}
-                          title="Delete User Account"
+                          title="Deactivate User Account"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

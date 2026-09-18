@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { useQuery, useMutation } from "@/hooks/useApi";
 import { useNotification } from "@/hooks/useNotification";
+import { useConfirm } from "@/components/ui/confirm";
 import { API_ROUTES } from "@/lib/constants";
 import { formatDate } from "@/lib/utils";
 import { Patient } from "@/types";
@@ -40,6 +41,7 @@ export default function PatientsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const { success, error: showError } = useNotification();
+  const confirm = useConfirm();
 
   // Fetch patients. The API returns { success, data: Patient[], meta }.
   const {
@@ -78,11 +80,15 @@ export default function PatientsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (
-      window.confirm("Are you sure you want to delete this patient record?")
-    ) {
-      await deletePatient(API_ROUTES.PATIENTS.DELETE(id));
-    }
+    const ok = await confirm({
+      title: "Delete this patient record?",
+      description:
+        "The patient will be removed from the directory. Prescription history is preserved.",
+      confirmLabel: "Delete patient",
+      variant: "danger",
+    });
+    if (!ok) return;
+    await deletePatient(API_ROUTES.PATIENTS.DELETE(id));
   };
 
   const handleCloseModal = () => {
