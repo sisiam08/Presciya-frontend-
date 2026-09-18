@@ -71,6 +71,7 @@ export const API_ROUTES = {
     GET: (id: string) => `/prescription/${id}`,
     UPDATE: (id: string) => `/prescription/${id}`,
     DELETE: (id: string) => `/prescription/${id}`,
+    FINALIZE: (id: string) => `/prescription/${id}/finalize`,
     PRINT: (id: string) => `/prescription/${id}/print`,
     PREVIEW: (id: string) => `/prescription/${id}/preview`,
     AMEND: (id: string) => `/prescription/${id}/amend`,

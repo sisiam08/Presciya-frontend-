@@ -626,31 +626,15 @@ export default function PrescriptionBuilder({
     setMeds((prev) => prev.map((m, idx) => idx === i ? { ...m, [f]: v } : m));
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [saveState, setSaveState] = useState<
+    "idle" | "dirty" | "saving" | "saved" | "error"
+  >("idle");
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSavedRef = useRef<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const errs: Record<string, string> = {};
-    if (!patientId || patientId.trim() === "") {
-      errs.patientId = "Please search and select a patient from the list or click Quick Add";
-    }
-    if (!chamberId || chamberId.trim() === "") {
-      errs.chamberId = "Please select a chamber for this prescription";
-    }
-    if (!diagnosis.trim()) {
-      errs.diagnosis = "Diagnosis is required";
-    }
-    if (meds.length === 0 || !meds[0]?.brandName.trim()) {
-      errs.medicines = "At least one medicine with a brand name is required";
-    }
-    if (Object.keys(errs).length > 0) {
-      setFieldErrors(errs);
-      return showError("Please fix form validation errors shown below");
-    }
-    setFieldErrors({});
-
-    setSaving(true);
-    const validChamberId = chamberId && chamberId.trim() !== "" ? chamberId.trim() : undefined;
-
+  // Build the API payload. Autosave always targets DRAFT (Section 13.5);
+  // manual submit uses the selected status.
+  const buildPayload = (targetStatus: "DRAFT" | "FINALIZED") => {
     const formattedMedicines = meds
       .filter((m) => m.brandName.trim())
       .map(({ _id, ...m }) => {
@@ -682,7 +666,6 @@ export default function PrescriptionBuilder({
               ? (m.mealTiming as any)
               : undefined,
           instruction,
-          // Structured instruction fields (Section 13.1)
           dose: m.dose?.trim() || undefined,
           intervalDays: usageType === "WEEKLY" ? intervalDays : undefined,
           applicationAmount: m.applicationAmount?.trim() || undefined,
@@ -695,15 +678,15 @@ export default function PrescriptionBuilder({
         };
       });
 
-    const payload = {
+    return {
       patientId,
-      chamberId: validChamberId,
+      chamberId: chamberId && chamberId.trim() !== "" ? chamberId.trim() : undefined,
       complaints: complaints.trim() || undefined,
       diagnosis: diagnosis.trim(),
       clinicalNotes: clinicalNotes.trim() || undefined,
       advises: advises.trim() || undefined,
       nextVisitDate: nextVisit || undefined,
-      status,
+      status: targetStatus,
       bloodPressure: vitals.bloodPressure?.trim() || undefined,
       pulse: vitals.pulse?.trim() || undefined,
       temperature: vitals.temperature?.trim() || undefined,
@@ -711,14 +694,105 @@ export default function PrescriptionBuilder({
       height: vitals.height?.trim() || undefined,
       medicines: formattedMedicines,
     };
+  };
+
+  // Snapshot of all editable fields, used to detect dirty state.
+  const formSnapshot = JSON.stringify({
+    patientId,
+    chamberId,
+    complaints,
+    diagnosis,
+    clinicalNotes,
+    advises,
+    nextVisit,
+    status,
+    vitals,
+    meds: meds.map(({ _id, ...m }) => m),
+  });
+
+  // Debounced autosave for existing drafts. Never autosaves a finalized
+  // prescription (locked) or a brand-new one (no id yet). On failure the
+  // local form state is preserved and an "unsaved" state is shown.
+  useEffect(() => {
+    if (lastSavedRef.current === null) {
+      lastSavedRef.current = formSnapshot;
+      return;
+    }
+    if (formSnapshot === lastSavedRef.current) return;
+
+    if (!prescription?.id || prescription.status === "FINALIZED") {
+      setSaveState("dirty");
+      return;
+    }
+
+    setSaveState("dirty");
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    autosaveTimer.current = setTimeout(async () => {
+      setSaveState("saving");
+      try {
+        await apiClient.patch(
+          API_ROUTES.PRESCRIPTIONS.UPDATE(prescription.id),
+          buildPayload("DRAFT"),
+        );
+        lastSavedRef.current = formSnapshot;
+        setSaveState("saved");
+      } catch {
+        setSaveState("error");
+      }
+    }, 1500);
+
+    return () => {
+      if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formSnapshot]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const errs: Record<string, string> = {};
+    if (!patientId || patientId.trim() === "") {
+      errs.patientId = "Please search and select a patient from the list or click Quick Add";
+    }
+    if (!chamberId || chamberId.trim() === "") {
+      errs.chamberId = "Please select a chamber for this prescription";
+    }
+    if (!diagnosis.trim()) {
+      errs.diagnosis = "Diagnosis is required";
+    }
+    if (meds.length === 0 || !meds[0]?.brandName.trim()) {
+      errs.medicines = "At least one medicine with a brand name is required";
+    }
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs);
+      return showError("Please fix form validation errors shown below");
+    }
+    setFieldErrors({});
+
+    setSaving(true);
+    // Always save the record as DRAFT, then finalize through the dedicated
+    // endpoint so the verification gate, serial and code are applied.
+    const payload = buildPayload("DRAFT");
 
     try {
-      if (prescription?.id) {
-        await apiClient.patch(API_ROUTES.PRESCRIPTIONS.UPDATE(prescription.id), payload);
+      let rxId = prescription?.id;
+      if (rxId) {
+        await apiClient.patch(API_ROUTES.PRESCRIPTIONS.UPDATE(rxId), payload);
       } else {
-        await apiClient.post(API_ROUTES.PRESCRIPTIONS.CREATE, payload);
+        const created = await apiClient.post<any>(API_ROUTES.PRESCRIPTIONS.CREATE, payload);
+        rxId = created.data?.data?.id || created.data?.id;
       }
-      success(`Prescription ${prescription ? "updated" : "created"} successfully`);
+
+      if (status === "FINALIZED" && rxId) {
+        await apiClient.post(API_ROUTES.PRESCRIPTIONS.FINALIZE(rxId));
+      }
+
+      lastSavedRef.current = formSnapshot;
+      setSaveState("saved");
+      success(
+        status === "FINALIZED"
+          ? "Prescription finalized successfully"
+          : `Prescription ${prescription ? "updated" : "saved as draft"} successfully`,
+      );
       onSaved?.();
       onClose();
     } catch (e: any) {
@@ -738,7 +812,27 @@ export default function PrescriptionBuilder({
             <h2 className="text-base font-bold text-on-surface">
               {prescription ? "Edit Prescription" : "New Prescription"}
             </h2>
-            <p className="text-xs text-on-surface-variant">Fill details and add medicines</p>
+            <p className="text-xs text-on-surface-variant flex items-center gap-1.5">
+              {saveState === "saving" && (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin" /> Saving…
+                </>
+              )}
+              {saveState === "saved" && (
+                <>
+                  <Check className="h-3 w-3 text-emerald-600" /> All changes saved
+                </>
+              )}
+              {saveState === "error" && (
+                <span className="font-semibold text-red-500">
+                  Save failed — your changes are kept, edit to retry
+                </span>
+              )}
+              {(saveState === "idle" || saveState === "dirty") &&
+                (saveState === "dirty" && prescription?.id
+                  ? "Unsaved changes…"
+                  : "Fill details and add medicines")}
+            </p>
           </div>
           <button type="button" onClick={onClose} className="h-8 w-8 rounded-lg border border-outline-variant flex items-center justify-center text-on-surface-variant hover:bg-surface-container">
             <X size={16} />
