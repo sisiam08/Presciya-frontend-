@@ -75,15 +75,16 @@ class ApiClient {
           this.refreshing = true;
 
           try {
-            const refreshToken = localStorage.getItem("refresh_token");
-            if (!refreshToken) throw new Error("No refresh token available");
+            // The refresh token is an httpOnly cookie; the backend endpoint is
+            // /auth/refresh-token and responds with { data: { accessToken } }.
+            const response = await this.client.post("/auth/refresh-token");
+            const payload = response.data?.data || response.data;
+            const token: string | undefined = payload?.accessToken;
 
-            const response = await this.client.post("/auth/refresh", {
-              refreshToken,
-            });
-            const { token } = response.data;
+            if (!token) throw new Error("Refresh did not return an access token");
 
-            localStorage.setItem("auth_token", token);
+            localStorage.setItem("accessToken", token);
+            localStorage.removeItem("auth_token");
 
             this.processQueue(null, token);
 
@@ -94,8 +95,8 @@ class ApiClient {
             return this.client(originalRequest);
           } catch (err) {
             this.processQueue(err as Error, null);
+            localStorage.removeItem("accessToken");
             localStorage.removeItem("auth_token");
-            localStorage.removeItem("refresh_token");
             window.location.href = "/login";
             return Promise.reject(err);
           } finally {

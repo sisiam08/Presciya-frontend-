@@ -16,7 +16,10 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (
+    email: string,
+    password: string,
+  ) => Promise<{ requiresWorkspaceSelection: boolean }>;
   logout: () => void;
 }
 
@@ -60,22 +63,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const payload = res.data?.data || res.data;
     const accessToken = payload?.accessToken;
     const loggedUser = payload?.user;
-    if (accessToken) {
-      localStorage.setItem('accessToken', accessToken);
-    }
-    setUser(loggedUser);
-    // Persist role as a cookie for Next.js middleware route guards
     const maxAge = 60 * 60 * 12; // 12 hours
     if (accessToken) {
+      localStorage.setItem('accessToken', accessToken);
       document.cookie = `accessToken=${accessToken}; path=/; max-age=${maxAge}; SameSite=Lax`;
     }
+    setUser(loggedUser);
+    // Persist role as a cookie for route guards
     document.cookie = `systemRole=${loggedUser?.systemRole || 'USER'}; path=/; max-age=${maxAge}; SameSite=Lax`;
+
+    // Multiple active workspaces: never assume workspaces[0]; require an
+    // explicit choice before entering the dashboard.
+    if (
+      payload?.requiresWorkspaceSelection ||
+      loggedUser?.requiresWorkspaceSelection
+    ) {
+      router.push('/select-workspace');
+      return { requiresWorkspaceSelection: true };
+    }
+
     // Route based on system role
     if (loggedUser?.systemRole === 'SUPER_ADMIN') {
       router.push('/dashboard/admin');
     } else {
       router.push('/dashboard');
     }
+    return { requiresWorkspaceSelection: false };
   };
 
   const logout = () => {

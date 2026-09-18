@@ -25,10 +25,14 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
-        const refreshRes = await api.post('/auth/refresh');
-        const newToken = refreshRes.data.accessToken;
-        localStorage.setItem('accessToken', newToken);
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        // Refresh token is an httpOnly cookie; backend is /auth/refresh-token.
+        const refreshRes = await api.post('/auth/refresh-token');
+        const payload = refreshRes.data?.data || refreshRes.data;
+        const newToken = payload?.accessToken;
+        if (newToken) {
+          localStorage.setItem('accessToken', newToken);
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        }
         return api(originalRequest);
       } catch (e) {
         // Refresh failed – force logout

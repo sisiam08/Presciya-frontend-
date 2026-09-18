@@ -152,13 +152,13 @@ export default function Sidebar() {
 
   const switchWorkspace = async (ws: Workspace) => {
     try {
+      // Identity comes from the session cookie server-side; only workspaceId is sent.
       const res = await apiClient.post<any>("/auth/switch-workspace", {
-        userId: user?.id,
         workspaceId: ws.id,
       });
       const data = res.data?.data || res.data;
       if (data?.accessToken) {
-        localStorage.setItem("auth_token", data.accessToken);
+        localStorage.setItem("accessToken", data.accessToken);
       }
       setActiveWorkspace(ws);
       localStorage.setItem("activeWorkspaceId", ws.id);
