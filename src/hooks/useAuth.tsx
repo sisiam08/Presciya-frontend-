@@ -19,6 +19,7 @@ interface AuthContextType {
   login: (
     email: string,
     password: string,
+    redirect?: string,
   ) => Promise<{ requiresWorkspaceSelection: boolean }>;
   logout: () => void;
 }
@@ -57,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchUser();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, redirect?: string) => {
     const res = await api.post('/auth/login', { email, password });
     // Backend sends: { success, data: { user: {...}, accessToken: "..." } }
     // refreshToken is set as a cookie by the backend (httpOnly)
@@ -72,6 +73,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(loggedUser);
     // Persist role as a cookie for route guards
     document.cookie = `systemRole=${loggedUser?.systemRole || 'USER'}; path=/; max-age=${maxAge}; SameSite=Lax`;
+
+    // Deep-link redirect (e.g. returning to an invitation after login). Persist
+    // a workspace when there is exactly one so workspace-scoped pages resolve.
+    if (redirect) {
+      const wsList = loggedUser?.workspaces || [];
+      if (wsList.length >= 1 && wsList[0]?.id) {
+        localStorage.setItem('activeWorkspaceId', wsList[0].id);
+      }
+      router.push(redirect);
+      return { requiresWorkspaceSelection: false };
+    }
+
+    // Invited user whose only memberships are pending: send them to their
+    // pending invitations so they can accept (they have no active workspace).
+    if (
+      payload?.requiresInvitationAcceptance ||
+      loggedUser?.requiresInvitationAcceptance
+    ) {
+      router.push('/invitations');
+      return { requiresWorkspaceSelection: false };
+    }
 
     // Multiple active workspaces: never assume workspaces[0]; require an
     // explicit choice before entering the dashboard.

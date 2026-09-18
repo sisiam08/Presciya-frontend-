@@ -19,8 +19,12 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     try {
-      await login(email, password);
-      // Redirect is handled inside useAuth.login() based on systemRole
+      // Support a deep-link return target (e.g. an invitation accept page).
+      const redirect =
+        new URLSearchParams(window.location.search).get("redirect") ||
+        undefined;
+      await login(email, password, redirect);
+      // Otherwise redirect is handled inside useAuth.login() based on systemRole
     } catch (err: any) {
       setError(err?.response?.data?.message || "Login failed. Please check credentials.");
     }

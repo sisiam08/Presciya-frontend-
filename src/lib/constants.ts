@@ -31,6 +31,7 @@ export const API_ROUTES = {
     PENDING_INVITATIONS: "/workspaces/invitations/pending",
     ACCEPT_INVITATION: "/workspaces/invitations/accept",
     REJECT_INVITATION: "/workspaces/invitations/reject",
+    VERIFY_INVITATION: (token: string) => `/workspaces/invitations/${token}`,
   },
 
   // ── Doctor Profile ────────────────────────────────────────────────────────
