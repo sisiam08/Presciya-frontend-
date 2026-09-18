@@ -182,8 +182,15 @@ export default function ProfilePage() {
   const saveDoctor = async () => {
     setSaving(true);
     try {
-      const payload: Record<string, any> = { ...doctorForm };
-      if (payload.yearsOfExperience) payload.yearsOfExperience = Number(payload.yearsOfExperience);
+      // Map the form fields to the API contract (bmdcNumber -> registrationNo,
+      // qualifications -> qualification). Unsupported extras are omitted.
+      const payload: Record<string, any> = {};
+      if (doctorForm.bmdcNumber?.trim())
+        payload.registrationNo = doctorForm.bmdcNumber.trim();
+      if (doctorForm.qualifications?.trim())
+        payload.qualification = doctorForm.qualifications.trim();
+      if (doctorForm.specialization?.trim())
+        payload.specialization = doctorForm.specialization.trim();
       const res = await apiClient.patch<any>(API_ROUTES.DOCTOR.UPDATE_PROFILE, payload);
       setDoctor(res.data?.data || res.data);
       setEditingDoctor(false);
@@ -201,7 +208,27 @@ export default function ProfilePage() {
   const submitVerification = async () => {
     setSubmittingVerification(true);
     try {
-      await apiClient.post(API_ROUTES.VERIFICATION.SUBMIT, { type: "DOCTOR" });
+      const workspaceId =
+        typeof window !== "undefined"
+          ? localStorage.getItem("activeWorkspaceId")
+          : null;
+
+      await apiClient.post(API_ROUTES.VERIFICATION.SUBMIT, {
+        // Backend expects PERSONAL / INSTITUTION.
+        type: "PERSONAL",
+        ...(workspaceId ? { workspaceId } : {}),
+        submittedData: {
+          name: (doctorForm as any).name || (doctor as any)?.name || undefined,
+          bmdcNumber: doctorForm.bmdcNumber || undefined,
+          qualifications: doctorForm.qualifications || undefined,
+          specialization: doctorForm.specialization || undefined,
+          designation: (doctorForm as any).designation || undefined,
+          yearsOfExperience: doctorForm.yearsOfExperience
+            ? Number(doctorForm.yearsOfExperience)
+            : undefined,
+          bio: doctorForm.bio || undefined,
+        },
+      });
       // Refresh doctor profile to get updated status
       const res = await apiClient.get<any>(API_ROUTES.DOCTOR.PROFILE);
       setDoctor(res.data?.data || res.data);
