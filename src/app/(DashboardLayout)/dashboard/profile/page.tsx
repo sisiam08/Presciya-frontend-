@@ -144,7 +144,9 @@ export default function ProfilePage() {
           apiClient.get<any>(API_ROUTES.DOCTOR.PROFILE).catch(() => ({ data: null })),
         ]);
 
-        const u = userRes.data?.data || userRes.data;
+        // /auth/me returns { user, profile, workspaces }; unwrap the user.
+        const payload = userRes.data?.data || userRes.data;
+        const u = payload?.user ?? payload;
         setUser(u);
         setProfileForm({
           name: u?.name || "",

@@ -81,7 +81,15 @@ export default function DashboardPage() {
       }
       if (apptsRes.status === "fulfilled") {
         const val = apptsRes.value as any;
-        setAppointments(val.data?.data || val.data || []);
+        // Appointment list returns { items, meta }; normalize to an array.
+        const payload = val.data?.data ?? val.data;
+        const items = Array.isArray(payload) ? payload : payload?.items ?? [];
+        setAppointments(
+          items.map((a: any) => ({
+            ...a,
+            scheduledDate: a.scheduledDate ?? a.appointmentDate,
+          })),
+        );
       }
     } catch (e) {
       console.error("Dashboard load failed:", e);
@@ -115,14 +123,10 @@ export default function DashboardPage() {
     (a) => new Date(a.scheduledDate).toDateString() === new Date().toDateString()
   );
 
-  // Robust mock fallbacks if database is currently empty to ensure beautiful display
-  const totalPrescriptionsCount = analytics?.summary?.totalPrescriptions || prescriptionsCountFallback();
-  const totalPatientsCount = analytics?.summary?.totalPatients || 28;
-  const activeChambersCount = analytics?.summary?.totalChambers || 2;
-
-  function prescriptionsCountFallback() {
-    return 34;
-  }
+  // Real metrics only — never fabricate counts when the workspace is empty.
+  const totalPrescriptionsCount = analytics?.summary?.totalPrescriptions ?? 0;
+  const totalPatientsCount = analytics?.summary?.totalPatients ?? 0;
+  const activeChambersCount = analytics?.summary?.totalChambers ?? 0;
 
   // 1. Weekly Prescriptions Trend Data (Bar Chart)
   const rawTrend = analytics?.prescriptionsTrend || [];
@@ -131,7 +135,7 @@ export default function DashboardPage() {
     : ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"];
   const trendValues = rawTrend.length > 0 
     ? rawTrend.map((t: any) => t.count)
-    : [5, 8, 12, 6, 9, 14, 11];
+    : Array.from({ length: 7 }).map(() => 0);
 
   const barChartData = {
     labels: trendLabels,
@@ -158,7 +162,7 @@ export default function DashboardPage() {
       });
   const lineValues = rawLineTrend.length > 0
     ? rawLineTrend.map((t: any) => t.count)
-    : [12, 19, 15, 25, 22, 30, 28, 35, 42, 38, 45, 52, 48, 56, 62];
+    : Array.from({ length: 15 }).map(() => 0);
 
   const lineChartData = {
     labels: lineLabels,
@@ -177,11 +181,11 @@ export default function DashboardPage() {
   };
 
   // 3. Patient Gender distribution (Doughnut Chart)
-  const malePatients = analytics?.demographics?.male ?? 18;
-  const femalePatients = analytics?.demographics?.female ?? 10;
+  const malePatients = analytics?.demographics?.male ?? 0;
+  const femalePatients = analytics?.demographics?.female ?? 0;
   const totalDemographics = malePatients + femalePatients;
-  const malePct = totalDemographics > 0 ? Math.round((malePatients / totalDemographics) * 100) : 64;
-  const femalePct = totalDemographics > 0 ? Math.round((femalePatients / totalDemographics) * 100) : 36;
+  const malePct = totalDemographics > 0 ? Math.round((malePatients / totalDemographics) * 100) : 0;
+  const femalePct = totalDemographics > 0 ? Math.round((femalePatients / totalDemographics) * 100) : 0;
 
   const doughnutChartData = {
     labels: ["Male", "Female"],
@@ -198,15 +202,8 @@ export default function DashboardPage() {
     ],
   };
 
-  // 4. Top prescribed medicines list
-  const topMeds = (analytics?.topMedicines && analytics.topMedicines.length > 0)
-    ? analytics.topMedicines
-    : [
-        { brandName: "Napa Extend", generic: "Paracetamol", prescriptionsCount: 18 },
-        { brandName: "Fexo 120", generic: "Fexofenadine", prescriptionsCount: 14 },
-        { brandName: "Secrin 2mg", generic: "Glimepiride", prescriptionsCount: 9 },
-        { brandName: "Monas 10", generic: "Montelukast", prescriptionsCount: 7 },
-      ];
+  // 4. Top prescribed medicines list (real data only)
+  const topMeds = analytics?.topMedicines ?? [];
 
   const chartOptions = {
     responsive: true,
@@ -307,7 +304,7 @@ export default function DashboardPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-on-surface">
-            Welcome back, Dr. {user?.name || "Practitioner"}
+            Welcome back, {user?.name || "Doctor"}
           </h1>
           <p className="text-sm text-on-surface-variant mt-1">
             Overview of your clinical progress, patient analytics, and queues.
@@ -435,6 +432,12 @@ export default function DashboardPage() {
                 <p className="text-xs text-on-surface-variant mb-5">
                   Most frequently prescribed medicines in your practice
                 </p>
+
+                {topMeds.length === 0 && (
+                  <p className="text-sm text-on-surface-variant py-6 text-center">
+                    No medicines prescribed yet.
+                  </p>
+                )}
 
                 <div className="space-y-4">
                   {topMeds.map((med: any, idx: number) => {

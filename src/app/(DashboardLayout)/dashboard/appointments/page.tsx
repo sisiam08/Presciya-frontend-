@@ -39,6 +39,11 @@ export default function AppointmentsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
+  const [showNew, setShowNew] = useState(false);
+  const [patients, setPatients] = useState<any[]>([]);
+  const [doctorId, setDoctorId] = useState<string>("");
+  const [newForm, setNewForm] = useState({ chamberId: "", patientId: "", date: "" });
+  const [savingNew, setSavingNew] = useState(false);
 
   useEffect(() => {
     const wsId = localStorage.getItem("activeWorkspaceId");
@@ -78,7 +83,15 @@ export default function AppointmentsPage() {
     setLoading(true);
     try {
       const res = await apiClient.get<any>(API_ROUTES.APPOINTMENTS.LIST(workspaceId));
-      setAppointments(res.data?.data || res.data || []);
+      const payload = res.data?.data ?? res.data;
+      const items = Array.isArray(payload) ? payload : payload?.items ?? [];
+      setAppointments(
+        items.map((a: any) => ({
+          ...a,
+          scheduledDate: a.scheduledDate ?? a.appointmentDate,
+          serialNumber: a.serialNumber ?? a.serialNo,
+        })),
+      );
     } catch {
       setAppointments([]);
     } finally {
@@ -109,6 +122,70 @@ export default function AppointmentsPage() {
         description: e?.response?.data?.message || "Failed to update status.",
         variant: "destructive",
       });
+    }
+  };
+
+  const openNewAppointment = async () => {
+    setShowNew(true);
+    setNewForm({
+      chamberId: selectedChamber || chambers[0]?.id || "",
+      patientId: "",
+      date: new Date().toISOString().slice(0, 10),
+    });
+    try {
+      const [pRes, dRes] = await Promise.all([
+        apiClient.get<any>(API_ROUTES.PATIENTS.LIST),
+        apiClient.get<any>(API_ROUTES.DOCTOR.PROFILE),
+      ]);
+      const pPayload = pRes.data?.data ?? pRes.data;
+      setPatients(Array.isArray(pPayload) ? pPayload : pPayload?.items ?? []);
+      const dPayload = dRes.data?.data ?? dRes.data;
+      setDoctorId(dPayload?.id || "");
+    } catch {
+      // non-fatal; the form will validate below
+    }
+  };
+
+  const createAppointment = async () => {
+    // Resolve the active workspace (localStorage may not be initialized yet).
+    let wsId = workspaceId;
+    if (!wsId) {
+      try {
+        const wsRes = await apiClient.get<any>(API_ROUTES.WORKSPACES.LIST);
+        const list = wsRes.data?.data || wsRes.data || [];
+        wsId = list[0]?.id ?? null;
+        if (wsId) setWorkspaceId(wsId);
+      } catch {
+        // handled below
+      }
+    }
+    if (!wsId) {
+      toast({ title: "No workspace", description: "Select a workspace first.", variant: "destructive" });
+      return;
+    }
+    if (!newForm.chamberId || !newForm.patientId || !newForm.date || !doctorId) {
+      toast({ title: "Missing fields", description: "Chamber, patient and date are required.", variant: "destructive" });
+      return;
+    }
+    setSavingNew(true);
+    try {
+      await apiClient.post<any>(API_ROUTES.APPOINTMENTS.CREATE(wsId), {
+        chamberId: newForm.chamberId,
+        patientId: newForm.patientId,
+        doctorId,
+        appointmentDate: newForm.date,
+      });
+      toast({ title: "Appointment booked", description: "The appointment has been scheduled.", variant: "success" });
+      setShowNew(false);
+      loadAppointments();
+    } catch (e: any) {
+      toast({
+        title: "Booking failed",
+        description: e.response?.data?.message || "Could not book the appointment.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingNew(false);
     }
   };
 
@@ -179,7 +256,7 @@ export default function AppointmentsPage() {
             <RefreshCw className="h-4 w-4 mr-1" />
             Refresh
           </Button>
-          <Button className="flex items-center gap-2">
+          <Button className="flex items-center gap-2" onClick={openNewAppointment}>
             <Plus size={16} />
             New Appointment
           </Button>
@@ -367,6 +444,84 @@ export default function AppointmentsPage() {
           </table>
         </div>
       </div>
+
+      {/* New Appointment Modal */}
+      {showNew && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setShowNew(false)} />
+          <div className="relative z-10 w-full max-w-md rounded-2xl border border-outline-variant bg-surface p-6 shadow-2xl">
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="text-base font-bold text-on-surface">New Appointment</h2>
+              <button
+                type="button"
+                onClick={() => setShowNew(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container"
+              >
+                <XCircle size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-sm">
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-on-surface-variant">Chamber *</label>
+                <select
+                  value={newForm.chamberId}
+                  onChange={(e) => setNewForm({ ...newForm, chamberId: e.target.value })}
+                  className="h-10 w-full rounded-lg border border-gray-200 bg-surface-container-lowest px-3 text-sm text-on-surface focus:outline-none dark:border-slate-800"
+                >
+                  <option value="">Select chamber</option>
+                  {chambers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-on-surface-variant">Patient *</label>
+                <select
+                  value={newForm.patientId}
+                  onChange={(e) => setNewForm({ ...newForm, patientId: e.target.value })}
+                  className="h-10 w-full rounded-lg border border-gray-200 bg-surface-container-lowest px-3 text-sm text-on-surface focus:outline-none dark:border-slate-800"
+                >
+                  <option value="">Select patient</option>
+                  {patients.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                      {p.phone ? ` — ${p.phone}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-on-surface-variant">Date *</label>
+                <Input
+                  type="date"
+                  value={newForm.date}
+                  onChange={(e) => setNewForm({ ...newForm, date: e.target.value })}
+                />
+              </div>
+
+              {!doctorId && (
+                <p className="text-xs font-semibold text-amber-600">
+                  No doctor profile found for this account — booking requires one.
+                </p>
+              )}
+            </div>
+
+            <div className="mt-6 flex gap-3 border-t border-outline-variant pt-4">
+              <Button variant="ghost" className="flex-1" onClick={() => setShowNew(false)}>
+                Cancel
+              </Button>
+              <Button className="flex-1" onClick={createAppointment} disabled={savingNew}>
+                {savingNew ? "Booking…" : "Book Appointment"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

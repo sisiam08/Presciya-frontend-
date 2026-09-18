@@ -931,7 +931,14 @@ export default function PrescriptionBuilder({
                 </p>
               )}
             </div>
-            <ChamberSelect value={chamberId} onChange={setChamberId} />
+            <div>
+              <ChamberSelect value={chamberId} onChange={setChamberId} />
+              {fieldErrors.chamberId && (
+                <p className="text-xs text-red-500 font-semibold mt-1 animate-in fade-in duration-200">
+                  ⚠️ {fieldErrors.chamberId}
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="rounded-xl border border-outline-variant p-4 bg-surface-container/30">

@@ -132,6 +132,8 @@ export default function Sidebar() {
           const active = wsData.find((w) => w.id === savedWsId) || wsData[0];
           setActiveWorkspace(active);
           setIsInstitution(active?.type === "INSTITUTION");
+          // Persist the resolved workspace so URL-scoped pages can use it.
+          if (active?.id) localStorage.setItem("activeWorkspaceId", active.id);
         }
 
         const notifRes = await apiClient.get<any>(API_ROUTES.NOTIFICATIONS.UNREAD_COUNT);

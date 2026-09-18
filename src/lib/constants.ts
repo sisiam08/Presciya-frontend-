@@ -55,7 +55,9 @@ export const API_ROUTES = {
 
   // ── Patients ──────────────────────────────────────────────────────────────
   PATIENTS: {
-    LIST: "/patient",
+    // The backend exposes patient listing through the search endpoint (empty q
+    // returns all patients in the active workspace).
+    LIST: "/patient/search",
     CREATE: "/patient",
     SEARCH: "/patient/search",
     GET: (id: string) => `/patient/${id}`,
@@ -287,56 +289,56 @@ export const ADMIN_SIDEBAR_ITEMS = [
   {
     id: "admin",
     label: "Admin Dashboard",
-    href: "/admin",
+    href: "/dashboard/admin",
     icon: "ShieldCheck",
     section: "admin",
   },
   {
     id: "admin-users",
     label: "Users",
-    href: "/admin/users",
+    href: "/dashboard/admin/users",
     icon: "Users",
     section: "admin",
   },
   {
     id: "admin-verifications",
     label: "Verifications",
-    href: "/admin/verifications",
+    href: "/dashboard/admin/verifications",
     icon: "BadgeCheck",
     section: "admin",
   },
   {
     id: "admin-workspaces",
     label: "Workspaces",
-    href: "/admin/workspaces",
+    href: "/dashboard/admin/workspaces",
     icon: "Layout",
     section: "admin",
   },
   {
     id: "admin-subscriptions",
     label: "Subscriptions",
-    href: "/admin/subscriptions",
+    href: "/dashboard/admin/subscriptions",
     icon: "CreditCard",
     section: "admin",
   },
   {
     id: "admin-plans",
     label: "Plans",
-    href: "/admin/plans",
+    href: "/dashboard/admin/plans",
     icon: "PackageCheck",
     section: "admin",
   },
   {
     id: "admin-features",
     label: "Feature Flags",
-    href: "/admin/features",
+    href: "/dashboard/admin/features",
     icon: "ToggleRight",
     section: "admin",
   },
   {
     id: "admin-audit-logs",
     label: "Audit Logs",
-    href: "/admin/audit-logs",
+    href: "/dashboard/admin/audit-logs",
     icon: "ScrollText",
     section: "admin",
   },

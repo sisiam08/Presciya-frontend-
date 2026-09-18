@@ -11,11 +11,15 @@ export function proxy(request: NextRequest) {
 
   const isAdminRoute = pathname.startsWith("/dashboard/admin");
   const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
+  // Workspace selection is part of the authenticated flow.
+  const isWorkspaceRoute = pathname.startsWith("/select-workspace");
 
-  // User-only routes: /dashboard (excluding /dashboard/admin) and /institution
+  // User-only routes: /dashboard (excluding /dashboard/admin), /institution and
+  // the workspace selector.
   const isUserRoute =
     (pathname.startsWith("/dashboard") && !isAdminRoute) ||
-    pathname.startsWith("/institution");
+    pathname.startsWith("/institution") ||
+    isWorkspaceRoute;
 
   // 1. Unauthenticated user trying to access protected routes -> Redirect to /login
   if ((isUserRoute || isAdminRoute) && !token) {

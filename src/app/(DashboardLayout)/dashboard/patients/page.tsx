@@ -41,12 +41,18 @@ export default function PatientsPage() {
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const { success, error: showError } = useNotification();
 
-  // Fetch patients
+  // Fetch patients. The API returns { success, data: Patient[], meta }.
   const {
-    data: patients = [],
+    data: patientsResponse,
     loading,
     refetch,
-  } = useQuery<Patient[]>(API_ROUTES.PATIENTS.LIST);
+  } = useQuery<any>(API_ROUTES.PATIENTS.LIST);
+
+  const patients: Patient[] = Array.isArray(patientsResponse)
+    ? patientsResponse
+    : patientsResponse?.data ?? [];
+  const totalPatients = patientsResponse?.meta?.total ?? patients.length;
+  const totalPages = patientsResponse?.meta?.totalPages ?? 1;
 
   // Delete mutation
   const { mutate: deletePatient } = useMutation("delete", {
@@ -352,32 +358,31 @@ export default function PatientsPage() {
         {/* Table Footer / Pagination */}
         <div className="bg-surface-container/30 px-6 py-3.5 flex items-center justify-between border-t border-outline-variant">
           <p className="text-xs font-semibold text-on-surface-variant">
-            Showing 1 to {filteredPatients.length} of {(patients || []).length}{" "}
-            patients
+            Showing {filteredPatients.length === 0 ? 0 : 1} to{" "}
+            {filteredPatients.length} of {totalPatients} patients
           </p>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 w-8 p-0 border border-gray-200 dark:border-slate-800"
-              disabled
-            >
-              <ChevronLeft size={14} />
-            </Button>
-            <button className="w-8 h-8 bg-primary text-on-primary rounded-lg font-bold text-xs">
-              1
-            </button>
-            <button className="w-8 h-8 hover:bg-surface-container rounded-lg transition-colors font-semibold text-xs text-on-surface-variant">
-              2
-            </button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 w-8 p-0 border border-gray-200 dark:border-slate-800"
-            >
-              <ChevronRight size={14} />
-            </Button>
-          </div>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 w-8 p-0 border border-gray-200 dark:border-slate-800"
+                disabled
+              >
+                <ChevronLeft size={14} />
+              </Button>
+              <button className="w-8 h-8 bg-primary text-on-primary rounded-lg font-bold text-xs">
+                1
+              </button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 w-8 p-0 border border-gray-200 dark:border-slate-800"
+              >
+                <ChevronRight size={14} />
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 

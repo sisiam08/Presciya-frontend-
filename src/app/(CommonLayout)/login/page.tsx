@@ -108,11 +108,14 @@ export default function LoginPage() {
           {/* Identity Provider Login */}
           <div className="grid grid-cols-1">
             <Button
+              type="button"
               variant="outline"
-              className="flex items-center justify-center gap-stack-md bg-surface-container-lowest border border-outline-variant py-6 rounded-xl font-label-md text-label-md text-on-surface hover:bg-surface-container-low transition-colors duration-200"
+              disabled
+              title="Hospital chamber SSO is not available yet"
+              className="flex items-center justify-center gap-stack-md bg-surface-container-lowest border border-outline-variant py-6 rounded-xl font-label-md text-label-md text-on-surface opacity-60 cursor-not-allowed"
             >
               <ShieldCheck className="text-primary h-5 w-5" />
-              <span>Login via Hospital Chamber</span>
+              <span>Login via Hospital Chamber (coming soon)</span>
             </Button>
           </div>
 

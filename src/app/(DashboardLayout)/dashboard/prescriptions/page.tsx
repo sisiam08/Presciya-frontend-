@@ -45,7 +45,20 @@ export default function PrescriptionsPage() {
     API_ROUTES.PRESCRIPTIONS.LIST
   );
 
-  const prescriptions: Prescription[] = prescriptionsData?.data || prescriptionsData || [];
+  const rawPrescriptions: any[] = prescriptionsData?.data || prescriptionsData || [];
+  // The API returns medicine lines as `prescriptionMedicines` with snapshot*
+  // fields; normalize to the `medicines` shape the list/detail/builder expect.
+  const prescriptions: Prescription[] = rawPrescriptions.map((p) => ({
+    ...p,
+    medicines: (p.prescriptionMedicines ?? p.medicines ?? []).map((m: any) => ({
+      ...m,
+      brandName: m.brandName ?? m.snapshotBrandName,
+      generic: m.generic ?? m.snapshotGeneric,
+      strength: m.strength ?? m.snapshotStrength,
+      type: m.type ?? m.snapshotType,
+      frequency: m.frequency ?? m.dosagePattern,
+    })),
+  }));
 
   const { mutate: deletePrescription } = useMutation("delete", {
     onSuccess: () => {

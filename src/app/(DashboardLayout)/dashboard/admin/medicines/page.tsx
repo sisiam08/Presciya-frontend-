@@ -33,11 +33,13 @@ export default function AdminMedicinesPage() {
     setLoading(true);
     try {
       const params = new URLSearchParams({ page: page.toString(), limit: "25", ...(search && { q: search }) });
-      const res = await apiClient.get<any>(`/medicine/search?${params}`);
-      const data = res.data?.data || res.data;
-      setMedicines(Array.isArray(data) ? data : data?.items || []);
-      setTotalPages(data?.totalPages || 1);
-      setTotal(data?.total || (Array.isArray(data) ? data.length : 0));
+      // Admin-scoped medicine catalog: { data: Medicine[], pagination: {...} }
+      const res = await apiClient.get<any>(`/admin/medicines?${params}`);
+      const payload = res.data ?? {};
+      const items = payload?.data ?? (Array.isArray(payload) ? payload : []);
+      setMedicines(Array.isArray(items) ? items : []);
+      setTotalPages(payload?.pagination?.totalPages || 1);
+      setTotal(payload?.pagination?.total ?? items.length);
     } catch {
       setMedicines([]);
     }
@@ -57,7 +59,7 @@ export default function AdminMedicinesPage() {
     setSaving(true);
     try {
       const slug = `${slugify(form.brandName)}-${slugify(form.strength || form.generic)}`;
-      await apiClient.post("/medicine", { ...form, slug });
+      await apiClient.post("/admin/medicines", { ...form, slug });
       setShowNew(false);
       setForm({ brandName: "", generic: "", dosageForm: "Tablet", strength: "", manufacturer: "", type: "Tablet" });
       load();

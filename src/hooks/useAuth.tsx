@@ -39,8 +39,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       try {
         const res = await api.get('/auth/me');
-        // Backend wraps response in { success, data } envelope
-        const userData = res.data?.data || res.data;
+        // Backend wraps the response as { success, data: { user, profile, workspaces } }.
+        const payload = res.data?.data || res.data;
+        const userData = payload?.user ?? payload;
         setUser(userData);
         if (userData?.systemRole) {
           const maxAge = 60 * 60 * 12;
@@ -80,6 +81,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ) {
       router.push('/select-workspace');
       return { requiresWorkspaceSelection: true };
+    }
+
+    // Exactly one active workspace: persist it so workspace-URL pages
+    // (appointments, dashboard queues) resolve the active workspace on load.
+    const wsList = loggedUser?.workspaces || [];
+    if (wsList.length >= 1 && wsList[0]?.id) {
+      localStorage.setItem('activeWorkspaceId', wsList[0].id);
     }
 
     // Route based on system role
