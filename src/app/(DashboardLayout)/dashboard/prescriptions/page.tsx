@@ -55,6 +55,18 @@ export default function PrescriptionsPage() {
     onError: () => showError("Failed to delete prescription"),
   });
 
+  const { mutate: amendPrescription } = useMutation("post", {
+    onSuccess: (res: any) => {
+      const draft = res?.data || res;
+      success("A corrected draft version was created");
+      setSelectedPrescription(null);
+      setEditingPrescription(draft);
+      setIsBuilderOpen(true);
+      refetch();
+    },
+    onError: () => showError("Failed to create a corrected version"),
+  });
+
   const filteredPrescriptions = prescriptions.filter((rx) => {
     const matchSearch =
       (rx.patient?.name || rx.patientId || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -290,6 +302,9 @@ export default function PrescriptionsPage() {
             prescription={selectedPrescription}
             onClose={() => setSelectedPrescription(null)}
             onPrint={() => setPrintPrescription(selectedPrescription)}
+            onAmend={() =>
+              amendPrescription(API_ROUTES.PRESCRIPTIONS.AMEND(selectedPrescription.id))
+            }
           />
         )}
       </AnimatePresence>
@@ -315,13 +330,20 @@ export default function PrescriptionsPage() {
   );
 }
 
-function PrescriptionPreview({ prescription, onClose, onPrint }: { prescription: Prescription; onClose: () => void; onPrint: () => void }) {
+function PrescriptionPreview({ prescription, onClose, onPrint, onAmend }: { prescription: Prescription; onClose: () => void; onPrint: () => void; onAmend: () => void }) {
+  const isFinalized = prescription.status === "FINALIZED";
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4 backdrop-blur-xs" onClick={onClose}>
       <motion.div initial={{ scale: 0.95, y: 15 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 15 }} onClick={(e) => e.stopPropagation()} className="bg-surface rounded-2xl max-w-2xl w-full border border-outline-variant max-h-[90vh] overflow-y-auto shadow-2xl z-10">
         <div className="p-5 border-b border-outline-variant flex justify-between items-center bg-surface-container/50">
           <h2 className="text-base font-bold text-on-surface">Prescription Details (#{prescription.serialNumber || prescription.id?.substring(0, 8)})</h2>
           <div className="flex items-center gap-2">
+            {isFinalized && (
+              <Button size="sm" variant="outline" onClick={onAmend}>
+                <RefreshCw className="mr-1.5 h-4 w-4" />
+                Amend
+              </Button>
+            )}
             <Button size="sm" variant="outline" onClick={onPrint}>
               <Printer className="mr-1.5 h-4 w-4" />
               Preview / Print
