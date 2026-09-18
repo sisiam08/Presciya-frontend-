@@ -19,6 +19,7 @@ import {
   Filter,
   Pill,
   Check,
+  Printer,
 } from "lucide-react";
 import { useMutation, useQuery } from "@/hooks/useApi";
 import { useNotification } from "@/hooks/useNotification";
@@ -26,12 +27,14 @@ import { API_ROUTES } from "@/lib/constants";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { Prescription, PrescriptionStatus } from "@/types";
 import PrescriptionBuilder from "@/components/prescription/PrescriptionBuilder";
+import PrescriptionPrintModal from "@/components/prescription/PrescriptionPrintModal";
 import { AnimatePresence, motion } from "framer-motion";
 
 export default function PrescriptionsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null);
+  const [printPrescription, setPrintPrescription] = useState<Prescription | null>(null);
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
   const [editingPrescription, setEditingPrescription] = useState<Prescription | null>(null);
 
@@ -283,7 +286,22 @@ export default function PrescriptionsPage() {
       {/* Detail Modal */}
       <AnimatePresence>
         {selectedPrescription && (
-          <PrescriptionPreview prescription={selectedPrescription} onClose={() => setSelectedPrescription(null)} />
+          <PrescriptionPreview
+            prescription={selectedPrescription}
+            onClose={() => setSelectedPrescription(null)}
+            onPrint={() => setPrintPrescription(selectedPrescription)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Canonical A4 preview / print */}
+      <AnimatePresence>
+        {printPrescription && (
+          <PrescriptionPrintModal
+            prescriptionId={printPrescription.id}
+            status={printPrescription.status}
+            onClose={() => setPrintPrescription(null)}
+          />
         )}
       </AnimatePresence>
 
@@ -297,13 +315,19 @@ export default function PrescriptionsPage() {
   );
 }
 
-function PrescriptionPreview({ prescription, onClose }: { prescription: Prescription; onClose: () => void }) {
+function PrescriptionPreview({ prescription, onClose, onPrint }: { prescription: Prescription; onClose: () => void; onPrint: () => void }) {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4 backdrop-blur-xs" onClick={onClose}>
       <motion.div initial={{ scale: 0.95, y: 15 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 15 }} onClick={(e) => e.stopPropagation()} className="bg-surface rounded-2xl max-w-2xl w-full border border-outline-variant max-h-[90vh] overflow-y-auto shadow-2xl z-10">
         <div className="p-5 border-b border-outline-variant flex justify-between items-center bg-surface-container/50">
           <h2 className="text-base font-bold text-on-surface">Prescription Details (#{prescription.serialNumber || prescription.id?.substring(0, 8)})</h2>
-          <button onClick={onClose} className="h-8 w-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container font-semibold">✕</button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={onPrint}>
+              <Printer className="mr-1.5 h-4 w-4" />
+              Preview / Print
+            </Button>
+            <button onClick={onClose} className="h-8 w-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container font-semibold">✕</button>
+          </div>
         </div>
         <div className="p-6 space-y-6 text-sm">
           <div className="grid grid-cols-2 gap-4">
