@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { apiClient } from "@/lib/api-client";
 import { API_ROUTES } from "@/lib/constants";
 import { useAuth } from "@/hooks/useAuth";
+import VerificationNotice from "@/components/verification/VerificationNotice";
 
 // Import and register Chart.js components
 import {
@@ -323,6 +324,8 @@ export default function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      <VerificationNotice />
 
       {loading ? (
         <div className="space-y-6">
