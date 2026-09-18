@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { X, Plus, Trash2, Search, ChevronDown, Loader2, Check, UserPlus } from "lucide-react";
+import { X, Plus, Trash2, Search, ChevronDown, Loader2, Check, UserPlus, AlertTriangle } from "lucide-react";
 import { useNotification } from "@/hooks/useNotification";
 import { toast as globalToast } from "@/components/ui/use-toast";
 import { apiClient } from "@/lib/api-client";
@@ -15,6 +15,8 @@ interface PrescriptionBuilderProps {
   prescription?: Prescription | null;
   onClose: () => void;
   onSaved?: () => void;
+  /** Called after a prescription is finalized so the caller can open the preview/print view. */
+  onFinalized?: (prescription: { id: string; status: string } & Record<string, any>) => void;
 }
 
 interface MedRow extends PrescriptionMedicine {
@@ -588,6 +590,7 @@ export default function PrescriptionBuilder({
   prescription,
   onClose,
   onSaved,
+  onFinalized,
 }: PrescriptionBuilderProps) {
   const { success, error: showError } = useNotification();
   const [patientId, setPatientId] = useState(prescription?.patientId || "");
@@ -642,6 +645,8 @@ export default function PrescriptionBuilder({
   >("idle");
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedRef = useRef<string | null>(null);
+  const [showExitDialog, setShowExitDialog] = useState(false);
+  const [exitSaving, setExitSaving] = useState(false);
 
   // Build the API payload. Autosave always targets DRAFT (Section 13.5);
   // manual submit uses the selected status.
@@ -757,6 +762,65 @@ export default function PrescriptionBuilder({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formSnapshot]);
+
+  // ── Exit handling (save as draft / discard) ─────────────────────────────────
+  // Closing the builder should never silently discard work. If there are
+  // unsaved changes we ask whether to keep a draft or discard it.
+  const requestClose = () => {
+    if (saving || exitSaving) return;
+    // Compare against the last persisted snapshot. Read in the handler (not
+    // during render) to avoid touching a ref while rendering.
+    const isDirty = formSnapshot !== lastSavedRef.current;
+    if (!isDirty) {
+      onClose();
+      return;
+    }
+    setShowExitDialog(true);
+  };
+
+  const saveDraftAndExit = async () => {
+    if (submittingRef.current || exitSaving) return;
+
+    if (!patientId) return showError("Select a patient before saving a draft");
+    if (!chamberId) return showError("Select a chamber before saving a draft");
+    if (!meds.some((m) => m.brandName.trim()))
+      return showError("Add at least one medicine before saving a draft");
+
+    submittingRef.current = true;
+    setExitSaving(true);
+    try {
+      if (prescription?.id) {
+        await apiClient.patch(
+          API_ROUTES.PRESCRIPTIONS.UPDATE(prescription.id),
+          buildPayload("DRAFT"),
+        );
+      } else {
+        await apiClient.post(
+          API_ROUTES.PRESCRIPTIONS.CREATE,
+          buildPayload("DRAFT"),
+        );
+      }
+      lastSavedRef.current = formSnapshot;
+      setSaveState("saved");
+      success("Prescription saved as draft");
+      setShowExitDialog(false);
+      onSaved?.();
+      onClose();
+    } catch (e: any) {
+      showError(
+        e?.response?.data?.message || e?.message || "Failed to save draft",
+      );
+    } finally {
+      submittingRef.current = false;
+      setExitSaving(false);
+    }
+  };
+
+  const discardAndExit = () => {
+    setShowExitDialog(false);
+    onSaved?.();
+    onClose();
+  };
 
   // ── Templates (Section 13.6) ───────────────────────────────────────────────
   const [templates, setTemplates] = useState<any[]>([]);
@@ -875,7 +939,12 @@ export default function PrescriptionBuilder({
       }
 
       if (status === "FINALIZED" && rxId) {
-        await apiClient.post(API_ROUTES.PRESCRIPTIONS.FINALIZE(rxId));
+        const fin = await apiClient.post<any>(
+          API_ROUTES.PRESCRIPTIONS.FINALIZE(rxId),
+        );
+        const finalized = fin.data?.data || fin.data;
+        // Surface the finalized record so the caller can open the preview/print.
+        onFinalized?.({ ...(finalized || {}), id: rxId, status: "FINALIZED" });
       }
 
       lastSavedRef.current = formSnapshot;
@@ -898,7 +967,7 @@ export default function PrescriptionBuilder({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={requestClose} />
       <div className="relative bg-surface rounded-2xl w-full max-w-3xl max-h-[95vh] overflow-y-auto shadow-2xl border border-outline-variant z-10">
         <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant bg-surface-container/60 sticky top-0 z-10">
           <div>
@@ -927,7 +996,7 @@ export default function PrescriptionBuilder({
                   : "Fill details and add medicines")}
             </p>
           </div>
-          <button type="button" onClick={onClose} className="h-8 w-8 rounded-lg border border-outline-variant flex items-center justify-center text-on-surface-variant hover:bg-surface-container">
+          <button type="button" onClick={requestClose} className="h-8 w-8 rounded-lg border border-outline-variant flex items-center justify-center text-on-surface-variant hover:bg-surface-container">
             <X size={16} />
           </button>
         </div>
@@ -1093,7 +1162,7 @@ export default function PrescriptionBuilder({
           </div>
 
           <div className="flex gap-3 pt-2 border-t border-outline-variant">
-            <Button type="button" variant="ghost" onClick={onClose} className="flex-1">Cancel</Button>
+            <Button type="button" variant="ghost" onClick={requestClose} className="flex-1">Cancel</Button>
             <Button type="submit" disabled={saving} className="flex-1">
               {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
               {saving ? "Saving…" : prescription ? "Update Prescription" : "Create Prescription"}
@@ -1101,6 +1170,56 @@ export default function PrescriptionBuilder({
           </div>
         </form>
       </div>
+
+      {showExitDialog && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => !exitSaving && setShowExitDialog(false)}
+          />
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            className="relative z-10 w-full max-w-md rounded-2xl border border-outline-variant bg-surface p-6 shadow-2xl"
+          >
+            <div className="flex items-start gap-4">
+              <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-base font-bold text-on-surface">
+                  Save this prescription?
+                </h2>
+                <p className="mt-1 text-sm text-on-surface-variant">
+                  You have unsaved changes. Save it as a draft so you can finish
+                  it later, or discard it.
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 flex flex-wrap justify-end gap-3">
+              <Button
+                variant="ghost"
+                onClick={() => setShowExitDialog(false)}
+                disabled={exitSaving}
+              >
+                Keep editing
+              </Button>
+              <Button variant="danger" onClick={discardAndExit} disabled={exitSaving}>
+                Discard
+              </Button>
+              <Button
+                variant="primary"
+                onClick={saveDraftAndExit}
+                disabled={exitSaving}
+                autoFocus
+              >
+                {exitSaving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+                {exitSaving ? "Saving…" : "Save as Draft"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

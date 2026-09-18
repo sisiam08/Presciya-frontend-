@@ -357,7 +357,11 @@ export default function PrescriptionsPage() {
       {/* Builder Modal */}
       <AnimatePresence>
         {isBuilderOpen && (
-          <PrescriptionBuilder prescription={editingPrescription} onClose={() => { setIsBuilderOpen(false); setEditingPrescription(null); refetch(); }} />
+          <PrescriptionBuilder
+            prescription={editingPrescription}
+            onClose={() => { setIsBuilderOpen(false); setEditingPrescription(null); refetch(); }}
+            onFinalized={(rx) => setPrintPrescription(rx as unknown as Prescription)}
+          />
         )}
       </AnimatePresence>
     </div>
