@@ -77,21 +77,26 @@ export default function AdminVerificationsPage() {
     "";
   const hasBmdc = Boolean(bmdcNumber);
 
-  // Copy the BMDC number to the clipboard and open the official BMDC
+  // The BMDC portal's input only accepts the 6-digit registration number
+  // (without the letter prefix), so copy just the digits (last 6).
+  const bmdcDigits = bmdcNumber.replace(/\D/g, "").slice(-6);
+
+  // Copy the BMDC digits to the clipboard and open the official BMDC
   // verification portal in a new tab.
   const verifyBmdc = async () => {
     if (!bmdcNumber) return;
+    const copyValue = bmdcDigits || bmdcNumber;
     try {
-      await navigator.clipboard.writeText(bmdcNumber);
+      await navigator.clipboard.writeText(copyValue);
       toast({
         title: "BMDC number copied",
-        description: `${bmdcNumber} copied to clipboard. Verify it on the BMDC portal.`,
+        description: `${copyValue} copied to clipboard. Paste it into the BMDC portal.`,
         variant: "success",
       });
     } catch {
       toast({
         title: "Copy failed",
-        description: `BMDC number: ${bmdcNumber}. Please copy it manually.`,
+        description: `BMDC number: ${copyValue}. Please copy it manually.`,
         variant: "destructive",
       });
     }
@@ -271,7 +276,7 @@ export default function AdminVerificationsPage() {
               disabled={processing || !hasBmdc}
               title={
                 hasBmdc
-                  ? `Copy ${bmdcNumber} and open verify.bmdc.org.bd`
+                  ? `Copy ${bmdcDigits || bmdcNumber} and open verify.bmdc.org.bd`
                   : "No BMDC registration number on file"
               }
             >
