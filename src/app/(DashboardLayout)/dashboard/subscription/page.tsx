@@ -44,7 +44,17 @@ export default function SubscriptionPage() {
         apiClient.get<any>(API_ROUTES.SUBSCRIPTION.PLANS).catch(() => ({ data: [] })),
         apiClient.get<any>(API_ROUTES.SUBSCRIPTION.BILLING_HISTORY).catch(() => ({ data: [] })),
       ]);
-      setSubscription(subRes.data?.data || subRes.data);
+      // /subscription/my-subscription returns { subscription, usage }.
+      const subPayload = subRes.data?.data ?? subRes.data;
+      setSubscription(
+        subPayload?.subscription
+          ? {
+              ...subPayload.subscription,
+              dailyUsed: subPayload.usage?.today,
+              dailyLimit: subPayload.usage?.dailyLimit,
+            }
+          : subPayload,
+      );
       setPlans(plansRes.data?.data || plansRes.data || []);
       setBillingHistory(billingRes.data?.data || billingRes.data || []);
     } catch {}

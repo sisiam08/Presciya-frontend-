@@ -70,7 +70,20 @@ export default function PrescriptionsPage() {
 
   const { mutate: amendPrescription } = useMutation("post", {
     onSuccess: (res: any) => {
-      const draft = res?.data || res;
+      const raw = res?.data || res;
+      const draft = {
+        ...raw,
+        medicines: (raw?.prescriptionMedicines ?? raw?.medicines ?? []).map(
+          (m: any) => ({
+            ...m,
+            brandName: m.brandName ?? m.snapshotBrandName,
+            generic: m.generic ?? m.snapshotGeneric,
+            strength: m.strength ?? m.snapshotStrength,
+            type: m.type ?? m.snapshotType,
+            frequency: m.frequency ?? m.dosagePattern,
+          }),
+        ),
+      };
       success("A corrected draft version was created");
       setSelectedPrescription(null);
       setEditingPrescription(draft);

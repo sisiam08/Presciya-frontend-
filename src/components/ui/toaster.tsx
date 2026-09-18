@@ -8,11 +8,14 @@ export function Toaster() {
   const { toasts, dismiss } = useToast();
 
   return (
-    <div className="fixed bottom-4 right-4 z-[9999] flex flex-col gap-2 w-full max-w-sm pointer-events-auto">
+    // The wrapper must not capture pointer events when empty, otherwise it
+    // overlays and blocks clicks on buttons in the bottom-right area (e.g.
+    // modal Save/Book buttons). Only the toast cards themselves are clickable.
+    <div className="fixed bottom-4 right-4 z-[9999] flex flex-col gap-2 w-full max-w-sm pointer-events-none">
       {toasts.map((t) => (
         <div
           key={t.id}
-          className={`flex items-start justify-between p-4 rounded-xl border shadow-lg backdrop-blur-md transition-all duration-300 animate-in slide-in-from-bottom-5 ${
+          className={`pointer-events-auto flex items-start justify-between p-4 rounded-xl border shadow-lg backdrop-blur-md transition-all duration-300 animate-in slide-in-from-bottom-5 ${
             t.variant === "destructive"
               ? "bg-error-container text-on-error-container border-error/30"
               : t.variant === "success"

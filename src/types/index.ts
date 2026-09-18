@@ -327,12 +327,13 @@ export interface Invoice {
 export interface VerificationRequest {
   id: string;
   userId: string;
-  type: "DOCTOR" | "INSTITUTION";
+  type: "PERSONAL" | "INSTITUTION" | "DOCTOR";
   status: VerificationStatus;
   submittedData?: Record<string, unknown>;
+  submittedAt: string;
   reviewerNotes?: string;
   reviewedAt?: string;
-  user?: User;
+  user?: Pick<User, "id" | "name" | "email">;
   createdAt: string;
   updatedAt: string;
 }

@@ -162,7 +162,7 @@ export const API_ROUTES = {
     TOGGLE_FEATURE: (id: string) => `/admin/features/${id}/flag`,
     AUDIT_LOGS: "/admin/audit-logs",
     LOGIN_HISTORY: "/admin/login-history",
-    WORKSPACES: "/workspaces", // reuse workspaces list for admin
+    WORKSPACES: "/admin/workspaces",
     VERIFICATIONS: "/verification/pending",
   },
 

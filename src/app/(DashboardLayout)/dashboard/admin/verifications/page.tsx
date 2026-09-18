@@ -177,7 +177,7 @@ export default function AdminVerificationsPage() {
                     Type: {selectedReq.type}
                   </span>
                   <span className="text-xs text-slate-400">
-                    Submitted: {formatDateTime(selectedReq.createdAt)}
+                    Submitted: {formatDateTime(selectedReq.submittedAt)}
                   </span>
                 </div>
               </div>
@@ -264,7 +264,7 @@ export default function AdminVerificationsPage() {
                           {cfg.label}
                         </span>
                       </td>
-                      <td className="py-3.5 px-5 text-xs font-medium text-slate-500 dark:text-slate-400">{formatDateTime(req.createdAt)}</td>
+                      <td className="py-3.5 px-5 text-xs font-medium text-slate-500 dark:text-slate-400">{formatDateTime(req.submittedAt)}</td>
                       <td className="py-3.5 px-5">
                         <Button variant="outline" size="sm" className="h-8 text-xs font-bold" onClick={() => setSelectedReq(req)}>
                           <Eye className="h-3.5 w-3.5 mr-1" /> Review
