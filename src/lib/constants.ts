@@ -78,6 +78,14 @@ export const API_ROUTES = {
     VERIFY: (id: string) => `/prescription/${id}/verify`,
   },
 
+  // ── Prescription templates ────────────────────────────────────────────────
+  TEMPLATES: {
+    LIST: "/prescription-templates",
+    CREATE: "/prescription-templates",
+    GET: (id: string) => `/prescription-templates/${id}`,
+    DELETE: (id: string) => `/prescription-templates/${id}`,
+  },
+
   // ── Medicines ─────────────────────────────────────────────────────────────
   MEDICINES: {
     SEARCH: "/medicine/search",

@@ -747,6 +747,82 @@ export default function PrescriptionBuilder({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formSnapshot]);
 
+  // ── Templates (Section 13.6) ───────────────────────────────────────────────
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    apiClient
+      .get<any>(API_ROUTES.TEMPLATES.LIST)
+      .then((r) => {
+        if (active) setTemplates(r.data?.data || r.data || []);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Copy a template into the current prescription. The stored template is never
+  // mutated by later edits to the prescription.
+  const applyTemplate = () => {
+    const tpl = templates.find((t) => t.id === selectedTemplateId);
+    if (!tpl) return;
+    const imported = Array.isArray(tpl.medicinesJson) ? tpl.medicinesJson : [];
+
+    const rows: MedRow[] = imported.map((m: any) => {
+      medCounter.current += 1;
+      return {
+        _id: medCounter.current,
+        brandName: m.brandName || "",
+        generic: m.generic || "",
+        strength: m.strength || "",
+        type: m.type || "Tablet",
+        usageType: m.usageType || "DAILY",
+        dosagePattern: m.dosagePattern,
+        frequency: m.frequency,
+        duration: m.duration || "7 days",
+        mealTiming: m.mealTiming,
+        instruction: m.instruction,
+        dose: m.dose,
+        intervalDays: m.intervalDays,
+        applicationAmount: m.applicationAmount,
+        applicationArea: m.applicationArea,
+        applicationFrequency: m.applicationFrequency,
+        customScheduleJson: m.customScheduleJson,
+      };
+    });
+
+    setMeds((prev) => [...prev.filter((m) => m.brandName.trim()), ...rows]);
+    if (!complaints.trim() && tpl.complaints) setComplaints(tpl.complaints);
+    if (!advises.trim() && tpl.advises) setAdvises(tpl.advises);
+    success(`Template "${tpl.name}" applied`);
+  };
+
+  const saveAsTemplate = async () => {
+    const validMeds = meds.filter((m) => m.brandName.trim());
+    if (validMeds.length === 0) {
+      return showError("Add at least one medicine before saving a template");
+    }
+    const name = window.prompt("Template name (e.g. Cold & Fever)");
+    if (!name || !name.trim()) return;
+
+    try {
+      const res = await apiClient.post<any>(API_ROUTES.TEMPLATES.CREATE, {
+        name: name.trim(),
+        complaints: complaints.trim() || undefined,
+        advises: advises.trim() || undefined,
+        medicines: buildPayload("DRAFT").medicines,
+      });
+      const created = res.data?.data || res.data;
+      setTemplates((prev) => [created, ...prev]);
+      success(`Template "${name.trim()}" saved`);
+    } catch (e: any) {
+      showError(e?.response?.data?.message || "Failed to save template");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs: Record<string, string> = {};
@@ -933,11 +1009,46 @@ export default function PrescriptionBuilder({
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <h3 className="text-sm font-bold text-on-surface">Medicines *</h3>
-              <Button type="button" variant="outline" size="sm" onClick={addMed}>
-                <Plus size={14} className="mr-1" /> Add Medicine
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                {templates.length > 0 && (
+                  <>
+                    <select
+                      value={selectedTemplateId}
+                      onChange={(e) => setSelectedTemplateId(e.target.value)}
+                      className="h-8 px-2 text-xs bg-surface border border-gray-200 dark:border-slate-800 rounded-md text-on-surface focus:outline-none"
+                    >
+                      <option value="">Load template…</option>
+                      {templates.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                        </option>
+                      ))}
+                    </select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={applyTemplate}
+                      disabled={!selectedTemplateId}
+                    >
+                      Apply
+                    </Button>
+                  </>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={saveAsTemplate}
+                >
+                  Save as template
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={addMed}>
+                  <Plus size={14} className="mr-1" /> Add Medicine
+                </Button>
+              </div>
             </div>
             {fieldErrors.medicines && (
               <p className="text-xs text-red-500 font-semibold mb-2 animate-in fade-in duration-200">
