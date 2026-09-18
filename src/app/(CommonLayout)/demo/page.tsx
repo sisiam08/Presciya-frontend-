@@ -117,8 +117,15 @@ export default function DemoPage() {
     setSelectedMedicines(selectedMedicines.filter((m) => m.id !== id));
   };
 
+  // Section 24.6: the public demo is interactive but must never allow real
+  // printing or downloading. Explain instead of rendering an output.
   const handlePrint = () => {
-    window.print();
+    toast({
+      title: "Printing disabled in the demo",
+      description:
+        "This is a sandbox with fictional data. Create a free account to print or download real prescriptions.",
+      variant: "default",
+    });
   };
 
   const filteredMock = MOCK_MEDICINES.filter(
@@ -139,8 +146,13 @@ export default function DemoPage() {
             saved.
           </p>
         </div>
-        <Button onClick={handlePrint} className="gap-2">
-          <Printer className="h-4 w-4" /> Print / Save PDF
+        <Button
+          onClick={handlePrint}
+          variant="outline"
+          className="gap-2"
+          title="Printing is disabled in the sandbox demo"
+        >
+          <Printer className="h-4 w-4" /> Print / Save PDF (demo)
         </Button>
       </div>
 
@@ -316,6 +328,9 @@ export default function DemoPage() {
         <div className="sticky top-20 print:relative print:top-0">
           <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl shadow-xl p-8 min-h-175 flex flex-col justify-between text-gray-900 dark:text-gray-100 print:border-none print:shadow-none print:p-0">
             <div>
+              <span className="mb-4 inline-block rounded-full bg-amber-100 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+                Demo · Fictional data · Not a real prescription
+              </span>
               {/* Header */}
               <div className="flex justify-between items-start border-b border-primary/20 pb-4">
                 <div>
