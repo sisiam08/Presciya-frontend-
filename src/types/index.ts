@@ -58,6 +58,9 @@ export interface DoctorProfile {
   signatureUrl?: string;
   verificationStatus: VerificationStatus;
   bio?: string;
+  // Prescription rendering defaults (Settings → Prescription).
+  prescriptionLanguage?: PrescriptionLanguage;
+  prescriptionTemplate?: PrescriptionDesignTemplate;
   user?: User;
   createdAt: string;
   updatedAt: string;
@@ -166,6 +169,22 @@ export enum PrescriptionStatus {
   CANCELLED = "CANCELLED",
 }
 
+// Prescription rendering language. Only the doctor's instructions, advice,
+// next-visit label and medicine meal-timing labels are translated.
+export enum PrescriptionLanguage {
+  ENGLISH = "ENGLISH",
+  BANGLA = "BANGLA",
+}
+
+// Visual layout of a prescription. All templates share the same data.
+export enum PrescriptionDesignTemplate {
+  DEFAULT = "DEFAULT",
+  MODERN_CLINICAL = "MODERN_CLINICAL",
+  MINIMAL_PROFESSIONAL = "MINIMAL_PROFESSIONAL",
+  MODERN_MEDICAL = "MODERN_MEDICAL",
+  ELEGANT_COMPACT = "ELEGANT_COMPACT",
+}
+
 export interface PrescriptionMedicine {
   medicineId?: string;
   brandName: string;
@@ -211,6 +230,8 @@ export interface Prescription {
   nextVisitDate?: string;
   medicines: PrescriptionMedicine[];
   status: PrescriptionStatus;
+  language?: PrescriptionLanguage;
+  template?: PrescriptionDesignTemplate;
   pdfUrl?: string;
   verificationCode?: string;
   patient?: Patient;

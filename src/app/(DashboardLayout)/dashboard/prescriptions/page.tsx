@@ -27,6 +27,7 @@ import { useConfirm } from "@/components/ui/confirm";
 import { API_ROUTES } from "@/lib/constants";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { Prescription, PrescriptionStatus } from "@/types";
+import { normalizePrescription, normalizePrescriptions } from "@/lib/prescriptions";
 import PrescriptionBuilder from "@/components/prescription/PrescriptionBuilder";
 import PrescriptionPrintModal from "@/components/prescription/PrescriptionPrintModal";
 import { AnimatePresence, motion } from "framer-motion";
@@ -48,19 +49,7 @@ export default function PrescriptionsPage() {
   );
 
   const rawPrescriptions: any[] = prescriptionsData?.data || prescriptionsData || [];
-  // The API returns medicine lines as `prescriptionMedicines` with snapshot*
-  // fields; normalize to the `medicines` shape the list/detail/builder expect.
-  const prescriptions: Prescription[] = rawPrescriptions.map((p) => ({
-    ...p,
-    medicines: (p.prescriptionMedicines ?? p.medicines ?? []).map((m: any) => ({
-      ...m,
-      brandName: m.brandName ?? m.snapshotBrandName,
-      generic: m.generic ?? m.snapshotGeneric,
-      strength: m.strength ?? m.snapshotStrength,
-      type: m.type ?? m.snapshotType,
-      frequency: m.frequency ?? m.dosagePattern,
-    })),
-  }));
+  const prescriptions: Prescription[] = normalizePrescriptions(rawPrescriptions);
 
   const { mutate: deletePrescription } = useMutation("delete", {
     onSuccess: () => {
@@ -73,19 +62,7 @@ export default function PrescriptionsPage() {
   const { mutate: amendPrescription } = useMutation("post", {
     onSuccess: (res: any) => {
       const raw = res?.data || res;
-      const draft = {
-        ...raw,
-        medicines: (raw?.prescriptionMedicines ?? raw?.medicines ?? []).map(
-          (m: any) => ({
-            ...m,
-            brandName: m.brandName ?? m.snapshotBrandName,
-            generic: m.generic ?? m.snapshotGeneric,
-            strength: m.strength ?? m.snapshotStrength,
-            type: m.type ?? m.snapshotType,
-            frequency: m.frequency ?? m.dosagePattern,
-          }),
-        ),
-      };
+      const draft = normalizePrescription(raw);
       success("A corrected draft version was created");
       setSelectedPrescription(null);
       setEditingPrescription(draft);

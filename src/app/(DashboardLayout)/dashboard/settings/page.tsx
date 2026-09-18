@@ -1,29 +1,40 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   User,
   Palette,
   Shield,
-  Bell,
   Loader2,
   Save,
   Key,
   CheckCircle,
   Eye,
   EyeOff,
+  FileText,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { apiClient } from "@/lib/api-client";
-import { API_ROUTES } from "@/lib/constants";
+import {
+  API_ROUTES,
+  PRESCRIPTION_LANGUAGES,
+  PRESCRIPTION_DESIGN_TEMPLATES,
+} from "@/lib/constants";
 import { useNotification } from "@/hooks/useNotification";
+import A4PreviewFrame from "@/components/prescription/A4PreviewFrame";
+import {
+  PrescriptionLanguage,
+  PrescriptionDesignTemplate,
+} from "@/types";
 
-type TabId = "profile" | "branding" | "security";
+type TabId = "profile" | "prescription" | "branding" | "security";
 
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "profile", label: "Profile", icon: User },
+  { id: "prescription", label: "Prescription", icon: FileText },
   { id: "branding", label: "Branding", icon: Palette },
   { id: "security", label: "Security", icon: Shield },
 ];
@@ -144,6 +155,204 @@ function ProfileTab() {
             {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
             {saving ? "Saving…" : "Save Profile"}
           </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Prescription Tab ─────────────────────────────────────────────────────────
+
+function PrescriptionTab() {
+  const { success, error: showError } = useNotification();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [language, setLanguage] = useState<PrescriptionLanguage>(
+    PrescriptionLanguage.ENGLISH,
+  );
+  const [template, setTemplate] = useState<PrescriptionDesignTemplate>(
+    PrescriptionDesignTemplate.DEFAULT,
+  );
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(true);
+
+  useEffect(() => {
+    apiClient
+      .get<any>(API_ROUTES.DOCTOR.PROFILE)
+      .then((res) => {
+        const d = res.data?.data || res.data;
+        if (d?.prescriptionLanguage) setLanguage(d.prescriptionLanguage);
+        if (d?.prescriptionTemplate) setTemplate(d.prescriptionTemplate);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Preview uses the SAME backend renderer as the real prescription/PDF.
+  useEffect(() => {
+    let active = true;
+    setPreviewLoading(true);
+    apiClient
+      .get<string>(
+        API_ROUTES.PRESCRIPTIONS.TEMPLATE_PREVIEW(template, language),
+        { responseType: "text" },
+      )
+      .then((res) => {
+        if (active) setPreviewHtml(res.data);
+      })
+      .catch(() => {
+        if (active) setPreviewHtml(null);
+      })
+      .finally(() => {
+        if (active) setPreviewLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [template, language]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await apiClient.patch(API_ROUTES.DOCTOR.UPDATE_PROFILE, {
+        prescriptionLanguage: language,
+        prescriptionTemplate: template,
+      });
+      success("Prescription settings saved");
+    } catch (e: any) {
+      showError(
+        e?.response?.data?.message || "Failed to save prescription settings",
+      );
+    }
+    setSaving(false);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Language */}
+      <div className="bg-surface rounded-2xl border border-outline-variant p-6">
+        <h3 className="text-base font-bold text-on-surface mb-1">
+          Prescription Language
+        </h3>
+        <p className="text-xs text-on-surface-variant mb-4">
+          Only the doctor&apos;s instructions, advice, next-visit label and
+          medicine taking time change language. Everything else stays as
+          entered. New prescriptions use this; finalized ones keep their own
+          language.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {PRESCRIPTION_LANGUAGES.map((lang) => {
+            const selected = language === lang.value;
+            return (
+              <button
+                key={lang.value}
+                type="button"
+                onClick={() => setLanguage(lang.value as PrescriptionLanguage)}
+                className={`flex items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors ${
+                  selected
+                    ? "border-primary bg-primary/5"
+                    : "border-outline-variant hover:border-primary/40"
+                }`}
+              >
+                <div>
+                  <p className="text-sm font-semibold text-on-surface">
+                    {lang.label}
+                  </p>
+                  <p className="text-[11px] text-on-surface-variant mt-0.5">
+                    e.g. {lang.sample}
+                  </p>
+                </div>
+                <span
+                  className={`flex h-5 w-5 items-center justify-center rounded-full border ${
+                    selected
+                      ? "border-primary bg-primary text-on-primary"
+                      : "border-outline-variant"
+                  }`}
+                >
+                  {selected && <Check size={12} />}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Template */}
+      <div className="bg-surface rounded-2xl border border-outline-variant p-6">
+        <h3 className="text-base font-bold text-on-surface mb-1">
+          Prescription Template
+        </h3>
+        <p className="text-xs text-on-surface-variant mb-4">
+          Choose the design used for new prescriptions. Finalized prescriptions
+          keep the template they were issued with.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {PRESCRIPTION_DESIGN_TEMPLATES.map((tpl) => {
+            const selected = template === tpl.value;
+            return (
+              <button
+                key={tpl.value}
+                type="button"
+                onClick={() =>
+                  setTemplate(tpl.value as PrescriptionDesignTemplate)
+                }
+                className={`rounded-xl border p-4 text-left transition-colors ${
+                  selected
+                    ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                    : "border-outline-variant hover:border-primary/40"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-bold text-on-surface">{tpl.name}</p>
+                  {selected && (
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-on-primary">
+                      <Check size={12} />
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-on-surface-variant mt-1.5 leading-relaxed">
+                  {tpl.description}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mt-5 flex justify-end">
+          <Button onClick={handleSave} disabled={saving} className="min-w-[160px]">
+            {saving ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-1" />
+            ) : (
+              <Save className="h-4 w-4 mr-1" />
+            )}
+            {saving ? "Saving…" : "Save Prescription Settings"}
+          </Button>
+        </div>
+      </div>
+
+      {/* Live preview (same renderer as PDF/print) */}
+      <div className="bg-surface rounded-2xl border border-outline-variant p-6">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h3 className="text-base font-bold text-on-surface">Live Preview</h3>
+            <p className="text-xs text-on-surface-variant">
+              Exactly what the printed prescription will look like.
+            </p>
+          </div>
+          {previewLoading && (
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+          )}
+        </div>
+        <div className="max-h-[80vh] overflow-auto rounded-xl border border-outline-variant bg-slate-100 p-4 dark:bg-slate-900">
+          <A4PreviewFrame html={previewHtml} title="Template preview" />
         </div>
       </div>
     </div>
@@ -394,6 +603,7 @@ export default function SettingsPage() {
       {/* Tab Content */}
       <div>
         {activeTab === "profile" && <ProfileTab />}
+        {activeTab === "prescription" && <PrescriptionTab />}
         {activeTab === "branding" && <BrandingTab />}
         {activeTab === "security" && <SecurityTab />}
       </div>

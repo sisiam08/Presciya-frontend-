@@ -19,6 +19,7 @@ import { toast } from "@/components/ui/use-toast";
 import { apiClient } from "@/lib/api-client";
 import { API_ROUTES } from "@/lib/constants";
 import { Prescription, PrescriptionStatus } from "@/types";
+import { normalizePrescription } from "@/lib/prescriptions";
 import { formatDate, formatDateTime } from "@/lib/utils";
 
 function StatusBadge({ status }: { status: PrescriptionStatus }) {
@@ -44,6 +45,13 @@ function Skeleton({ className = "" }: { className?: string }) {
 // ─── Medicine Row ─────────────────────────────────────────────────────────────
 function MedicineRow({ med, idx }: { med: any; idx: number }) {
   const schedule = () => {
+    if (
+      med.frequencyMorning != null ||
+      med.frequencyNoon != null ||
+      med.frequencyNight != null
+    ) {
+      return `${med.frequencyMorning ?? 0} + ${med.frequencyNoon ?? 0} + ${med.frequencyNight ?? 0}`;
+    }
     if (med.morning != null || med.noon != null || med.night != null) {
       return `${med.morning ?? 0} + ${med.noon ?? 0} + ${med.night ?? 0}`;
     }
@@ -63,7 +71,7 @@ function MedicineRow({ med, idx }: { med: any; idx: number }) {
       <td className="py-3 px-4 text-xs text-on-surface-variant">{med.type || "—"}</td>
       <td className="py-3 px-4 text-xs text-on-surface">{schedule()}</td>
       <td className="py-3 px-4 text-xs text-on-surface-variant">{med.duration || "—"}</td>
-      <td className="py-3 px-4 text-xs text-on-surface-variant">{med.mealTiming?.replace("_", " ") || "—"}</td>
+      <td className="py-3 px-4 text-xs text-on-surface-variant">{med.mealTiming?.replace(/_/g, " ") || "—"}</td>
       <td className="py-3 px-4 text-xs text-on-surface-variant max-w-xs">{med.instruction || "—"}</td>
     </tr>
   );
@@ -83,7 +91,7 @@ export default function PrescriptionDetailPage() {
       setLoading(true);
       try {
         const res = await apiClient.get<any>(API_ROUTES.PRESCRIPTIONS.GET(params.id));
-        setPrescription(res.data?.data || res.data);
+        setPrescription(normalizePrescription(res.data?.data || res.data));
       } catch (e: any) {
         setError(e?.response?.data?.message || "Failed to load prescription.");
       } finally {
@@ -97,10 +105,12 @@ export default function PrescriptionDetailPage() {
     if (!prescription || prescription.status !== PrescriptionStatus.DRAFT) return;
     setFinalizing(true);
     try {
-      const res = await apiClient.patch<any>(API_ROUTES.PRESCRIPTIONS.UPDATE(prescription.id), {
-        status: PrescriptionStatus.FINALIZED,
-      });
-      setPrescription(res.data?.data || res.data);
+      // Finalization must go through the dedicated endpoint so the verification
+      // gate, serial number and verification code are applied.
+      const res = await apiClient.post<any>(
+        API_ROUTES.PRESCRIPTIONS.FINALIZE(prescription.id),
+      );
+      setPrescription(normalizePrescription(res.data?.data || res.data));
     } catch (e: any) {
       toast({
         title: "Finalization Failed",

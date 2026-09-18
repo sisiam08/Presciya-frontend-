@@ -78,6 +78,10 @@ export const API_ROUTES = {
     PREVIEW: (id: string) => `/prescription/${id}/preview`,
     AMEND: (id: string) => `/prescription/${id}/amend`,
     VERIFY: (id: string) => `/prescription/${id}/verify`,
+    TEMPLATE_PREVIEW: (template: string, language?: string) =>
+      `/prescription/template-preview?template=${encodeURIComponent(template)}${
+        language ? `&language=${encodeURIComponent(language)}` : ""
+      }`,
   },
 
   // ── Prescription templates ────────────────────────────────────────────────
@@ -366,6 +370,41 @@ export const MEAL_TIMINGS = [
   { value: "AFTER_MEAL", label: "After Meal" },
   { value: "WITH_MEAL", label: "With Meal" },
   { value: "EMPTY_STOMACH", label: "Empty Stomach" },
+] as const;
+
+// ─── Prescription rendering settings (Settings → Prescription) ────────────────
+
+export const PRESCRIPTION_LANGUAGES = [
+  { value: "ENGLISH", label: "English", sample: "After Meal" },
+  { value: "BANGLA", label: "বাংলা", sample: "খাবার পরে" },
+] as const;
+
+export const PRESCRIPTION_DESIGN_TEMPLATES = [
+  {
+    value: "DEFAULT",
+    name: "Classic",
+    description: "The original Presciya layout — familiar and print-tested.",
+  },
+  {
+    value: "MODERN_CLINICAL",
+    name: "Modern Clinical",
+    description: "Modern medical SaaS with strong hierarchy and a patient card.",
+  },
+  {
+    value: "MINIMAL_PROFESSIONAL",
+    name: "Minimal Professional",
+    description: "Typography-focused, airy and premium. Great for few medicines.",
+  },
+  {
+    value: "MODERN_MEDICAL",
+    name: "Modern Medical",
+    description: "Structured sections built for scanning long medicine lists.",
+  },
+  {
+    value: "ELEGANT_COMPACT",
+    name: "Elegant Compact",
+    description: "Efficient vertical space for high medicine counts.",
+  },
 ] as const;
 
 export const USAGE_TYPES = [

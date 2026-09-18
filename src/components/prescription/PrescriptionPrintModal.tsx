@@ -6,6 +6,7 @@ import { Printer, Loader2, X, ShieldAlert } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import { API_ROUTES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
+import A4PreviewFrame from "./A4PreviewFrame";
 
 interface PrescriptionPrintModalProps {
   prescriptionId: string;
@@ -112,7 +113,7 @@ export default function PrescriptionPrintModal({
           </div>
         )}
 
-        <div className="relative flex-1 bg-slate-100 dark:bg-slate-900">
+        <div className="relative flex-1 overflow-auto bg-slate-100 p-4 dark:bg-slate-900">
           {loading && (
             <div className="absolute inset-0 flex items-center justify-center text-on-surface-variant">
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -124,15 +125,7 @@ export default function PrescriptionPrintModal({
               {error}
             </div>
           )}
-          {html && (
-            <iframe
-              ref={iframeRef}
-              title="Prescription preview"
-              srcDoc={html}
-              sandbox="allow-same-origin allow-modals"
-              className="h-full w-full border-0"
-            />
-          )}
+          {html && <A4PreviewFrame html={html} iframeRef={iframeRef} />}
         </div>
       </motion.div>
     </motion.div>
