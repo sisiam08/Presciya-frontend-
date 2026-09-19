@@ -35,12 +35,14 @@ export const formatTime = (date: Date | string): string => {
   });
 };
 
-// Number formatting
-export const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat("en-BD", {
-    style: "currency",
-    currency: "BDT",
-  }).format(amount);
+// Number formatting — centralised so currency can change in one place later.
+export const formatCurrency = (amount: number | string): string => {
+  const value = typeof amount === "string" ? Number(amount) : amount;
+  if (!Number.isFinite(value)) return "৳0";
+  return `৳${new Intl.NumberFormat("en-BD", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(value)}`;
 };
 
 export const formatNumber = (num: number): string => {

@@ -75,6 +75,8 @@ export interface Workspace {
   type: WorkspaceType;
   ownerId: string;
   isActive: boolean;
+  /** The current user's role in this workspace (from GET /workspaces). */
+  role?: WorkspaceRole;
   createdAt: string;
   updatedAt: string;
 }
@@ -238,6 +240,104 @@ export interface Prescription {
   chamber?: Chamber;
   createdAt: string;
   updatedAt: string;
+}
+
+// ─── Finance (internal business finance — Phase 3) ────────────────────────────
+
+export enum FinancialTransactionType {
+  INCOME = "INCOME",
+  EXPENSE = "EXPENSE",
+}
+
+export type PaymentMethod =
+  | "CASH"
+  | "CARD"
+  | "BANK_TRANSFER"
+  | "MOBILE_BANKING"
+  | "CHEQUE"
+  | "ONLINE_GATEWAY";
+
+export interface FinancialCategory {
+  id: string;
+  workspaceId: string | null;
+  name: string;
+  type: FinancialTransactionType;
+  description?: string | null;
+  isSystem: boolean;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface FinancialTransaction {
+  id: string;
+  workspaceId: string;
+  workspace?: { id: string; name: string };
+  createdById: string;
+  createdBy?: { id: string; name: string };
+  type: FinancialTransactionType;
+  amount: number;
+  categoryId: string;
+  category?: { id: string; name: string; type: FinancialTransactionType };
+  paymentMethod: PaymentMethod;
+  description?: string | null;
+  notes?: string | null;
+  transactionDate: string;
+  patientId?: string | null;
+  patient?: { id: string; name: string } | null;
+  appointmentId?: string | null;
+  prescriptionId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FinanceSummary {
+  totalIncome: number;
+  totalExpense: number;
+  netResult: number;
+  incomeCount: number;
+  expenseCount: number;
+  transactionCount: number;
+  currency: string;
+  workspaceCount: number;
+  period: { period: string; start: string | null; end: string | null };
+}
+
+export interface FinanceCategoryTotal {
+  categoryId: string;
+  name: string;
+  total: number;
+  count: number;
+}
+
+export interface FinanceWorkspaceTotal {
+  workspaceId: string;
+  workspaceName: string;
+  income: number;
+  expense: number;
+  net: number;
+}
+
+export interface FinanceReport {
+  summary: {
+    totalIncome: number;
+    totalExpense: number;
+    netResult: number;
+    incomeCount: number;
+    expenseCount: number;
+    transactionCount: number;
+  };
+  incomeByCategory: FinanceCategoryTotal[];
+  expenseByCategory: FinanceCategoryTotal[];
+  timeSeries: { bucket: string; income: number; expense: number; net: number }[];
+  workspaceSummary: FinanceWorkspaceTotal[];
+  currency: string;
+  period: {
+    period: string;
+    start: string | null;
+    end: string | null;
+    groupBy: string;
+  };
 }
 
 // ─── Medicine ────────────────────────────────────────────────────────────────

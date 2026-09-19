@@ -85,6 +85,16 @@ export const API_ROUTES = {
       }`,
   },
 
+  // ── Finance (internal business finance) ───────────────────────────────────
+  FINANCE: {
+    TRANSACTIONS: "/finance/transactions",
+    TRANSACTION: (id: string) => `/finance/transactions/${id}`,
+    SUMMARY: "/finance/summary",
+    REPORTS: "/finance/reports",
+    CATEGORIES: "/finance/categories",
+    CATEGORY: (id: string) => `/finance/categories/${id}`,
+  },
+
   // ── Prescription templates ────────────────────────────────────────────────
   TEMPLATES: {
     LIST: "/prescription-templates",
@@ -364,6 +374,26 @@ export const MEDICINE_TYPES = [
   { value: "INHALER", label: "Inhaler" },
   { value: "SPRAY", label: "Spray" },
   { value: "SUPPOSITORY", label: "Suppository" },
+] as const;
+
+// ─── Finance constants ────────────────────────────────────────────────────────
+
+export const PAYMENT_METHODS = [
+  { value: "CASH", label: "Cash" },
+  { value: "CARD", label: "Card" },
+  { value: "BANK_TRANSFER", label: "Bank Transfer" },
+  { value: "MOBILE_BANKING", label: "Mobile Banking" },
+  { value: "CHEQUE", label: "Cheque" },
+  { value: "ONLINE_GATEWAY", label: "Online Gateway" },
+] as const;
+
+export const FINANCE_PERIODS = [
+  { value: "today", label: "Today" },
+  { value: "week", label: "This Week" },
+  { value: "month", label: "This Month" },
+  { value: "year", label: "This Year" },
+  { value: "all", label: "All Time" },
+  { value: "custom", label: "Custom Range" },
 ] as const;
 
 export const MEAL_TIMINGS = [

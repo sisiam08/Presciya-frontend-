@@ -30,6 +30,7 @@ import {
   Moon,
   Pill,
   ArrowLeft,
+  Wallet,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "@/components/ui/use-toast";
@@ -331,6 +332,7 @@ export default function Sidebar() {
         <NavItem href="/dashboard/chambers" label="Chambers" icon={Building2} active={isActive("/dashboard/chambers")} />
         <NavItem href="/dashboard/appointments" label="Appointments" icon={CalendarDays} active={isActive("/dashboard/appointments")} />
         <NavItem href="/dashboard/analytics" label="Analytics" icon={BarChart3} active={isActive("/dashboard/analytics")} />
+        <NavItem href="/dashboard/finance" label="Finance" icon={Wallet} active={isActive("/dashboard/finance")} />
         <NavItem href="/dashboard/notifications" label="Notifications" icon={Bell} active={isActive("/dashboard/notifications")} badge={unreadCount} />
 
         {isInstitution && (
