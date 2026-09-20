@@ -20,6 +20,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { useFinanceScope } from "@/hooks/useFinanceScope";
 import FinanceScopeBar from "@/components/finance/FinanceScopeBar";
 import TransactionDialog from "@/components/finance/TransactionDialog";
+import FeatureGate from "@/components/ui/FeatureGate";
 import {
   FinanceReport,
   FinancialTransaction,
@@ -70,6 +71,14 @@ function Skeleton({ className = "" }: { className?: string }) {
 }
 
 export default function FinanceDashboardPage() {
+  return (
+    <FeatureGate feature="finance" label="Finance">
+      <FinanceDashboardContent />
+    </FeatureGate>
+  );
+}
+
+function FinanceDashboardContent() {
   const { workspaces, scope, setScope, withScope, can, loading: scopeLoading } = useFinanceScope();
   const [period, setPeriod] = useState("month");
   const [dateFrom, setDateFrom] = useState("");

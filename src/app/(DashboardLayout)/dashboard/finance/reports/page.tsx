@@ -16,9 +16,18 @@ import { API_ROUTES } from "@/lib/constants";
 import { formatCurrency } from "@/lib/utils";
 import { useFinanceScope } from "@/hooks/useFinanceScope";
 import FinanceScopeBar from "@/components/finance/FinanceScopeBar";
+import FeatureGate from "@/components/ui/FeatureGate";
 import { FinanceReport } from "@/types";
 
 export default function FinanceReportsPage() {
+  return (
+    <FeatureGate feature="finance" label="Finance">
+      <FinanceReportsContent />
+    </FeatureGate>
+  );
+}
+
+function FinanceReportsContent() {
   const { workspaces, scope, setScope, withScope, can, loading: scopeLoading } = useFinanceScope();
   const [period, setPeriod] = useState("month");
   const [dateFrom, setDateFrom] = useState("");

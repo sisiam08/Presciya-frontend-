@@ -25,6 +25,7 @@ import { useNotification } from "@/hooks/useNotification";
 import { useFinanceScope } from "@/hooks/useFinanceScope";
 import FinanceScopeBar from "@/components/finance/FinanceScopeBar";
 import TransactionDialog from "@/components/finance/TransactionDialog";
+import FeatureGate from "@/components/ui/FeatureGate";
 import {
   FinancialCategory,
   FinancialTransaction,
@@ -37,6 +38,14 @@ const paymentLabel = (value: string) =>
   PAYMENT_METHODS.find((m) => m.value === value)?.label || value;
 
 export default function FinanceTransactionsPage() {
+  return (
+    <FeatureGate feature="finance" label="Finance">
+      <FinanceTransactionsContent />
+    </FeatureGate>
+  );
+}
+
+function FinanceTransactionsContent() {
   const { workspaces, scope, setScope, withScope, can, loading: scopeLoading } = useFinanceScope();
   const { success, error: showError } = useNotification();
   const confirm = useConfirm();

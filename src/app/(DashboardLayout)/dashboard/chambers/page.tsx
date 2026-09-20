@@ -13,7 +13,9 @@ import {
   RefreshCw,
   Trash2,
   Plus,
+  Lock,
 } from "lucide-react";
+import { useEntitlements } from "@/hooks/useEntitlements";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -256,6 +258,10 @@ export default function ChambersPage() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingChamber, setEditingChamber] = useState<Chamber | null>(null);
+  const { entitlements } = useEntitlements();
+  // Admin-configurable chamber limit for the current plan; null = unlimited.
+  const chamberLimit = entitlements?.features?.max_chambers?.limit ?? null;
+  const limitReached = chamberLimit !== null && chambers.length >= chamberLimit;
 
   const loadChambers = async () => {
     setLoading(true);
@@ -310,12 +316,43 @@ export default function ChambersPage() {
           </Button>
           <Button
             onClick={() => { setEditingChamber(null); setModalOpen(true); }}
+            disabled={limitReached}
+            title={limitReached ? `Your plan allows ${chamberLimit} chamber(s)` : undefined}
             className="flex items-center gap-2"
           >
             <Plus size={16} /> Add New Chamber
           </Button>
         </div>
       </div>
+
+      {/* Chamber limit notice */}
+      {chamberLimit !== null && (
+        <div
+          className={`flex items-center gap-3 rounded-2xl border p-4 text-sm ${
+            limitReached
+              ? "border-amber-300 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/20"
+              : "border-outline-variant bg-surface"
+          }`}
+        >
+          <Lock className={`h-4 w-4 shrink-0 ${limitReached ? "text-amber-600" : "text-on-surface-variant"}`} />
+          <div className="flex-1">
+            <p className="font-semibold text-on-surface">
+              Chamber limit: {chambers.length} / {chamberLimit}
+            </p>
+            {limitReached && (
+              <p className="mt-0.5 text-xs text-on-surface-variant">
+                Your current plan allows {chamberLimit} chamber
+                {chamberLimit === 1 ? "" : "s"}. Upgrade your plan to add more.
+              </p>
+            )}
+          </div>
+          {limitReached && (
+            <a href="/dashboard/subscription">
+              <Button size="sm">View Plans</Button>
+            </a>
+          )}
+        </div>
+      )}
 
       {/* Chamber Grid */}
       {loading ? (
@@ -336,17 +373,32 @@ export default function ChambersPage() {
 
           {/* Add card */}
           <button
-            onClick={() => { setEditingChamber(null); setModalOpen(true); }}
-            className="border-2 border-dashed border-outline-variant rounded-2xl p-6 flex flex-col items-center justify-center group hover:border-primary hover:bg-primary/5 transition-all duration-300 min-h-[280px] cursor-pointer bg-transparent"
+            onClick={() => {
+              if (limitReached) return;
+              setEditingChamber(null);
+              setModalOpen(true);
+            }}
+            disabled={limitReached}
+            className={`border-2 border-dashed border-outline-variant rounded-2xl p-6 flex flex-col items-center justify-center group transition-all duration-300 min-h-[280px] bg-transparent ${
+              limitReached
+                ? "cursor-not-allowed opacity-60"
+                : "hover:border-primary hover:bg-primary/5 cursor-pointer"
+            }`}
           >
             <div className="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-primary/10 transition-all">
-              <PlusCircle size={40} className="text-outline-variant group-hover:text-primary transition-colors" />
+              {limitReached ? (
+                <Lock size={36} className="text-amber-500" />
+              ) : (
+                <PlusCircle size={40} className="text-outline-variant group-hover:text-primary transition-colors" />
+              )}
             </div>
             <span className="text-base font-bold text-on-surface-variant group-hover:text-primary">
-              Add New Chamber
+              {limitReached ? "Chamber limit reached" : "Add New Chamber"}
             </span>
             <p className="text-xs text-outline-variant mt-2 text-center max-w-[200px]">
-              Expand your practice with a new clinical location
+              {limitReached
+                ? `Your plan allows ${chamberLimit} chamber(s). Upgrade to add more.`
+                : "Expand your practice with a new clinical location"}
             </p>
           </button>
         </div>

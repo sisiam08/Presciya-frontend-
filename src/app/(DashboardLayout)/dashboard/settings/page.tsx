@@ -13,6 +13,7 @@ import {
   EyeOff,
   FileText,
   Check,
+  Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,16 +26,18 @@ import {
 } from "@/lib/constants";
 import { useNotification } from "@/hooks/useNotification";
 import A4PreviewFrame from "@/components/prescription/A4PreviewFrame";
+import FeatureGate from "@/components/ui/FeatureGate";
 import {
   PrescriptionLanguage,
   PrescriptionDesignTemplate,
 } from "@/types";
 
-type TabId = "profile" | "prescription" | "branding" | "security";
+type TabId = "profile" | "prescription" | "fees" | "branding" | "security";
 
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "profile", label: "Profile", icon: User },
   { id: "prescription", label: "Prescription", icon: FileText },
+  { id: "fees", label: "Visiting Fee", icon: Wallet },
   { id: "branding", label: "Branding", icon: Palette },
   { id: "security", label: "Security", icon: Shield },
 ];
@@ -359,6 +362,131 @@ function PrescriptionTab() {
   );
 }
 
+// ─── Visiting Fee Tab ─────────────────────────────────────────────────────────
+
+function FeesTab() {
+  const { success, error: showError } = useNotification();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [workspaceName, setWorkspaceName] = useState("");
+  const [fee, setFee] = useState({ visitingFee: "", followUpFee: "" });
+
+  useEffect(() => {
+    apiClient
+      .get<any>(API_ROUTES.WORKSPACES.LIST)
+      .then((res) => {
+        const list = res.data?.data || res.data || [];
+        const wsId =
+          typeof window !== "undefined"
+            ? localStorage.getItem("activeWorkspaceId")
+            : null;
+        const active = list.find((w: any) => w.id === wsId) || list[0];
+        setWorkspaceName(active?.name || "");
+      })
+      .catch(() => {});
+
+    apiClient
+      .get<any>(API_ROUTES.VISITING_FEE.MY)
+      .then((res) => {
+        const d = res.data?.data ?? res.data;
+        setFee({
+          visitingFee: d?.visitingFee != null ? String(d.visitingFee) : "",
+          followUpFee: d?.followUpFee != null ? String(d.followUpFee) : "",
+        });
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = async () => {
+    if (!fee.visitingFee || Number(fee.visitingFee) < 0) {
+      return showError("Enter a valid visiting fee");
+    }
+    setSaving(true);
+    try {
+      await apiClient.put(API_ROUTES.VISITING_FEE.MY, {
+        visitingFee: fee.visitingFee,
+        followUpFee: fee.followUpFee.trim() === "" ? null : fee.followUpFee,
+      });
+      success("Visiting fee saved");
+    } catch (e: any) {
+      showError(e?.response?.data?.message || "Failed to save visiting fee");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="rounded-2xl border border-outline-variant bg-surface p-6">
+        <h3 className="mb-1 text-base font-bold text-on-surface">
+          Consultation Fee
+        </h3>
+        <p className="mb-5 text-xs text-on-surface-variant">
+          Your fee for{" "}
+          <span className="font-semibold text-on-surface">
+            {workspaceName || "this workspace"}
+          </span>
+          . Only you can change this — hospitals and clinics cannot.
+        </p>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-on-surface-variant">
+              Normal Visiting Fee (৳) *
+            </label>
+            <Input
+              type="number"
+              min="0"
+              step="0.01"
+              value={fee.visitingFee}
+              onChange={(e) => setFee({ ...fee, visitingFee: e.target.value })}
+              placeholder="e.g. 1000"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-on-surface-variant">
+              Follow-up Fee (৳)
+            </label>
+            <Input
+              type="number"
+              min="0"
+              step="0.01"
+              value={fee.followUpFee}
+              onChange={(e) => setFee({ ...fee, followUpFee: e.target.value })}
+              placeholder="Defaults to the normal fee"
+            />
+          </div>
+        </div>
+
+        <p className="mt-3 text-[11px] text-on-surface-variant">
+          Leave the follow-up fee empty to charge the normal visiting fee for
+          follow-ups.
+        </p>
+
+        <div className="mt-5 flex justify-end">
+          <Button onClick={handleSave} disabled={saving} className="min-w-[160px]">
+            {saving ? (
+              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="mr-1 h-4 w-4" />
+            )}
+            {saving ? "Saving…" : "Save Fee"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Branding Tab ─────────────────────────────────────────────────────────────
 
 function BrandingTab() {
@@ -603,7 +731,19 @@ export default function SettingsPage() {
       {/* Tab Content */}
       <div>
         {activeTab === "profile" && <ProfileTab />}
-        {activeTab === "prescription" && <PrescriptionTab />}
+        {activeTab === "prescription" && (
+          <FeatureGate
+            feature="prescription_language"
+            label="Prescription language & templates"
+          >
+            <PrescriptionTab />
+          </FeatureGate>
+        )}
+        {activeTab === "fees" && (
+          <FeatureGate feature="visiting_fees" label="Visiting fees">
+            <FeesTab />
+          </FeatureGate>
+        )}
         {activeTab === "branding" && <BrandingTab />}
         {activeTab === "security" && <SecurityTab />}
       </div>

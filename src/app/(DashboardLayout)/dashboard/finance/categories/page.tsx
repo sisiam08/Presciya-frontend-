@@ -21,6 +21,7 @@ import { API_ROUTES } from "@/lib/constants";
 import { useConfirm } from "@/components/ui/confirm";
 import { useNotification } from "@/hooks/useNotification";
 import { useFinanceScope } from "@/hooks/useFinanceScope";
+import FeatureGate from "@/components/ui/FeatureGate";
 import {
   FinancialCategory,
   FinancialTransactionType,
@@ -42,6 +43,14 @@ const emptyForm = (type: FinancialTransactionType): CategoryFormState => ({
 });
 
 export default function FinanceCategoriesPage() {
+  return (
+    <FeatureGate feature="finance" label="Finance">
+      <FinanceCategoriesContent />
+    </FeatureGate>
+  );
+}
+
+function FinanceCategoriesContent() {
   const { workspaces, scope, setScope, can, loading: scopeLoading } = useFinanceScope();
   const { success, error: showError } = useNotification();
   const confirm = useConfirm();
