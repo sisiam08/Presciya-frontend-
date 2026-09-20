@@ -10,6 +10,7 @@ import { Prescription, PrescriptionMedicine, Chamber, Patient } from "@/types";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import AppointmentVisitPicker from "@/components/appointment/AppointmentVisitPicker";
 
 interface PrescriptionBuilderProps {
   prescription?: Prescription | null;
@@ -53,6 +54,7 @@ function PatientSearchCombobox({
   const [selectedName, setSelectedName] = useState("");
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const creatingRef = useRef(false);
 
   const fetchRecentPatients = async () => {
     abortRef.current?.abort();
@@ -117,6 +119,8 @@ function PatientSearchCombobox({
 
   const handleQuickAddPatient = async () => {
     if (!query.trim()) return;
+    if (creatingRef.current) return;
+    creatingRef.current = true;
     setCreating(true);
     try {
       const res = await apiClient.post<any>(API_ROUTES.PATIENTS.CREATE, {
@@ -135,6 +139,7 @@ function PatientSearchCombobox({
         variant: "destructive",
       });
     }
+    creatingRef.current = false;
     setCreating(false);
   };
 
@@ -595,6 +600,12 @@ export default function PrescriptionBuilder({
   const { success, error: showError } = useNotification();
   const [patientId, setPatientId] = useState(prescription?.patientId || "");
   const [chamberId, setChamberId] = useState(prescription?.chamberId || "");
+  // Visit eligibility — only relevant in CHAMBER/INSTITUTION context.
+  const [workspaceId, setWorkspaceId] = useState("");
+  const [workspaceType, setWorkspaceType] = useState("PERSONAL");
+  const [appointmentId, setAppointmentId] = useState("");
+  const [visitEligible, setVisitEligible] = useState(true);
+  const [hasChambers, setHasChambers] = useState(false);
   const [complaints, setComplaints] = useState(prescription?.complaints || "");
   const [diagnosis, setDiagnosis] = useState(prescription?.diagnosis || "General Consultation");
   const [clinicalNotes, setClinicalNotes] = useState(prescription?.clinicalNotes || "");
@@ -696,6 +707,7 @@ export default function PrescriptionBuilder({
 
     return {
       patientId,
+      appointmentId: appointmentId || undefined,
       chamberId: chamberId && chamberId.trim() !== "" ? chamberId.trim() : undefined,
       complaints: complaints.trim() || undefined,
       diagnosis: diagnosis.trim(),
@@ -783,11 +795,18 @@ export default function PrescriptionBuilder({
 
     if (!patientId) return showError("Select a patient before saving a draft");
     if (!chamberId) return showError("Select a chamber before saving a draft");
-    if (!meds.some((m) => m.brandName.trim()))
-      return showError("Add at least one medicine before saving a draft");
+      if (!meds.some((m) => m.brandName.trim()))
+        return showError("Add at least one medicine before saving a draft");
+      // A new prescription in chamber/institution context still needs an
+      // eligible visit even when saved as a draft (backend enforces this too).
+      if (!prescription?.id && workspaceType !== "PERSONAL" && !appointmentId) {
+        return showError(
+          "Select a paid or free appointment before saving a draft",
+        );
+      }
 
-    submittingRef.current = true;
-    setExitSaving(true);
+      submittingRef.current = true;
+      setExitSaving(true);
     try {
       if (prescription?.id) {
         await apiClient.patch(
@@ -821,6 +840,34 @@ export default function PrescriptionBuilder({
     onSaved?.();
     onClose();
   };
+
+  // Resolve the active workspace + its type. In CHAMBER/INSTITUTION context a
+  // paid or free visit is required before a prescription can be created.
+  useEffect(() => {
+    const wsId =
+      typeof window !== "undefined"
+        ? localStorage.getItem("activeWorkspaceId")
+        : null;
+    if (wsId) setWorkspaceId(wsId);
+    apiClient
+      .get<any>(API_ROUTES.WORKSPACES.LIST)
+      .then((res) => {
+        const list = res.data?.data || res.data || [];
+        const active = list.find((w: any) => w.id === wsId) || list[0];
+        if (active?.id) setWorkspaceId(active.id);
+        if (active?.type) setWorkspaceType(active.type);
+      })
+      .catch(() => {});
+    // A personal practice that has chambers still shows the visit picker so
+    // appointments / follow-ups are available there too (visit is optional).
+    apiClient
+      .get<any>(API_ROUTES.CHAMBERS.LIST)
+      .then((res) => {
+        const list = res.data?.data || res.data || [];
+        setHasChambers(Array.isArray(list) && list.length > 0);
+      })
+      .catch(() => {});
+  }, []);
 
   // ── Templates (Section 13.6) ───────────────────────────────────────────────
   const [templates, setTemplates] = useState<any[]>([]);
@@ -906,6 +953,16 @@ export default function PrescriptionBuilder({
     }
     if (!chamberId || chamberId.trim() === "") {
       errs.chamberId = "Please select a chamber for this prescription";
+    }
+    // Chamber / institution context requires an eligible (paid or free) visit.
+    if (workspaceType !== "PERSONAL") {
+      if (!appointmentId) {
+        errs.appointmentId =
+          "Select a paid or free appointment for today, or create a follow-up visit.";
+      } else if (!visitEligible) {
+        errs.appointmentId =
+          "Payment is incomplete. Prescription cannot be created until the appointment is paid or marked free.";
+      }
     }
     if (!diagnosis.trim()) {
       errs.diagnosis = "Diagnosis is required";
@@ -1004,16 +1061,40 @@ export default function PrescriptionBuilder({
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <PatientSearchCombobox
-                value={patientId}
-                onChange={(id) => {
-                  setPatientId(id);
-                  setFieldErrors((e) => ({ ...e, patientId: "" }));
-                }}
-              />
+              {workspaceType !== "PERSONAL" || hasChambers ? (
+                <AppointmentVisitPicker
+                  workspaceId={workspaceId}
+                  patientId={patientId}
+                  appointmentId={appointmentId}
+                  required={workspaceType !== "PERSONAL"}
+                  onSelect={({ patientId: pid, appointmentId: aid, eligible }) => {
+                    setPatientId(pid);
+                    setAppointmentId(aid);
+                    setVisitEligible(eligible);
+                    setFieldErrors((e) => ({
+                      ...e,
+                      patientId: "",
+                      appointmentId: "",
+                    }));
+                  }}
+                />
+              ) : (
+                <PatientSearchCombobox
+                  value={patientId}
+                  onChange={(id) => {
+                    setPatientId(id);
+                    setFieldErrors((e) => ({ ...e, patientId: "" }));
+                  }}
+                />
+              )}
               {fieldErrors.patientId && (
                 <p className="text-xs text-red-500 font-semibold mt-1 animate-in fade-in duration-200">
                   ⚠️ {fieldErrors.patientId}
+                </p>
+              )}
+              {fieldErrors.appointmentId && (
+                <p className="text-xs text-red-500 font-semibold mt-1 animate-in fade-in duration-200">
+                  ⚠️ {fieldErrors.appointmentId}
                 </p>
               )}
             </div>

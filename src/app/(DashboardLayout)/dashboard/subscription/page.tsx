@@ -130,6 +130,45 @@ export default function SubscriptionPage() {
         </Button>
       </div>
 
+      {/* Expiry warning (3 days before + at/after expiry) */}
+      {!loading && subscription?.expiryDate && (() => {
+        const expiry = new Date(subscription.expiryDate);
+        const daysLeft = Math.ceil(
+          (expiry.getTime() - Date.now()) / 86_400_000,
+        );
+        if (daysLeft > 3) return null;
+        const expired = daysLeft <= 0;
+        return (
+          <div
+            className={`flex items-start gap-3 rounded-2xl border p-4 ${
+              expired
+                ? "border-red-300 bg-red-50 dark:border-red-900/40 dark:bg-red-950/20"
+                : "border-amber-300 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/20"
+            }`}
+          >
+            <AlertTriangle
+              className={`h-5 w-5 shrink-0 ${expired ? "text-red-600" : "text-amber-600"}`}
+            />
+            <div>
+              <p
+                className={`text-sm font-bold ${
+                  expired ? "text-red-700 dark:text-red-400" : "text-amber-700 dark:text-amber-400"
+                }`}
+              >
+                {expired
+                  ? "Your subscription has expired"
+                  : `Your subscription expires in ${daysLeft} day${daysLeft === 1 ? "" : "s"}`}
+              </p>
+              <p className="mt-0.5 text-xs text-on-surface-variant">
+                {expired
+                  ? "Premium features (appointments, finance) are now disabled. Your data is safe — renew to restore access."
+                  : `Expires on ${formatDate(subscription.expiryDate)}. Renew to keep premium features.`}
+              </p>
+            </div>
+          </div>
+        );
+      })()}
+
       {loading ? (
         <div className="space-y-6">
           <Skeleton className="h-40" />
