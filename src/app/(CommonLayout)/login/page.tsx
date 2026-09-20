@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useNotification } from "@/hooks/useNotification";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +11,7 @@ import { Mail, Lock, ShieldCheck, Zap, Activity } from "lucide-react";
 
 export default function LoginPage() {
   const { login, loading } = useAuth();
+  const { info } = useNotification();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -156,7 +158,7 @@ export default function LoginPage() {
                 <Label htmlFor="password" className="font-label-md text-label-md text-on-surface-variant">
                   Security Password
                 </Label>
-                <a href="#" className="font-label-sm text-[12px] text-primary hover:underline font-semibold">
+                <a href="/forgot-password" className="font-label-sm text-[12px] text-primary hover:underline font-semibold">
                   Forgot password?
                 </a>
               </div>
@@ -202,9 +204,27 @@ export default function LoginPage() {
               </a>
             </p>
             <div className="flex justify-center gap-stack-lg pt-6 border-t border-outline-variant/30 text-xs font-medium text-outline">
-              <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>
-              <a href="#" className="hover:text-primary transition-colors">Support</a>
+              <button
+                type="button"
+                onClick={() => info("Privacy Policy page is coming soon.")}
+                className="hover:text-primary transition-colors"
+              >
+                Privacy Policy
+              </button>
+              <button
+                type="button"
+                onClick={() => info("Terms of Service page is coming soon.")}
+                className="hover:text-primary transition-colors"
+              >
+                Terms of Service
+              </button>
+              <button
+                type="button"
+                onClick={() => info("Support page is coming soon. Email support@presciya.com")}
+                className="hover:text-primary transition-colors"
+              >
+                Support
+              </button>
             </div>
           </footer>
         </div>
