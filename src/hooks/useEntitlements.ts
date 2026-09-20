@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { apiClient } from "@/lib/api-client";
 import { API_ROUTES } from "@/lib/constants";
+import { useRefreshOnFocus } from "@/hooks/useRefreshOnFocus";
 
 export interface FeatureEntitlement {
   allowed: boolean;
@@ -29,24 +30,32 @@ export interface Entitlements {
 export function useEntitlements() {
   const [entitlements, setEntitlements] = useState<Entitlements | null>(null);
   const [loading, setLoading] = useState(true);
+  // Guards against out-of-order responses when a focus refresh races the mount.
+  const requestId = useRef(0);
+
+  const load = useCallback(async () => {
+    const id = ++requestId.current;
+    try {
+      const res = await apiClient.get<any>(
+        API_ROUTES.SUBSCRIPTION.ENTITLEMENTS,
+      );
+      if (id === requestId.current) {
+        setEntitlements(res.data?.data || res.data || null);
+      }
+    } catch {
+      if (id === requestId.current) setEntitlements(null);
+    } finally {
+      if (id === requestId.current) setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    let active = true;
-    apiClient
-      .get<any>(API_ROUTES.SUBSCRIPTION.ENTITLEMENTS)
-      .then((res) => {
-        if (active) setEntitlements(res.data?.data || res.data || null);
-      })
-      .catch(() => {
-        if (active) setEntitlements(null);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
+    void load();
+  }, [load]);
+
+  // Refresh usage when the user comes back to the tab so a day rollover is
+  // reflected without requiring a manual reload.
+  useRefreshOnFocus(load);
 
   const feature = (key: string): FeatureEntitlement | undefined =>
     entitlements?.features?.[key];

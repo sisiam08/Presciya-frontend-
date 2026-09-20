@@ -20,6 +20,7 @@ import { API_ROUTES } from "@/lib/constants";
 import { formatDate } from "@/lib/utils";
 import { useNotification } from "@/hooks/useNotification";
 import { useConfirm } from "@/components/ui/confirm";
+import { useRefreshOnFocus } from "@/hooks/useRefreshOnFocus";
 
 function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`animate-pulse rounded-xl bg-outline-variant/30 ${className}`} />;
@@ -64,6 +65,10 @@ export default function SubscriptionPage() {
   };
 
   useEffect(() => { loadAll(); }, []);
+
+  // Daily usage is day-scoped: re-fetch when the user returns to the tab so a
+  // new calendar day shows 0 / limit without a manual reload.
+  useRefreshOnFocus(loadAll);
 
   const validateVoucher = async () => {
     if (!voucher.trim()) return;
