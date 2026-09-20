@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { X, Plus, Trash2, Search, ChevronDown, Loader2, Check, UserPlus, AlertTriangle } from "lucide-react";
+import { X, Plus, Trash2, Search, ChevronDown, ChevronRight, Loader2, Check, UserPlus, AlertTriangle } from "lucide-react";
 import { useNotification } from "@/hooks/useNotification";
 import { toast as globalToast } from "@/components/ui/use-toast";
 import { apiClient } from "@/lib/api-client";
 import { API_ROUTES } from "@/lib/constants";
-import { Prescription, PrescriptionMedicine, Chamber, Patient } from "@/types";
+import { Prescription, PrescriptionMedicine, Patient } from "@/types";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -42,9 +42,12 @@ const emptyMed = (id: number): MedRow => ({
 function PatientSearchCombobox({
   value,
   onChange,
+  onNameChange,
 }: {
   value: string;
   onChange: (id: string, name: string) => void;
+  /** Raw typed text, so callers can create the patient on submit if needed. */
+  onNameChange?: (name: string) => void;
 }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Patient[]>([]);
@@ -105,6 +108,7 @@ function PatientSearchCombobox({
   const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const q = e.target.value;
     setQuery(q);
+    onNameChange?.(q);
     setOpen(true);
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => search(q), 300);
@@ -112,6 +116,7 @@ function PatientSearchCombobox({
 
   const handleSelect = (p: Patient) => {
     onChange(p.id, p.name);
+    onNameChange?.(p.name);
     setSelectedName(p.name);
     setQuery(p.name);
     setOpen(false);
@@ -388,11 +393,16 @@ function DurationPicker({
 function MedicineRow({
   med,
   index,
+  expanded,
+  onToggle,
   onChange,
   onRemove,
 }: {
   med: MedRow;
   index: number;
+  /** Only one medicine card is open at a time. */
+  expanded: boolean;
+  onToggle: () => void;
   onChange: (i: number, f: keyof MedRow, v: string) => void;
   onRemove: (i: number) => void;
 }) {
@@ -460,8 +470,27 @@ function MedicineRow({
 
   return (
     <div className="border border-outline-variant rounded-xl p-4 bg-surface-container/40 relative space-y-3">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-bold text-primary">Medicine #{index + 1}</span>
+      <div className="flex items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={expanded}
+          className="flex min-w-0 flex-1 items-center gap-2 text-left"
+        >
+          <span className="text-xs font-bold text-primary">Medicine #{index + 1}</span>
+          {!expanded && (
+            <span className="truncate text-xs text-on-surface-variant">
+              {med.brandName?.trim()
+                ? `${med.brandName}${med.strength ? ` ${med.strength}` : ""}`
+                : "New medicine — click to fill"}
+            </span>
+          )}
+          {expanded ? (
+            <ChevronDown size={14} className="ml-auto shrink-0 text-on-surface-variant" />
+          ) : (
+            <ChevronRight size={14} className="ml-auto shrink-0 text-on-surface-variant" />
+          )}
+        </button>
         {index > 0 && (
           <button
             type="button"
@@ -473,6 +502,8 @@ function MedicineRow({
         )}
       </div>
 
+      {expanded && (
+      <>
       <div className="relative">
         <label className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wide">Brand Name *</label>
         <div className="relative mt-0.5">
@@ -585,6 +616,8 @@ function MedicineRow({
           />
         </div>
       )}
+      </>
+      )}
     </div>
   );
 }
@@ -599,13 +632,22 @@ export default function PrescriptionBuilder({
 }: PrescriptionBuilderProps) {
   const { success, error: showError } = useNotification();
   const [patientId, setPatientId] = useState(prescription?.patientId || "");
-  const [chamberId, setChamberId] = useState(prescription?.chamberId || "");
+  const [chamberId, setChamberId] = useState(
+    // New prescriptions default to the chamber chosen in the sidebar switcher;
+    // editing keeps the chamber the prescription was created with.
+    prescription?.chamberId ||
+      (typeof window !== "undefined"
+        ? localStorage.getItem("activeChamberId") || ""
+        : ""),
+  );
   // Visit eligibility — only relevant in CHAMBER/INSTITUTION context.
   const [workspaceId, setWorkspaceId] = useState("");
   const [workspaceType, setWorkspaceType] = useState("PERSONAL");
   const [appointmentId, setAppointmentId] = useState("");
   const [visitEligible, setVisitEligible] = useState(true);
-  const [hasChambers, setHasChambers] = useState(false);
+  // Personal workspaces have no appointments: the patient is typed by name and
+  // resolved/created on submit.
+  const [patientName, setPatientName] = useState("");
   const [complaints, setComplaints] = useState(prescription?.complaints || "");
   const [diagnosis, setDiagnosis] = useState(prescription?.diagnosis || "General Consultation");
   const [clinicalNotes, setClinicalNotes] = useState(prescription?.clinicalNotes || "");
@@ -617,9 +659,6 @@ export default function PrescriptionBuilder({
     const d = new Date(value);
     return isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
   });
-  const [status, setStatus] = useState<"DRAFT" | "FINALIZED">(
-    (prescription?.status as "DRAFT" | "FINALIZED") || "DRAFT"
-  );
   // Pre-populate vitals from the latest clinical observation when editing.
   const [vitals, setVitals] = useState(() => {
     const obs = (prescription as any)?.clinicalObservations?.[0];
@@ -639,13 +678,27 @@ export default function PrescriptionBuilder({
   const [saving, setSaving] = useState(false);
   const medCounter = useRef(meds.length);
   const submittingRef = useRef(false);
+  // Only one medicine card is expanded at a time — the one being filled in.
+  const [expandedMedId, setExpandedMedId] = useState<number | null>(
+    meds[0]?._id ?? null,
+  );
 
   const addMed = () => {
     medCounter.current += 1;
-    setMeds((prev) => [...prev, emptyMed(medCounter.current)]);
+    const row = emptyMed(medCounter.current);
+    setMeds((prev) => [...prev, row]);
+    // Collapse the previously open card and open the newly added one.
+    setExpandedMedId(row._id);
   };
 
-  const removeMed = (i: number) => setMeds((prev) => prev.filter((_, idx) => idx !== i));
+  const removeMed = (i: number) => {
+    const removedId = meds[i]?._id;
+    const next = meds.filter((_, idx) => idx !== i);
+    setMeds(next);
+    if (removedId != null && expandedMedId === removedId) {
+      setExpandedMedId(next[0]?._id ?? null);
+    }
+  };
 
   const changeMed = (i: number, f: keyof MedRow, v: string) =>
     setMeds((prev) => prev.map((m, idx) => idx === i ? { ...m, [f]: v } : m));
@@ -659,9 +712,14 @@ export default function PrescriptionBuilder({
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [exitSaving, setExitSaving] = useState(false);
 
-  // Build the API payload. Autosave always targets DRAFT (Section 13.5);
-  // manual submit uses the selected status.
-  const buildPayload = (targetStatus: "DRAFT" | "FINALIZED") => {
+  // Build the API payload. Autosave always targets DRAFT (Section 13.5); the
+  // manual submit saves a DRAFT then finalizes it through the finalize endpoint.
+  // `patientIdOverride` is used when a Personal-workspace patient is created
+  // from the typed name during submit.
+  const buildPayload = (
+    targetStatus: "DRAFT" | "FINALIZED",
+    patientIdOverride?: string,
+  ) => {
     const formattedMedicines = meds
       .filter((m) => m.brandName.trim())
       .map(({ _id, ...m }) => {
@@ -706,7 +764,7 @@ export default function PrescriptionBuilder({
       });
 
     return {
-      patientId,
+      patientId: patientIdOverride ?? patientId,
       appointmentId: appointmentId || undefined,
       chamberId: chamberId && chamberId.trim() !== "" ? chamberId.trim() : undefined,
       complaints: complaints.trim() || undefined,
@@ -733,7 +791,6 @@ export default function PrescriptionBuilder({
     clinicalNotes,
     advises,
     nextVisit,
-    status,
     vitals,
     meds: meds.map(({ _id, ...m }) => m),
   });
@@ -790,33 +847,76 @@ export default function PrescriptionBuilder({
     setShowExitDialog(true);
   };
 
+  // Personal workspaces have no appointment→patient flow, so the typed name is
+  // resolved to an existing patient (exact name match) or registered as a new
+  // one — reusing the normal Patient model, not a parallel patient store.
+  const resolvePatientId = async (): Promise<string | null> => {
+    if (patientId) return patientId;
+
+    const name = patientName.trim();
+    if (workspaceType !== "PERSONAL" || !name) return null;
+
+    try {
+      const searchRes = await apiClient.get<any>(
+        `${API_ROUTES.PATIENTS.SEARCH}?q=${encodeURIComponent(name)}&limit=10`,
+      );
+      const list: Patient[] = searchRes.data?.data || searchRes.data || [];
+      const match = Array.isArray(list)
+        ? list.find((p) => p.name?.trim().toLowerCase() === name.toLowerCase())
+        : undefined;
+      if (match?.id) {
+        setPatientId(match.id);
+        return match.id;
+      }
+
+      const created = await apiClient.post<any>(API_ROUTES.PATIENTS.CREATE, {
+        name,
+        age: 30,
+        gender: "MALE",
+      });
+      const newPatient: Patient = created.data?.data || created.data;
+      if (newPatient?.id) {
+        setPatientId(newPatient.id);
+        return newPatient.id;
+      }
+    } catch (e: any) {
+      showError(e?.response?.data?.message || "Failed to register the patient");
+    }
+    return null;
+  };
+
   const saveDraftAndExit = async () => {
     if (submittingRef.current || exitSaving) return;
 
-    if (!patientId) return showError("Select a patient before saving a draft");
-    if (!chamberId) return showError("Select a chamber before saving a draft");
-      if (!meds.some((m) => m.brandName.trim()))
-        return showError("Add at least one medicine before saving a draft");
-      // A new prescription in chamber/institution context still needs an
-      // eligible visit even when saved as a draft (backend enforces this too).
-      if (!prescription?.id && workspaceType !== "PERSONAL" && !appointmentId) {
-        return showError(
-          "Select a paid or free appointment before saving a draft",
-        );
-      }
+    // A chamber is only required outside a Personal workspace.
+    if (workspaceType !== "PERSONAL" && !chamberId) {
+      return showError("Select a chamber before saving a draft");
+    }
+    if (!meds.some((m) => m.brandName.trim())) {
+      return showError("Add at least one medicine before saving a draft");
+    }
+    // A new prescription in chamber/institution context still needs an
+    // eligible visit even when saved as a draft (backend enforces this too).
+    if (!prescription?.id && workspaceType !== "PERSONAL" && !appointmentId) {
+      return showError("Select a paid or free appointment before saving a draft");
+    }
 
-      submittingRef.current = true;
-      setExitSaving(true);
+    submittingRef.current = true;
+    setExitSaving(true);
     try {
+      const rxPatientId = await resolvePatientId();
+      if (!rxPatientId) {
+        return showError("Enter the patient's name before saving a draft");
+      }
       if (prescription?.id) {
         await apiClient.patch(
           API_ROUTES.PRESCRIPTIONS.UPDATE(prescription.id),
-          buildPayload("DRAFT"),
+          buildPayload("DRAFT", rxPatientId),
         );
       } else {
         await apiClient.post(
           API_ROUTES.PRESCRIPTIONS.CREATE,
-          buildPayload("DRAFT"),
+          buildPayload("DRAFT", rxPatientId),
         );
       }
       lastSavedRef.current = formSnapshot;
@@ -856,15 +956,6 @@ export default function PrescriptionBuilder({
         const active = list.find((w: any) => w.id === wsId) || list[0];
         if (active?.id) setWorkspaceId(active.id);
         if (active?.type) setWorkspaceType(active.type);
-      })
-      .catch(() => {});
-    // A personal practice that has chambers still shows the visit picker so
-    // appointments / follow-ups are available there too (visit is optional).
-    apiClient
-      .get<any>(API_ROUTES.CHAMBERS.LIST)
-      .then((res) => {
-        const list = res.data?.data || res.data || [];
-        setHasChambers(Array.isArray(list) && list.length > 0);
       })
       .catch(() => {});
   }, []);
@@ -948,12 +1039,22 @@ export default function PrescriptionBuilder({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs: Record<string, string> = {};
-    if (!patientId || patientId.trim() === "") {
-      errs.patientId = "Please search and select a patient from the list or click Quick Add";
+
+    // Personal workspaces have no appointment list — the patient is typed in.
+    if (workspaceType === "PERSONAL") {
+      if (!patientId && !patientName.trim()) {
+        errs.patientId = "Enter the patient's name";
+      }
+    } else if (!patientId || patientId.trim() === "") {
+      errs.patientId =
+        "Please search and select a patient from the list or click Quick Add";
     }
-    if (!chamberId || chamberId.trim() === "") {
+
+    // A chamber is only required outside a Personal workspace.
+    if (workspaceType !== "PERSONAL" && (!chamberId || chamberId.trim() === "")) {
       errs.chamberId = "Please select a chamber for this prescription";
     }
+
     // Chamber / institution context requires an eligible (paid or free) visit.
     if (workspaceType !== "PERSONAL") {
       if (!appointmentId) {
@@ -967,8 +1068,11 @@ export default function PrescriptionBuilder({
     if (!diagnosis.trim()) {
       errs.diagnosis = "Diagnosis is required";
     }
-    if (meds.length === 0 || !meds[0]?.brandName.trim()) {
+    const firstEmptyMed = meds.find((m) => !m.brandName.trim());
+    if (meds.length === 0 || firstEmptyMed) {
       errs.medicines = "At least one medicine with a brand name is required";
+      // Open the offending card so it can be fixed immediately.
+      if (firstEmptyMed) setExpandedMedId(firstEmptyMed._id);
     }
     if (Object.keys(errs).length > 0) {
       setFieldErrors(errs);
@@ -982,11 +1086,19 @@ export default function PrescriptionBuilder({
     submittingRef.current = true;
 
     setSaving(true);
-    // Always save the record as DRAFT, then finalize through the dedicated
-    // endpoint so the verification gate, serial and code are applied.
-    const payload = buildPayload("DRAFT");
 
     try {
+      // Personal workspaces resolve the typed patient name into a real Patient
+      // record before the prescription is created.
+      const rxPatientId = await resolvePatientId();
+      if (!rxPatientId) {
+        return showError("Enter the patient's name");
+      }
+
+      // Save as DRAFT, then finalize through the dedicated endpoint so the
+      // verification gate, serial and code are applied. Generating a
+      // prescription always finalizes — there is no status choice in the form.
+      const payload = buildPayload("DRAFT", rxPatientId);
       let rxId = prescription?.id;
       if (rxId) {
         await apiClient.patch(API_ROUTES.PRESCRIPTIONS.UPDATE(rxId), payload);
@@ -995,22 +1107,20 @@ export default function PrescriptionBuilder({
         rxId = created.data?.data?.id || created.data?.id;
       }
 
-      if (status === "FINALIZED" && rxId) {
-        const fin = await apiClient.post<any>(
-          API_ROUTES.PRESCRIPTIONS.FINALIZE(rxId),
-        );
-        const finalized = fin.data?.data || fin.data;
-        // Surface the finalized record so the caller can open the preview/print.
-        onFinalized?.({ ...(finalized || {}), id: rxId, status: "FINALIZED" });
+      if (!rxId) {
+        throw new Error("Prescription could not be saved. Please try again.");
       }
+
+      const fin = await apiClient.post<any>(
+        API_ROUTES.PRESCRIPTIONS.FINALIZE(rxId),
+      );
+      const finalized = fin.data?.data || fin.data;
+      // Surface the finalized record so the caller can open the preview/print.
+      onFinalized?.({ ...(finalized || {}), id: rxId, status: "FINALIZED" });
 
       lastSavedRef.current = formSnapshot;
       setSaveState("saved");
-      success(
-        status === "FINALIZED"
-          ? "Prescription finalized successfully"
-          : `Prescription ${prescription ? "updated" : "saved as draft"} successfully`,
-      );
+      success("Prescription finalized successfully");
       onSaved?.();
       onClose();
     } catch (e: any) {
@@ -1059,9 +1169,17 @@ export default function PrescriptionBuilder({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Personal workspaces have no appointments/chambers: the patient is
+              typed by name. Chamber/institution keeps the appointment flow. */}
+          <div
+            className={`grid gap-4 ${
+              workspaceType === "PERSONAL"
+                ? "grid-cols-1"
+                : "grid-cols-1 md:grid-cols-2"
+            }`}
+          >
             <div>
-              {workspaceType !== "PERSONAL" || hasChambers ? (
+              {workspaceType !== "PERSONAL" ? (
                 <AppointmentVisitPicker
                   workspaceId={workspaceId}
                   patientId={patientId}
@@ -1085,6 +1203,10 @@ export default function PrescriptionBuilder({
                     setPatientId(id);
                     setFieldErrors((e) => ({ ...e, patientId: "" }));
                   }}
+                  onNameChange={(name) => {
+                    setPatientName(name);
+                    setFieldErrors((e) => ({ ...e, patientId: "" }));
+                  }}
                 />
               )}
               {fieldErrors.patientId && (
@@ -1098,14 +1220,16 @@ export default function PrescriptionBuilder({
                 </p>
               )}
             </div>
-            <div>
-              <ChamberSelect value={chamberId} onChange={setChamberId} />
-              {fieldErrors.chamberId && (
-                <p className="text-xs text-red-500 font-semibold mt-1 animate-in fade-in duration-200">
-                  ⚠️ {fieldErrors.chamberId}
-                </p>
-              )}
-            </div>
+            {workspaceType !== "PERSONAL" && (
+              <div>
+                <ChamberSelect value={chamberId} onChange={setChamberId} />
+                {fieldErrors.chamberId && (
+                  <p className="text-xs text-red-500 font-semibold mt-1 animate-in fade-in duration-200">
+                    ⚠️ {fieldErrors.chamberId}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="rounded-xl border border-outline-variant p-4 bg-surface-container/30">
@@ -1160,25 +1284,11 @@ export default function PrescriptionBuilder({
                 <Textarea rows={2} placeholder="Lifestyle advice, follow-up…" value={advises} onChange={(e) => setAdvises(e.target.value)} />
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Next Visit Date</label>
-                <Input type="date" value={nextVisit} onChange={(e) => setNextVisit(e.target.value)} />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Status</label>
-                <div className="relative">
-                  <select
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value as "DRAFT" | "FINALIZED")}
-                    className="w-full h-10 pl-3 pr-8 text-sm bg-surface border border-gray-200 dark:border-slate-800 rounded-lg text-on-surface appearance-none focus:outline-none"
-                  >
-                    <option value="DRAFT">Save as Draft</option>
-                    <option value="FINALIZED">Finalize</option>
-                  </select>
-                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-on-surface-variant pointer-events-none" />
-                </div>
-              </div>
+            {/* Status selection removed: generating always finalizes the
+                prescription (the draft/discard flow lives in the exit dialog). */}
+            <div>
+              <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Next Visit Date</label>
+              <Input type="date" value={nextVisit} onChange={(e) => setNextVisit(e.target.value)} />
             </div>
           </div>
 
@@ -1219,9 +1329,6 @@ export default function PrescriptionBuilder({
                 >
                   Save as template
                 </Button>
-                <Button type="button" variant="outline" size="sm" onClick={addMed}>
-                  <Plus size={14} className="mr-1" /> Add Medicine
-                </Button>
               </div>
             </div>
             {fieldErrors.medicines && (
@@ -1235,11 +1342,24 @@ export default function PrescriptionBuilder({
                   key={m._id}
                   med={m}
                   index={i}
+                  expanded={expandedMedId === m._id}
+                  onToggle={() => setExpandedMedId(m._id)}
                   onChange={changeMed}
                   onRemove={removeMed}
                 />
               ))}
             </div>
+
+            {/* Sits directly below the medicine cards, per the form layout. */}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addMed}
+              className="mt-3 w-full"
+            >
+              <Plus size={14} className="mr-1" /> Add Medicine
+            </Button>
           </div>
 
           <div className="flex gap-3 pt-2 border-t border-outline-variant">
