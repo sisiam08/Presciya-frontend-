@@ -12,8 +12,24 @@ function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`animate-pulse rounded-xl bg-slate-200 dark:bg-slate-800 ${className}`} />;
 }
 
+const FEATURE_LABELS: Record<string, string> = {
+  max_chambers: "Max Chambers",
+  appointments: "Appointments (daily limit)",
+  finance: "Finance",
+  visiting_fees: "Visiting Fees",
+  prescription_language: "Prescription Language",
+  create_prescription: "Prescriptions (daily limit)",
+  advanced_pdf: "Advanced PDF",
+  qr_verification: "QR Verification",
+  analytics: "Analytics",
+  custom_branding: "Custom Branding",
+  medicine_favorites: "Medicine Favorites",
+  export: "Data Export",
+};
+
 export default function AdminPlansPage() {
   const [plans, setPlans] = useState<any[]>([]);
+  const [features, setFeatures] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [showNewPlan, setShowNewPlan] = useState(false);
@@ -27,28 +43,44 @@ export default function AdminPlansPage() {
   const loadPlans = async () => {
     setLoading(true);
     try {
-      const res = await apiClient.get<any>(API_ROUTES.ADMIN.PLANS);
-      setPlans(res.data?.data || res.data || []);
+      const [plansRes, featuresRes] = await Promise.all([
+        apiClient.get<any>(API_ROUTES.ADMIN.PLANS),
+        apiClient.get<any>("/admin/features"),
+      ]);
+      setPlans(plansRes.data?.data || plansRes.data || []);
+      setFeatures(featuresRes.data?.data || featuresRes.data || []);
     } catch {
       setPlans([]);
     }
     setLoading(false);
   };
 
-  useEffect(() => { loadPlans(); }, []);
-
-  const handleUpdateLimit = async (variantId: string, featureId: string, limitValue: number | null) => {
+  // Enable/disable a feature for a plan (presence = enabled) and set its limit.
+  const handleSetFeature = async (
+    variantId: string,
+    featureId: string,
+    enabled: boolean,
+    limitValue: number | null,
+  ) => {
     const key = `${variantId}-${featureId}`;
     setUpdatingId(key);
     try {
-      await apiClient.post(API_ROUTES.ADMIN.SET_PLAN_FEATURE_LIMIT(variantId, featureId), { limitValue });
-      loadPlans();
-      toast({ title: "Limit Updated", description: "Feature limit saved.", variant: "success" });
+      await apiClient.put(
+        `/admin/plans/${variantId}/features/${featureId}`,
+        { enabled, limitValue },
+      );
+      await loadPlans();
     } catch (e: any) {
-      toast({ title: "Error", description: e?.response?.data?.message || "Failed to update limit.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: e?.response?.data?.message || "Failed to update feature.",
+        variant: "destructive",
+      });
     }
     setUpdatingId(null);
   };
+
+  useEffect(() => { loadPlans(); }, []);
 
   const handleCreatePlan = async () => {
     if (!newPlan.variantName.trim() || !newPlan.price) {
@@ -181,41 +213,56 @@ export default function AdminPlansPage() {
                 </p>
               </div>
 
-              {/* Feature limits */}
+              {/* Plan entitlements — the admin is the source of truth */}
               <div className="p-5 flex-1">
-                <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">Feature Limits</p>
-                {!plan.planFeatures?.length ? (
-                  <p className="text-xs text-slate-400 italic">No features configured.</p>
-                ) : (
-                  <div className="space-y-3">
-                    {plan.planFeatures.map((pf: any) => {
-                      const key = `${plan.id}-${pf.featureId}`;
-                      const isUpdating = updatingId === key;
-                      const featureName = pf.feature?.key?.replace(/_/g, " ") || pf.featureId;
-                      return (
-                        <div key={pf.id} className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-medium text-slate-700 dark:text-slate-300 capitalize">{featureName}</span>
-                          <div className="flex items-center gap-1.5">
-                            <input
-                              type="number"
-                              defaultValue={pf.limitValue ?? ""}
-                              placeholder="∞"
-                              disabled={isUpdating}
-                              onBlur={(e) => {
-                                const val = e.target.value === "" ? null : Number(e.target.value);
-                                if (val !== pf.limitValue) {
-                                  handleUpdateLimit(plan.id, pf.featureId, val);
-                                }
-                              }}
-                              className="h-7 w-20 text-center text-xs border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-red-500 disabled:opacity-50"
-                            />
-                            {isUpdating && <Loader2 className="h-3 w-3 animate-spin text-red-500" />}
-                          </div>
+                <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">Plan Entitlements</p>
+                <div className="space-y-2.5">
+                  {features.map((f) => {
+                    const pf = plan.planFeatures?.find((x: any) => x.featureId === f.id);
+                    const enabled = Boolean(pf);
+                    const key = `${plan.id}-${f.id}`;
+                    const isUpdating = updatingId === key;
+                    const label = FEATURE_LABELS[f.key] || f.key.replace(/_/g, " ");
+                    return (
+                      <div key={f.id} className="flex items-center justify-between gap-2">
+                        <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300">
+                          <input
+                            type="checkbox"
+                            checked={enabled}
+                            disabled={isUpdating}
+                            onChange={(e) =>
+                              handleSetFeature(
+                                plan.id,
+                                f.id,
+                                e.target.checked,
+                                pf?.limitValue ?? null,
+                              )
+                            }
+                            className="h-4 w-4 rounded border-gray-300 accent-red-500"
+                          />
+                          {label}
+                        </label>
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="number"
+                            defaultValue={pf?.limitValue ?? ""}
+                            placeholder="∞"
+                            disabled={!enabled || isUpdating}
+                            onBlur={(e) => {
+                              const val =
+                                e.target.value === "" ? null : Number(e.target.value);
+                              if (enabled && val !== (pf?.limitValue ?? null)) {
+                                handleSetFeature(plan.id, f.id, true, val);
+                              }
+                            }}
+                            className="h-7 w-16 text-center text-xs border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-red-500 disabled:opacity-40"
+                          />
+                          {isUpdating && <Loader2 className="h-3 w-3 animate-spin text-red-500" />}
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           ))}
