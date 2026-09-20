@@ -36,7 +36,7 @@ import { useTheme } from "next-themes";
 import { toast } from "@/components/ui/use-toast";
 import { apiClient } from "@/lib/api-client";
 import { API_ROUTES } from "@/lib/constants";
-import { Workspace, SystemRole } from "@/types";
+import { Workspace, WorkspaceRole, SystemRole } from "@/types";
 import { useAuth } from "@/hooks/useAuth";
 
 // ─── Nav Item Component ────────────────────────────────────────────────────────
@@ -121,6 +121,12 @@ export default function Sidebar() {
 
   const isInAdminPanel = pathname.startsWith("/dashboard/admin");
 
+  // The Institution admin panel is only for the institution OWNER/ADMIN — a
+  // DOCTOR/MANAGER/ASSISTANT who is merely a member must never see it.
+  const isInstitutionManager = (ws?: Workspace | null) =>
+    ws?.type === "INSTITUTION" &&
+    (ws?.role === WorkspaceRole.OWNER || ws?.role === WorkspaceRole.ADMIN);
+
   useEffect(() => {
     setMounted(true);
     const loadData = async () => {
@@ -132,7 +138,7 @@ export default function Sidebar() {
           const savedWsId = localStorage.getItem("activeWorkspaceId");
           const active = wsData.find((w) => w.id === savedWsId) || wsData[0];
           setActiveWorkspace(active);
-          setIsInstitution(active?.type === "INSTITUTION");
+          setIsInstitution(isInstitutionManager(active));
           // Persist the resolved workspace so URL-scoped pages can use it.
           if (active?.id) localStorage.setItem("activeWorkspaceId", active.id);
         }
@@ -165,7 +171,7 @@ export default function Sidebar() {
       }
       setActiveWorkspace(ws);
       localStorage.setItem("activeWorkspaceId", ws.id);
-      setIsInstitution(ws.type === "INSTITUTION");
+      setIsInstitution(isInstitutionManager(ws));
       setWsMenuOpen(false);
       window.location.reload();
     } catch (e: any) {
@@ -181,6 +187,22 @@ export default function Sidebar() {
     authLogout();
     localStorage.removeItem("activeWorkspaceId");
   };
+
+  // ── Workspace context grouping ─────────────────────────────────────────────
+  // Switching is restricted to the SAME category as the active workspace:
+  // Personal ⇄ Personal, Chamber ⇄ Chamber, Institution ⇄ Institution.
+  const activeType = activeWorkspace?.type;
+  const switchableWorkspaces = activeType
+    ? workspaces.filter((w) => w.type === activeType)
+    : workspaces;
+  const contextLabel =
+    activeType === "PERSONAL"
+      ? "Personal"
+      : activeType === "CHAMBER"
+        ? "Chambers"
+        : activeType === "INSTITUTION"
+          ? "Hospitals & Clinics"
+          : "Workspace";
 
   // ─── ADMIN PANEL SIDEBAR (SOFT COLOR PALETTE) ──────────────────────────────
   if (isInAdminPanel) {
@@ -295,7 +317,10 @@ export default function Sidebar() {
           </button>
           {wsMenuOpen && (
             <div className="mt-1 rounded-lg border border-outline-variant bg-surface dark:bg-surface-container overflow-hidden shadow-md z-50">
-              {workspaces.map((ws) => (
+              <p className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60 border-b border-outline-variant/40">
+                {contextLabel}
+              </p>
+              {switchableWorkspaces.map((ws) => (
                 <button
                   key={ws.id}
                   onClick={() => switchWorkspace(ws)}
