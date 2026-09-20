@@ -132,7 +132,7 @@ export default function LandingPage() {
       </section>
 
       {/* Feature Showcase (Bento Grid) */}
-      <section className="py-24">
+      <section id="features" className="py-24 scroll-mt-24">
         <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop">
           <div className="text-center max-w-2xl mx-auto mb-16 reveal-section">
             <h2 className="font-headline-lg text-headline-lg mb-stack-sm text-on-background">
@@ -234,7 +234,7 @@ export default function LandingPage() {
       </section>
 
       {/* Workflow Timeline */}
-      <section className="py-24 bg-surface-container-highest/20 overflow-hidden">
+      <section id="workflow" className="py-24 bg-surface-container-highest/20 overflow-hidden scroll-mt-24">
         <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop">
           <div className="text-center mb-16 reveal-section">
             <h2 className="font-headline-lg text-headline-lg mb-stack-sm text-on-background">
@@ -319,7 +319,7 @@ export default function LandingPage() {
       </section>
 
       {/* Final CTA Section */}
-      <section className="py-24 px-margin-mobile">
+      <section id="pricing" className="py-24 px-margin-mobile scroll-mt-24">
         <div className="max-w-4xl mx-auto glass-card p-12 rounded-[2rem] text-center shadow-xl border-2 border-primary/10 relative overflow-hidden reveal-section">
           <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[80px] -mr-32 -mt-32"></div>
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-tertiary/10 rounded-full blur-[80px] -ml-32 -mb-32"></div>
