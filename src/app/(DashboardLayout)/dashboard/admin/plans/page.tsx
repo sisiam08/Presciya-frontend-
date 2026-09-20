@@ -25,6 +25,7 @@ const FEATURE_LABELS: Record<string, string> = {
   custom_branding: "Custom Branding",
   medicine_favorites: "Medicine Favorites",
   export: "Data Export",
+  institution: "Institution / Hospital",
 };
 
 export default function AdminPlansPage() {
@@ -38,14 +39,19 @@ export default function AdminPlansPage() {
     descriptionEn: "", descriptionBn: "",
   });
   const [saving, setSaving] = useState(false);
-  const [editingPrice, setEditingPrice] = useState<Record<string, string>>({});
+  // Inline editor for a plan's name/price (admin-owned data, never hardcoded).
+  const [editingPlan, setEditingPlan] = useState<{
+    id: string;
+    variantName: string;
+    price: string;
+  } | null>(null);
 
   const loadPlans = async () => {
     setLoading(true);
     try {
       const [plansRes, featuresRes] = await Promise.all([
         apiClient.get<any>(API_ROUTES.ADMIN.PLANS),
-        apiClient.get<any>("/admin/features"),
+        apiClient.get<any>(API_ROUTES.ADMIN.FEATURES),
       ]);
       setPlans(plansRes.data?.data || plansRes.data || []);
       setFeatures(featuresRes.data?.data || featuresRes.data || []);
@@ -66,7 +72,7 @@ export default function AdminPlansPage() {
     setUpdatingId(key);
     try {
       await apiClient.put(
-        `/admin/plans/${variantId}/features/${featureId}`,
+        API_ROUTES.ADMIN.SET_PLAN_FEATURE(variantId, featureId),
         { enabled, limitValue },
       );
       await loadPlans();
@@ -89,7 +95,7 @@ export default function AdminPlansPage() {
     }
     setSaving(true);
     try {
-      await apiClient.post("/subscription/plans", {
+      await apiClient.post(API_ROUTES.ADMIN.PLAN_CREATE, {
         variantName: newPlan.variantName,
         price: parseFloat(newPlan.price),
         dailyPrescriptionLimit: parseInt(newPlan.dailyPrescriptionLimit) || 3,
@@ -106,14 +112,43 @@ export default function AdminPlansPage() {
     setSaving(false);
   };
 
+  // Activate / deactivate a plan. Inactive plans are hidden from the public
+  // plan list and cannot be purchased; existing records are untouched.
   const handleTogglePlan = async (plan: any) => {
     try {
-      await apiClient.patch(`/subscription/plans/${plan.id}`, { isActive: !plan.isActive });
+      await apiClient.patch(API_ROUTES.ADMIN.PLAN_UPDATE(plan.id), { isActive: !plan.isActive });
       setPlans((prev) => prev.map((p) => p.id === plan.id ? { ...p, isActive: !p.isActive } : p));
       toast({ title: "Plan Updated", description: `Plan is now ${!plan.isActive ? "active" : "inactive"}.`, variant: "success" });
     } catch (e: any) {
       toast({ title: "Error", description: e?.response?.data?.message || "Failed to update plan.", variant: "destructive" });
     }
+  };
+
+  // Save a plan's name/price. Historical subscriptions and payments keep the
+  // price they were sold at — this only affects future purchases.
+  const handleSavePlanDetails = async () => {
+    if (!editingPlan) return;
+    if (!editingPlan.variantName.trim() || editingPlan.price === "") {
+      toast({ title: "Validation", description: "Plan name and price are required.", variant: "destructive" });
+      return;
+    }
+    try {
+      await apiClient.patch(API_ROUTES.ADMIN.PLAN_UPDATE(editingPlan.id), {
+        variantName: editingPlan.variantName.trim(),
+        price: parseFloat(editingPlan.price),
+      });
+      setPlans((prev) =>
+        prev.map((p) =>
+          p.id === editingPlan.id
+            ? { ...p, variantName: editingPlan.variantName.trim(), price: parseFloat(editingPlan.price) }
+            : p,
+        ),
+      );
+      toast({ title: "Plan Updated", description: "Plan details saved.", variant: "success" });
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.response?.data?.message || "Failed to update plan.", variant: "destructive" });
+    }
+    setEditingPlan(null);
   };
 
   return (
@@ -191,22 +226,85 @@ export default function AdminPlansPage() {
               {/* Plan header */}
               <div className="p-5 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
                 <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">{plan.variantName}</h2>
+                  <div className="min-w-0 flex-1">
+                    {editingPlan?.id === plan.id ? (
+                      <Input
+                        value={editingPlan?.variantName ?? ""}
+                        onChange={(e) =>
+                          setEditingPlan((p) => (p ? { ...p, variantName: e.target.value } : p))
+                        }
+                        className="h-8 text-sm"
+                        placeholder="Plan name"
+                      />
+                    ) : (
+                      <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">{plan.variantName}</h2>
+                    )}
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
                       {(plan.description as any)?.en || "—"}
                     </p>
                   </div>
-                  <button
-                    onClick={() => handleTogglePlan(plan)}
-                    className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${plan.isActive ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}
-                  >
-                    {plan.isActive ? "Active" : "Inactive"}
-                  </button>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {editingPlan?.id === plan.id ? (
+                      <>
+                        <button
+                          onClick={handleSavePlanDetails}
+                          title="Save name & price"
+                          className="h-6 w-6 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center"
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setEditingPlan(null)}
+                          title="Cancel"
+                          className="h-6 w-6 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 flex items-center justify-center"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() =>
+                            setEditingPlan({
+                              id: plan.id,
+                              variantName: plan.variantName,
+                              price: String(plan.price),
+                            })
+                          }
+                          title="Edit name & price"
+                          className="h-6 w-6 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-600"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleTogglePlan(plan)}
+                          className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${plan.isActive ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}
+                        >
+                          {plan.isActive ? "Active" : "Inactive"}
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
-                <div className="mt-3">
-                  <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">৳{plan.price}</span>
-                  <span className="text-xs text-slate-400 ml-1">/month</span>
+                <div className="mt-3 flex items-center">
+                  {editingPlan?.id === plan.id ? (
+                    <>
+                      <span className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">৳</span>
+                      <Input
+                        type="number"
+                        value={editingPlan?.price ?? ""}
+                        onChange={(e) =>
+                          setEditingPlan((p) => (p ? { ...p, price: e.target.value } : p))
+                        }
+                        className="h-8 w-28 text-sm ml-1"
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">৳{plan.price}</span>
+                      <span className="text-xs text-slate-400 ml-1">/month</span>
+                    </>
+                  )}
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   Daily prescription limit: <span className="font-semibold text-slate-700 dark:text-slate-300">{plan.dailyPrescriptionLimit}</span>

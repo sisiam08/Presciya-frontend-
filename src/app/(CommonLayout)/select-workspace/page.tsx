@@ -6,6 +6,7 @@ import { Building2, Stethoscope, Loader2 } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import { API_ROUTES } from "@/lib/constants";
 import { toast } from "@/components/ui/use-toast";
+import { useAvailability } from "@/hooks/useAvailability";
 
 interface WorkspaceOption {
   id: string;
@@ -18,6 +19,9 @@ interface WorkspaceOption {
 
 export default function SelectWorkspacePage() {
   const router = useRouter();
+  // Institution workspaces are not usable in the current public release.
+  const { isEnabled } = useAvailability();
+  const institutionAvailable = isEnabled("institution");
   const [workspaces, setWorkspaces] = useState<WorkspaceOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [switchingId, setSwitchingId] = useState<string | null>(null);
@@ -90,12 +94,26 @@ export default function SelectWorkspacePage() {
           {workspaces.map((ws) => {
             const Icon = ws.type === "INSTITUTION" ? Building2 : Stethoscope;
             const isBusy = switchingId === ws.id;
+            const wsSoon = ws.type === "INSTITUTION" && !institutionAvailable;
             return (
               <button
                 key={ws.id}
-                onClick={() => choose(ws)}
-                disabled={switchingId !== null}
-                className="flex items-center gap-4 rounded-xl border border-outline-variant bg-surface-container-lowest p-4 text-left transition-colors hover:border-primary hover:bg-surface-container disabled:opacity-60"
+                onClick={() => {
+                  if (wsSoon) {
+                    toast({
+                      title: "Coming soon",
+                      description:
+                        "Institution workspaces are still under development and will be available soon.",
+                    });
+                    return;
+                  }
+                  choose(ws);
+                }}
+                disabled={switchingId !== null || wsSoon}
+                title={wsSoon ? "Institution workspaces are coming soon" : undefined}
+                className={`flex items-center gap-4 rounded-xl border border-outline-variant bg-surface-container-lowest p-4 text-left transition-colors hover:border-primary hover:bg-surface-container disabled:opacity-60 ${
+                  wsSoon ? "cursor-not-allowed opacity-70" : ""
+                }`}
               >
                 <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   {isBusy ? (
@@ -104,7 +122,7 @@ export default function SelectWorkspacePage() {
                     <Icon className="h-5 w-5" />
                   )}
                 </span>
-                <span className="min-w-0">
+                <span className="min-w-0 flex-1">
                   <span className="block truncate font-semibold text-on-surface">
                     {ws.name}
                   </span>
@@ -113,6 +131,11 @@ export default function SelectWorkspacePage() {
                     {ws.role ? ` · ${ws.role.toLowerCase()}` : ""}
                   </span>
                 </span>
+                {wsSoon && (
+                  <span className="flex-shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:bg-amber-950/50 dark:text-amber-400">
+                    Coming Soon
+                  </span>
+                )}
               </button>
             );
           })}

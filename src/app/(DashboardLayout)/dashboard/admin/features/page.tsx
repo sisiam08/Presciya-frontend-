@@ -21,22 +21,18 @@ export default function AdminFeaturesPage() {
   const loadFeatures = async () => {
     setLoading(true);
     try {
-      const res = await apiClient.get<any>(API_ROUTES.ADMIN.PLANS);
-      const plans = res.data?.data || res.data || [];
-      
-      const uniqueFeaturesMap = new Map<string, any>();
-      plans.forEach((plan: any) => {
-        plan.planFeatures?.forEach((pf: any) => {
-          if (pf.feature && !uniqueFeaturesMap.has(pf.feature.id)) {
-            uniqueFeaturesMap.set(pf.feature.id, {
-              ...pf.feature,
-              isEnabledGlobally: true,
-            });
-          }
-        });
-      });
-      
-      setFeatures(Array.from(uniqueFeaturesMap.values()));
+      // The full feature catalog (not just those attached to a plan) so that
+      // features which ship disabled — e.g. "institution" — can be enabled here.
+      const res = await apiClient.get<any>(API_ROUTES.ADMIN.FEATURES);
+      const list = res.data?.data || res.data || [];
+
+      setFeatures(
+        list.map((f: any) => ({
+          ...f,
+          // A missing flag row means the feature is globally enabled.
+          isEnabledGlobally: f.featureFlags?.[0]?.isEnabledGlobally ?? true,
+        })),
+      );
     } catch {
       setFeatures([]);
     }

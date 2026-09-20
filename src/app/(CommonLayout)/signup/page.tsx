@@ -8,11 +8,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import api from "@/lib/api";
+import { useAvailability } from "@/hooks/useAvailability";
 import { Mail, Lock, User, Sparkles, Zap, KeyRound, Building2, Stethoscope, ArrowLeft, Loader2, CheckCircle2 } from "lucide-react";
 
 export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
+  // Institution / hospital / clinic accounts are not publicly available yet.
+  // The state is admin-controlled (FeatureFlag) — not hardcoded here.
+  const { isEnabled } = useAvailability();
+  const institutionAvailable = isEnabled("institution");
 
   const [step, setStep] = useState<1 | 2>(1);
   const [name, setName] = useState("");
@@ -179,21 +184,42 @@ export default function SignupPage() {
                     }`}
                   >
                     <Stethoscope size={20} />
-                    <span>Personal Doctor</span>
+                    <span>Personal</span>
                   </button>
                   <button
                     type="button"
-                    onClick={() => setAccountType("INSTITUTION")}
-                    className={`p-3 rounded-xl border flex flex-col items-center gap-1.5 transition-all text-xs font-semibold ${
-                      accountType === "INSTITUTION"
-                        ? "border-primary bg-primary/5 text-primary ring-2 ring-primary/20"
-                        : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary/50"
+                    onClick={() => institutionAvailable && setAccountType("INSTITUTION")}
+                    disabled={!institutionAvailable}
+                    aria-disabled={!institutionAvailable}
+                    title={
+                      institutionAvailable
+                        ? undefined
+                        : "Institution features are coming soon"
+                    }
+                    className={`relative p-3 rounded-xl border flex flex-col items-center gap-1.5 transition-all text-xs font-semibold ${
+                      !institutionAvailable
+                        ? "border-outline-variant bg-surface-container-lowest text-on-surface-variant/50 opacity-70 cursor-not-allowed"
+                        : accountType === "INSTITUTION"
+                          ? "border-primary bg-primary/5 text-primary ring-2 ring-primary/20"
+                          : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary/50"
                     }`}
                   >
                     <Building2 size={20} />
                     <span>Institution / Clinic</span>
+                    {!institutionAvailable && (
+                      <span className="absolute -top-2 right-2 rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-700 dark:bg-amber-950/50 dark:text-amber-400">
+                        Coming Soon
+                      </span>
+                    )}
                   </button>
                 </div>
+                {!institutionAvailable && (
+                  <p className="text-[11px] leading-relaxed text-on-surface-variant">
+                    Institution, hospital and clinic accounts are under development and
+                    will be available soon. You can get started with a Personal Doctor
+                    account today.
+                  </p>
+                )}
               </div>
 
               {/* Full Name */}
@@ -204,7 +230,7 @@ export default function SignupPage() {
                   <Input
                     id="name"
                     type="text"
-                    placeholder="Dr. Abul Kalam"
+                    placeholder="Enter your full name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="pl-10 h-11 text-sm bg-surface-container-lowest"
@@ -221,7 +247,7 @@ export default function SignupPage() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="doctor@presciya.com"
+                    placeholder="Enter your professional email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10 h-11 text-sm bg-surface-container-lowest"
@@ -254,7 +280,7 @@ export default function SignupPage() {
                 disabled={loading}
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles size={16} />}
-                <span>{loading ? "Sending Code..." : "Continue to Verification"}</span>
+                <span>{loading ? "Sending Code..." : "Create Account"}</span>
               </Button>
             </form>
           )}

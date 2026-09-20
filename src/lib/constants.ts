@@ -177,6 +177,12 @@ export const API_ROUTES = {
     CANCEL: "/subscription/cancel",
   },
 
+  // ── System / feature availability ─────────────────────────────────────────
+  // Public (no auth) — drives "coming soon" / disabled states in the client.
+  SYSTEM: {
+    AVAILABILITY: "/system/availability",
+  },
+
   // ── Notifications ─────────────────────────────────────────────────────────
   NOTIFICATIONS: {
     LIST: "/notifications",
@@ -193,8 +199,13 @@ export const API_ROUTES = {
     UPDATE_USER: (id: string) => `/admin/users/${id}`,
     DELETE_USER: (id: string) => `/admin/users/${id}`,
     PLANS: "/admin/plans",
+    PLAN_CREATE: "/admin/plans",
+    PLAN_UPDATE: (id: string) => `/admin/plans/${id}`,
+    SET_PLAN_FEATURE: (vid: string, fid: string) =>
+      `/admin/plans/${vid}/features/${fid}`,
     SET_PLAN_FEATURE_LIMIT: (vid: string, fid: string) =>
       `/admin/plans/${vid}/features/${fid}/limit`,
+    FEATURES: "/admin/features",
     TOGGLE_FEATURE: (id: string) => `/admin/features/${id}/flag`,
     AUDIT_LOGS: "/admin/audit-logs",
     LOGIN_HISTORY: "/admin/login-history",
