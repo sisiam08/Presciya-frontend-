@@ -36,8 +36,20 @@ import { useTheme } from "next-themes";
 import { toast } from "@/components/ui/use-toast";
 import { apiClient } from "@/lib/api-client";
 import { API_ROUTES } from "@/lib/constants";
-import { Workspace, WorkspaceRole, SystemRole } from "@/types";
+import {
+  Workspace,
+  WorkspaceRole,
+  WorkspaceType,
+  SystemRole,
+  Chamber,
+} from "@/types";
 import { useAuth } from "@/hooks/useAuth";
+import { useAvailability } from "@/hooks/useAvailability";
+import {
+  persistActiveChamber,
+  readActiveChamberId,
+  useActiveChamber,
+} from "@/hooks/useActiveChamber";
 
 // ─── Nav Item Component ────────────────────────────────────────────────────────
 function NavItem({
@@ -47,6 +59,7 @@ function NavItem({
   active,
   badge,
   highlight,
+  soon,
 }: {
   href: string;
   label: string;
@@ -54,11 +67,14 @@ function NavItem({
   active: boolean;
   badge?: number;
   highlight?: boolean;
+  /** Marks a section that ships in the app but is not publicly available yet. */
+  soon?: boolean;
 }) {
   return (
     <Link
       href={href}
       className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 relative
+        ${soon && !active ? "opacity-60" : ""}
         ${
           active
             ? "bg-primary text-on-primary shadow-xs font-semibold"
@@ -77,7 +93,12 @@ function NavItem({
         }`}
       />
       <span className="truncate">{label}</span>
-      {badge != null && badge > 0 && (
+      {soon && (
+        <span className="ml-auto flex-shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-700 dark:bg-amber-950/50 dark:text-amber-400">
+          Soon
+        </span>
+      )}
+      {!soon && badge != null && badge > 0 && (
         <span className="ml-auto flex-shrink-0 text-[10px] font-bold bg-primary text-on-primary rounded-full h-4 min-w-4 px-1 flex items-center justify-center">
           {badge > 99 ? "99+" : badge}
         </span>
@@ -107,13 +128,39 @@ const ADMIN_NAV = [
   { href: "/dashboard/admin/audit-logs", label: "Audit Logs", icon: ScrollText },
 ];
 
+// Workspace groups. A "group" is simply the existing WorkspaceType — no
+// duplicate workspaceGroup/workspaceMode concept is introduced.
+const WORKSPACE_GROUPS: WorkspaceType[] = [
+  WorkspaceType.PERSONAL,
+  WorkspaceType.CHAMBER,
+  WorkspaceType.INSTITUTION,
+];
+
+const GROUP_LABELS: Record<string, string> = {
+  [WorkspaceType.PERSONAL]: "Personal",
+  [WorkspaceType.CHAMBER]: "Chambers",
+  [WorkspaceType.INSTITUTION]: "Hospitals & Clinics",
+};
+
+const groupLabel = (type?: WorkspaceType) =>
+  (type && GROUP_LABELS[type]) || "Workspace";
+
 export default function Sidebar() {
   const pathname = usePathname();
   const { resolvedTheme, setTheme } = useTheme();
   const { user, logout: authLogout } = useAuth();
+  // Institution / hospital / clinic surfaces are not part of the public release
+  // yet. Admin-controlled (FeatureFlag) — never hardcoded here.
+  const { isEnabled } = useAvailability();
+  const institutionAvailable = isEnabled("institution");
   const [mounted, setMounted] = useState(false);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
+  // Chambers live INSIDE a workspace (there are no CHAMBER-type workspaces), so
+  // the "Chambers" group lists the active workspace's chambers and the selected
+  // one becomes the operating chamber for new prescriptions/appointments.
+  const [chambers, setChambers] = useState<Chamber[]>([]);
+  const activeChamberId = useActiveChamber();
   const [wsMenuOpen, setWsMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -143,6 +190,24 @@ export default function Sidebar() {
           if (active?.id) localStorage.setItem("activeWorkspaceId", active.id);
         }
 
+        // Chambers of the active workspace (may be none, or the call is not
+        // permitted for this workspace type — treat both as "no chambers").
+        const chamberRes = await apiClient
+          .get<any>(API_ROUTES.CHAMBERS.LIST)
+          .catch(() => ({ data: [] }));
+        const chamberData: Chamber[] =
+          chamberRes.data?.data || chamberRes.data || [];
+        setChambers(Array.isArray(chamberData) ? chamberData : []);
+
+        // Drop a stored chamber that no longer exists in this workspace.
+        const savedChamberId = readActiveChamberId();
+        if (
+          savedChamberId &&
+          !chamberData.some((c: Chamber) => c.id === savedChamberId)
+        ) {
+          persistActiveChamber("");
+        }
+
         const notifRes = await apiClient.get<any>(API_ROUTES.NOTIFICATIONS.UNREAD_COUNT);
         setUnreadCount(notifRes.data?.count || notifRes.data?.data?.count || 0);
 
@@ -160,6 +225,15 @@ export default function Sidebar() {
     exact ? pathname === href : pathname.startsWith(href);
 
   const switchWorkspace = async (ws: Workspace) => {
+    if (ws.type === "INSTITUTION" && !institutionAvailable) {
+      toast({
+        title: "Coming soon",
+        description:
+          "Institution workspaces are still under development and will be available soon.",
+      });
+      setWsMenuOpen(false);
+      return;
+    }
     try {
       // Identity comes from the session cookie server-side; only workspaceId is sent.
       const res = await apiClient.post<any>("/auth/switch-workspace", {
@@ -171,6 +245,9 @@ export default function Sidebar() {
       }
       setActiveWorkspace(ws);
       localStorage.setItem("activeWorkspaceId", ws.id);
+      // Chambers belong to a workspace, so a fresh workspace starts with no
+      // chamber selected.
+      persistActiveChamber("");
       setIsInstitution(isInstitutionManager(ws));
       setWsMenuOpen(false);
       window.location.reload();
@@ -188,21 +265,86 @@ export default function Sidebar() {
     localStorage.removeItem("activeWorkspaceId");
   };
 
-  // ── Workspace context grouping ─────────────────────────────────────────────
-  // Switching is restricted to the SAME category as the active workspace:
-  // Personal ⇄ Personal, Chamber ⇄ Chamber, Institution ⇄ Institution.
+  // ── Workspace groups ───────────────────────────────────────────────────────
+  // A group is the existing WorkspaceType. The database has no CHAMBER-type
+  // workspaces — chambers are entities INSIDE a workspace — so the Chambers
+  // group lists the active workspace's chambers and choosing one sets the
+  // operating chamber instead of switching workspace.
   const activeType = activeWorkspace?.type;
-  const switchableWorkspaces = activeType
-    ? workspaces.filter((w) => w.type === activeType)
-    : workspaces;
+  const activeChamber = chambers.find((c) => c.id === activeChamberId) ?? null;
+
+  const activeGroup: WorkspaceType = activeChamber
+    ? WorkspaceType.CHAMBER
+    : (activeType ?? WorkspaceType.PERSONAL);
+
+  const switchableWorkspaces =
+    activeGroup === WorkspaceType.CHAMBER
+      ? []
+      : workspaces.filter((w) => w.type === activeGroup);
+
   const contextLabel =
-    activeType === "PERSONAL"
-      ? "Personal"
-      : activeType === "CHAMBER"
-        ? "Chambers"
-        : activeType === "INSTITUTION"
-          ? "Hospitals & Clinics"
-          : "Workspace";
+    activeGroup === WorkspaceType.CHAMBER ? "Chambers" : groupLabel(activeType);
+
+  const selectChamber = (chamber: Chamber) => {
+    persistActiveChamber(chamber.id);
+    setWsMenuOpen(false);
+  };
+
+  const clearChamber = () => {
+    persistActiveChamber("");
+  };
+
+  // Only groups the user can actually operate in, in a stable order.
+  const availableGroups = WORKSPACE_GROUPS.filter((type) => {
+    if (type === WorkspaceType.CHAMBER) return chambers.length > 0;
+    return workspaces.some((w) => w.type === type);
+  });
+
+  const changeWorkspaceGroup = (type: WorkspaceType) => {
+    if (type === activeGroup) return;
+
+    if (type === WorkspaceType.CHAMBER) {
+      if (chambers.length === 0) {
+        toast({
+          title: "No chambers yet",
+          description: "Create a chamber to switch into chamber mode.",
+        });
+        return;
+      }
+      selectChamber(chambers[0]);
+      return;
+    }
+
+    // Moving to a workspace group drops the chamber context.
+    clearChamber();
+
+    if (type === WorkspaceType.INSTITUTION && !institutionAvailable) {
+      toast({
+        title: "Coming soon",
+        description:
+          "Institution workspaces are still under development and will be available soon.",
+      });
+      return;
+    }
+
+    const target = workspaces.find((w) => w.type === type);
+    if (!target) {
+      toast({
+        title: "No workspace available",
+        description: `You don't have any ${groupLabel(type).toLowerCase()} workspaces.`,
+      });
+      return;
+    }
+
+    if (target.id === activeWorkspace?.id) {
+      // Same workspace — we only needed to leave chamber mode.
+      setWsMenuOpen(false);
+      return;
+    }
+
+    // Reuses the existing switch flow; the backend re-validates access.
+    switchWorkspace(target);
+  };
 
   // ─── ADMIN PANEL SIDEBAR (SOFT COLOR PALETTE) ──────────────────────────────
   if (isInAdminPanel) {
@@ -307,7 +449,9 @@ export default function Sidebar() {
           >
             <Building2 className="h-3.5 w-3.5 text-primary flex-shrink-0" />
             <span className="flex-1 text-left truncate font-medium text-xs">
-              {activeWorkspace?.name || "Select Workspace"}
+              {activeChamber?.name ||
+                activeWorkspace?.name ||
+                "Select Workspace"}
             </span>
             {wsMenuOpen ? (
               <ChevronUp className="h-3.5 w-3.5 text-on-surface-variant" />
@@ -317,32 +461,115 @@ export default function Sidebar() {
           </button>
           {wsMenuOpen && (
             <div className="mt-1 rounded-lg border border-outline-variant bg-surface dark:bg-surface-container overflow-hidden shadow-md z-50">
+              {/* Step 1 — workspace group (only groups the user belongs to). */}
+              {availableGroups.length > 1 && (
+                <div className="px-2 pt-2 pb-1.5 border-b border-outline-variant/40">
+                  <p className="px-1 mb-1.5 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60">
+                    Workspace group
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {availableGroups.map((group) => {
+                      const isCurrent = group === activeGroup;
+                      const isSoon =
+                        group === WorkspaceType.INSTITUTION &&
+                        !institutionAvailable;
+                      return (
+                        <button
+                          key={group}
+                          type="button"
+                          onClick={() => changeWorkspaceGroup(group)}
+                          disabled={isSoon}
+                          title={
+                            isSoon
+                              ? "Institution workspaces are coming soon"
+                              : undefined
+                          }
+                          className={`px-2 py-1 rounded-md text-[10px] font-semibold border transition-colors ${
+                            isCurrent
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-outline-variant text-on-surface-variant hover:bg-surface-container-high"
+                          } ${isSoon ? "opacity-50 cursor-not-allowed" : ""}`}
+                        >
+                          {groupLabel(group)}
+                          {isSoon ? " · Soon" : ""}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2 — the entries of the active group. */}
               <p className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60 border-b border-outline-variant/40">
                 {contextLabel}
               </p>
-              {switchableWorkspaces.map((ws) => (
-                <button
-                  key={ws.id}
-                  onClick={() => switchWorkspace(ws)}
-                  className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left transition-colors hover:bg-surface-container-high ${
-                    activeWorkspace?.id === ws.id
-                      ? "bg-primary/10 text-primary font-medium"
-                      : "text-on-surface"
-                  }`}
-                >
-                  <div className="h-5 w-5 rounded bg-primary/20 flex items-center justify-center flex-shrink-0">
-                    <span className="text-[10px] text-primary font-bold">
-                      {ws.name.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-medium">{ws.name}</p>
-                    <p className="text-[10px] text-on-surface-variant capitalize">
-                      {ws.type?.toLowerCase()}
-                    </p>
-                  </div>
-                </button>
-              ))}
+              {activeGroup === WorkspaceType.CHAMBER
+                ? chambers.map((chamber) => (
+                    <button
+                      key={chamber.id}
+                      onClick={() => selectChamber(chamber)}
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left transition-colors hover:bg-surface-container-high ${
+                        activeChamberId === chamber.id
+                          ? "bg-primary/10 text-primary font-medium"
+                          : "text-on-surface"
+                      }`}
+                    >
+                      <div className="h-5 w-5 rounded bg-primary/20 flex items-center justify-center flex-shrink-0">
+                        <span className="text-[10px] text-primary font-bold">
+                          {chamber.name.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-medium">
+                          {chamber.name}
+                        </p>
+                        <p className="text-[10px] text-on-surface-variant">
+                          {activeWorkspace?.name || "Chamber"}
+                        </p>
+                      </div>
+                    </button>
+                  ))
+                : switchableWorkspaces.map((ws) => {
+                    const wsSoon =
+                      ws.type === "INSTITUTION" && !institutionAvailable;
+                    return (
+                      <button
+                        key={ws.id}
+                        onClick={() => switchWorkspace(ws)}
+                        title={
+                          wsSoon
+                            ? "Institution workspaces are coming soon"
+                            : undefined
+                        }
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left transition-colors hover:bg-surface-container-high ${
+                          wsSoon ? "opacity-60" : ""
+                        } ${
+                          activeWorkspace?.id === ws.id
+                            ? "bg-primary/10 text-primary font-medium"
+                            : "text-on-surface"
+                        }`}
+                      >
+                        <div className="h-5 w-5 rounded bg-primary/20 flex items-center justify-center flex-shrink-0">
+                          <span className="text-[10px] text-primary font-bold">
+                            {ws.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-medium">
+                            {ws.name}
+                          </p>
+                          <p className="text-[10px] text-on-surface-variant capitalize">
+                            {ws.type?.toLowerCase()}
+                          </p>
+                        </div>
+                        {wsSoon && (
+                          <span className="flex-shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-700 dark:bg-amber-950/50 dark:text-amber-400">
+                            Soon
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
             </div>
           )}
         </div>
@@ -362,12 +589,16 @@ export default function Sidebar() {
 
         {isInstitution && (
           <>
-            <SectionLabel label="Institution" />
-            <NavItem href="/institution" label="Overview" icon={Building2} active={isActive("/institution")} />
-            <NavItem href="/institution/doctors" label="Doctors" icon={Users} active={isActive("/institution/doctors")} />
-            <NavItem href="/institution/departments" label="Departments" icon={Layers} active={isActive("/institution/departments")} />
-            <NavItem href="/institution/invitations" label="Invitations" icon={Mail} active={isActive("/institution/invitations")} />
-            <NavItem href="/institution/settings" label="Settings" icon={Settings2} active={isActive("/institution/settings")} />
+            <SectionLabel
+              label={
+                institutionAvailable ? "Institution" : "Institution · Coming Soon"
+              }
+            />
+            <NavItem href="/institution" label="Overview" icon={Building2} active={isActive("/institution")} soon={!institutionAvailable} />
+            <NavItem href="/institution/doctors" label="Doctors" icon={Users} active={isActive("/institution/doctors")} soon={!institutionAvailable} />
+            <NavItem href="/institution/departments" label="Departments" icon={Layers} active={isActive("/institution/departments")} soon={!institutionAvailable} />
+            <NavItem href="/institution/invitations" label="Invitations" icon={Mail} active={isActive("/institution/invitations")} soon={!institutionAvailable} />
+            <NavItem href="/institution/settings" label="Settings" icon={Settings2} active={isActive("/institution/settings")} soon={!institutionAvailable} />
           </>
         )}
 

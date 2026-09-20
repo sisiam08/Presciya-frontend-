@@ -30,7 +30,13 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import AppointmentPaymentDialog from "@/components/appointment/AppointmentPaymentDialog";
 import PatientCombobox from "@/components/patient/PatientCombobox";
 import FeatureGate from "@/components/ui/FeatureGate";
+import ChamberGate from "@/components/ui/ChamberGate";
 import { useEntitlements } from "@/hooks/useEntitlements";
+import { isTodayInBangladesh } from "@/lib/datetime";
+import {
+  persistActiveChamber,
+  useActiveChamber,
+} from "@/hooks/useActiveChamber";
 
 function StatusBadge({ status }: { status: AppointmentStatus }) {
   const cfg =
@@ -85,7 +91,10 @@ const DISCOUNT_ROLES = ["OWNER", "ADMIN", "DOCTOR", "MANAGER"];
 export default function AppointmentsPage() {
   return (
     <FeatureGate feature="appointments" label="Appointments">
-      <AppointmentsContent />
+      {/* Appointments are chamber-scoped: Personal mode shows a notice instead. */}
+      <ChamberGate label="Appointments">
+        <AppointmentsContent />
+      </ChamberGate>
     </FeatureGate>
   );
 }
@@ -93,7 +102,8 @@ export default function AppointmentsPage() {
 function AppointmentsContent() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [chambers, setChambers] = useState<Chamber[]>([]);
-  const [selectedChamber, setSelectedChamber] = useState<string>("");
+  // The chamber the doctor is operating in (chosen in the sidebar switcher).
+  const activeChamberId = useActiveChamber();
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
@@ -139,9 +149,11 @@ function AppointmentsContent() {
       const res = await apiClient.get<any>(API_ROUTES.CHAMBERS.LIST);
       const list: Chamber[] = res.data?.data || res.data || [];
       setChambers(list);
-      if (list.length > 0 && !selectedChamber) setSelectedChamber(list[0].id);
+      // The active chamber is chosen explicitly (sidebar switcher or the
+      // chamber prompt) — never auto-selected, otherwise the chamber gate
+      // could never show its notice.
     } catch {}
-  }, [selectedChamber]);
+  }, []);
 
   const loadAppointments = useCallback(async () => {
     if (!workspaceId) {
@@ -198,7 +210,7 @@ function AppointmentsContent() {
   const openNewAppointment = async () => {
     setShowNew(true);
     setNewForm({
-      chamberId: selectedChamber || chambers[0]?.id || "",
+        chamberId: activeChamberId || chambers[0]?.id || "",
       patientId: "",
       date: new Date().toISOString().slice(0, 10),
       visitType: "NORMAL",
@@ -281,17 +293,14 @@ function AppointmentsContent() {
     );
   });
 
-  const today = filtered.filter(
-    (a) =>
-      new Date(a.scheduledDate || a.appointmentDate || "").toDateString() ===
-      new Date().toDateString(),
+  // "Today" is the Bangladesh calendar day, matching the backend's day window.
+  const today = filtered.filter((a) =>
+    isTodayInBangladesh(a.scheduledDate || a.appointmentDate || ""),
   );
 
   // All of today's appointments (not filtered by the search box) for the limit.
-  const todayTotal = appointments.filter(
-    (a) =>
-      new Date(a.scheduledDate || a.appointmentDate || "").toDateString() ===
-      new Date().toDateString(),
+  const todayTotal = appointments.filter((a) =>
+    isTodayInBangladesh(a.scheduledDate || a.appointmentDate || ""),
   ).length;
 
   const todayCollected = today
@@ -384,8 +393,8 @@ function AppointmentsContent() {
           <div className="flex items-center gap-2">
             <Building2 className="h-4 w-4 text-on-surface-variant" />
             <select
-              value={selectedChamber}
-              onChange={(e) => setSelectedChamber(e.target.value)}
+              value={activeChamberId}
+              onChange={(e) => persistActiveChamber(e.target.value)}
               className="h-10 rounded-lg border border-gray-200 bg-surface px-3 text-xs font-semibold text-on-surface focus:outline-none dark:border-slate-800"
             >
               {chambers.map((c) => (
