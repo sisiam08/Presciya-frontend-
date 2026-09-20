@@ -129,6 +129,26 @@ export const API_ROUTES = {
     CREATE: (workspaceId: string) => `/appointment/${workspaceId}`,
     UPDATE_STATUS: (workspaceId: string, id: string) =>
       `/appointment/${workspaceId}/${id}/status`,
+    GET: (workspaceId: string, id: string) =>
+      `/appointment/${workspaceId}/${id}`,
+    SEARCH_TODAY: (workspaceId: string) =>
+      `/appointment/${workspaceId}/search/today`,
+    RECORD_PAYMENT: (workspaceId: string, id: string) =>
+      `/appointment/${workspaceId}/${id}/payment`,
+  },
+
+  // ── Visiting fees (doctor-owned, per workspace) ───────────────────────────
+  VISITING_FEE: {
+    MY: "/visiting-fee/me",
+    DOCTOR: (doctorId: string) => `/visiting-fee/doctor/${doctorId}`,
+  },
+
+  // ── Revenue share (institution default + per-doctor overrides) ────────────
+  REVENUE_SHARE: {
+    GET: "/revenue-share",
+    SET_DEFAULT: "/revenue-share",
+    SET_OVERRIDE: (doctorId: string) => `/revenue-share/doctor/${doctorId}`,
+    REMOVE_OVERRIDE: (doctorId: string) => `/revenue-share/doctor/${doctorId}`,
   },
 
   // ── Analytics ─────────────────────────────────────────────────────────────
@@ -150,6 +170,7 @@ export const API_ROUTES = {
   SUBSCRIPTION: {
     PLANS: "/subscription/plans",
     MY_SUBSCRIPTION: "/subscription/my-subscription",
+    ENTITLEMENTS: "/subscription/entitlements",
     BILLING_HISTORY: "/subscription/billing-history",
     SUBSCRIBE: "/subscription/subscribe",
     VALIDATE_VOUCHER: "/subscription/validate-voucher",
@@ -491,9 +512,23 @@ export const VERIFICATION_STATUS_CONFIG = {
 } as const;
 
 export const APPOINTMENT_STATUS_CONFIG = {
-  SCHEDULED: { label: "Scheduled", color: "text-blue-600 bg-blue-50" },
+  PENDING: { label: "Pending", color: "text-amber-600 bg-amber-50" },
+  CONFIRMED: { label: "Confirmed", color: "text-blue-600 bg-blue-50" },
   RUNNING: { label: "Running", color: "text-amber-600 bg-amber-50" },
   COMPLETED: { label: "Completed", color: "text-emerald-600 bg-emerald-50" },
   CANCELLED: { label: "Cancelled", color: "text-red-600 bg-red-50" },
   NO_SHOW: { label: "No Show", color: "text-gray-600 bg-gray-50" },
 } as const;
+
+export const APPOINTMENT_PAYMENT_STATUS_CONFIG = {
+  PENDING: { label: "Payment Pending", color: "text-amber-700 bg-amber-50 dark:bg-amber-950/30" },
+  PAID: { label: "Paid", color: "text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30" },
+  FREE: { label: "Free", color: "text-primary bg-primary/10" },
+  CANCELLED: { label: "Cancelled", color: "text-red-700 bg-red-50 dark:bg-red-950/30" },
+  REFUNDED: { label: "Refunded", color: "text-purple-700 bg-purple-50 dark:bg-purple-950/30" },
+} as const;
+
+// Prescription eligibility: PAID and FREE visits allow a prescription.
+export const isAppointmentEligibleForPrescription = (
+  status?: string | null,
+): boolean => status === "PAID" || status === "FREE";

@@ -15,6 +15,7 @@ export enum WorkspaceRole {
 
 export enum WorkspaceType {
   PERSONAL = "PERSONAL",
+  CHAMBER = "CHAMBER",
   INSTITUTION = "INSTITUTION",
 }
 
@@ -354,26 +355,76 @@ export interface Medicine {
 
 // ─── Appointment ─────────────────────────────────────────────────────────────
 
+// Matches the backend AppointmentStatus enum.
 export enum AppointmentStatus {
-  SCHEDULED = "SCHEDULED",
+  PENDING = "PENDING",
+  CONFIRMED = "CONFIRMED",
   RUNNING = "RUNNING",
   COMPLETED = "COMPLETED",
   CANCELLED = "CANCELLED",
   NO_SHOW = "NO_SHOW",
 }
 
+export enum AppointmentType {
+  NORMAL = "NORMAL",
+  FOLLOW_UP = "FOLLOW_UP",
+}
+
+export enum AppointmentPaymentStatus {
+  PENDING = "PENDING",
+  PAID = "PAID",
+  FREE = "FREE",
+  CANCELLED = "CANCELLED",
+  REFUNDED = "REFUNDED",
+}
+
 export interface Appointment {
   id: string;
   patientId: string;
-  chamberId: string;
+  chamberId?: string | null;
   workspaceId: string;
-  serialNumber: number;
-  scheduledDate: string;
+  serialNumber?: number;
+  serialNo?: number;
+  scheduledDate?: string;
+  appointmentDate?: string;
   status: AppointmentStatus;
+  appointmentType?: AppointmentType;
+  visitingFee?: number | null;
+  discount?: number;
+  payableAmount?: number | null;
+  paidAmount?: number;
+  paymentStatus?: AppointmentPaymentStatus;
+  paymentMethod?: string | null;
+  paidAt?: string | null;
+  revenueSharePercent?: number | null;
+  hospitalShareAmount?: number | null;
+  doctorShareAmount?: number | null;
+  followUpOfId?: string | null;
   notes?: string;
   patient?: Patient;
   chamber?: Chamber;
+  doctor?: { id: string; name: string };
   createdAt: string;
+}
+
+export interface VisitingFee {
+  id: string;
+  doctorId: string;
+  workspaceId: string;
+  visitingFee: number;
+  followUpFee: number | null;
+  isActive: boolean;
+}
+
+export interface RevenueShareOverride {
+  doctorId: string;
+  doctorName: string;
+  percentage: number;
+}
+
+export interface RevenueShareConfig {
+  defaultPercentage: number;
+  overrides: RevenueShareOverride[];
 }
 
 // ─── Notification ────────────────────────────────────────────────────────────
