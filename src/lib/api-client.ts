@@ -42,6 +42,16 @@ class ApiClient {
         if (activeWorkspaceId) {
           config.headers["x-workspace-id"] = activeWorkspaceId;
         }
+        // The chamber the user is currently working in. The backend validates
+        // it against the workspace, so it can never reach another workspace's
+        // chamber data. Absent => the personal (chamber-less) scope.
+        const activeChamberId =
+          typeof window !== "undefined"
+            ? localStorage.getItem("activeChamberId")
+            : null;
+        if (activeChamberId) {
+          config.headers["x-chamber-id"] = activeChamberId;
+        }
         return config;
       },
       (error) => Promise.reject(error),

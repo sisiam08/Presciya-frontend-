@@ -37,7 +37,7 @@ export default function SubscriptionPage() {
   const [voucherResult, setVoucherResult] = useState<any>(null);
   const [validatingVoucher, setValidatingVoucher] = useState(false);
   const [subscribing, setSubscribing] = useState<string | null>(null);
-  const [cancelling, setCancelling] = useState(false);
+
 
   const loadAll = async () => {
     setLoading(true);
@@ -97,26 +97,6 @@ export default function SubscriptionPage() {
       showError(e?.response?.data?.message || "Failed to subscribe.");
     }
     setSubscribing(null);
-  };
-
-  const handleCancel = async () => {
-    const ok = await confirm({
-      title: "Cancel your subscription?",
-      description:
-        "You can still use the plan until the current billing period ends.",
-      confirmLabel: "Cancel subscription",
-      variant: "danger",
-    });
-    if (!ok) return;
-    setCancelling(true);
-    try {
-      await apiClient.post(API_ROUTES.SUBSCRIPTION.CANCEL);
-      success("Subscription cancelled.");
-      loadAll();
-    } catch (e: any) {
-      showError(e?.response?.data?.message || "Failed to cancel subscription.");
-    }
-    setCancelling(false);
   };
 
   const currentVariantId = subscription?.subscriptionVariant?.id;
@@ -214,18 +194,6 @@ export default function SubscriptionPage() {
                     </div>
                   </div>
                 </div>
-                {subscription.isActive && !isExpired && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-red-600 border-red-200 hover:bg-red-50"
-                    onClick={handleCancel}
-                    disabled={cancelling}
-                  >
-                    {cancelling ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-                    Cancel Subscription
-                  </Button>
-                )}
               </div>
 
               {/* Usage progress */}
@@ -311,19 +279,44 @@ export default function SubscriptionPage() {
                         )}
                       </div>
 
+                      {/* Real entitlements: exactly what this plan unlocks,
+                          taken from the same plan-feature rows the backend
+                          gates on — including numeric limits. */}
                       <ul className="space-y-2 flex-1 mb-6">
-                        {plan.dailyPrescriptionLimit && (
-                          <li className="flex items-center gap-2 text-xs text-on-surface">
-                            <CheckCircle className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" />
-                            {plan.dailyPrescriptionLimit} daily prescriptions
-                          </li>
+                        {Object.entries(API_ROUTES.PLAN_FEATURE_INFO).map(
+                          ([key, info]) => {
+                            const pf = (plan.planFeatures || []).find(
+                              (f: any) => f.feature?.key === key,
+                            );
+                            const included = Boolean(pf);
+                            const limitText =
+                              included &&
+                              pf?.limitValue != null &&
+                              info.limitSuffix
+                                ? ` — ${info.limitSuffix(Number(pf.limitValue))}`
+                                : "";
+                            return (
+                              <li
+                                key={key}
+                                className={`flex items-start gap-2 text-xs ${
+                                  included
+                                    ? "text-on-surface"
+                                    : "text-on-surface-variant/60"
+                                }`}
+                              >
+                                {included ? (
+                                  <CheckCircle className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                                ) : (
+                                  <XCircle className="h-3.5 w-3.5 text-on-surface-variant/40 flex-shrink-0 mt-0.5" />
+                                )}
+                                <span>
+                                  {info.label}
+                                  {limitText}
+                                </span>
+                              </li>
+                            );
+                          },
                         )}
-                        {(Array.isArray(plan.description) ? plan.description : []).map((feat: string, i: number) => (
-                          <li key={i} className="flex items-center gap-2 text-xs text-on-surface">
-                            <CheckCircle className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" />
-                            {feat}
-                          </li>
-                        ))}
                       </ul>
 
                       <Button

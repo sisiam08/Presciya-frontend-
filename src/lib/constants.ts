@@ -157,6 +157,38 @@ export const API_ROUTES = {
     DASHBOARD: "/analytics/dashboard",
   },
 
+  // ── Plan entitlements ──────────────────────────────────────────────────────
+  // Mirrors the backend feature catalog (Feature.key). Used to describe what a
+  // plan actually unlocks, so the UI never invents or vaguely summarises
+  // capabilities. `limitSuffix` renders a plan's numeric limit in plain words.
+  PLAN_FEATURE_INFO: {
+    create_prescription: {
+      label: "Create prescriptions",
+      limitSuffix: (n: number) => `${n} per day`,
+    },
+    appointments: {
+      label: "Appointments and live queue",
+      limitSuffix: (n: number) => `${n} per day`,
+    },
+    max_chambers: {
+      label: "Chambers",
+      limitSuffix: (n: number) => `up to ${n}`,
+    },
+    medicine_favorites: { label: "Frequently used medicine favourites" },
+    advanced_pdf: { label: "Advanced PDF templates" },
+    qr_verification: { label: "Public QR prescription verification" },
+    analytics: { label: "Analytics dashboard" },
+    custom_branding: { label: "Custom branding" },
+    export: { label: "Export prescriptions and records" },
+    finance: { label: "Business finance and accounting" },
+    visiting_fees: { label: "Visiting and follow-up fees" },
+    prescription_language: { label: "Prescription language and templates" },
+    institution: { label: "Institution, hospital and clinic workspaces" },
+  } as Record<
+    string,
+    { label: string; limitSuffix?: (n: number) => string }
+  >,
+
   // ── Verification ──────────────────────────────────────────────────────────
   VERIFICATION: {
     SUBMIT: "/verification/submit",

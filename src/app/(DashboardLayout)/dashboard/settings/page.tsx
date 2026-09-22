@@ -25,6 +25,7 @@ import {
   PRESCRIPTION_DESIGN_TEMPLATES,
 } from "@/lib/constants";
 import { useNotification } from "@/hooks/useNotification";
+import { useActiveChamber } from "@/hooks/useActiveChamber";
 import A4PreviewFrame from "@/components/prescription/A4PreviewFrame";
 import FeatureGate from "@/components/ui/FeatureGate";
 import {
@@ -249,25 +250,31 @@ function FeesTab() {
   const { success, error: showError } = useNotification();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [workspaceName, setWorkspaceName] = useState("");
+  const [chamberName, setChamberName] = useState("");
   const [fee, setFee] = useState({ visitingFee: "", followUpFee: "" });
+  // The fee belongs to the CHAMBER the doctor is currently working in, so each
+  // chamber keeps its own value and switching chambers shows that chamber's fee.
+  const activeChamberId = useActiveChamber();
 
   useEffect(() => {
+    if (!activeChamberId) {
+      setLoading(false);
+      return;
+    }
+
     apiClient
-      .get<any>(API_ROUTES.WORKSPACES.LIST)
+      .get<any>(API_ROUTES.CHAMBERS.LIST)
       .then((res) => {
         const list = res.data?.data || res.data || [];
-        const wsId =
-          typeof window !== "undefined"
-            ? localStorage.getItem("activeWorkspaceId")
-            : null;
-        const active = list.find((w: any) => w.id === wsId) || list[0];
-        setWorkspaceName(active?.name || "");
+        const active = list.find((c: any) => c.id === activeChamberId);
+        setChamberName(active?.name || "");
       })
       .catch(() => {});
 
     apiClient
-      .get<any>(API_ROUTES.VISITING_FEE.MY)
+      .get<any>(
+        `${API_ROUTES.VISITING_FEE.MY}?chamberId=${encodeURIComponent(activeChamberId)}`,
+      )
       .then((res) => {
         const d = res.data?.data ?? res.data;
         setFee({
@@ -277,19 +284,23 @@ function FeesTab() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [activeChamberId]);
 
   const handleSave = async () => {
+    if (!activeChamberId) {
+      return showError("Select a chamber before setting a visiting fee");
+    }
     if (!fee.visitingFee || Number(fee.visitingFee) < 0) {
       return showError("Enter a valid visiting fee");
     }
     setSaving(true);
     try {
       await apiClient.put(API_ROUTES.VISITING_FEE.MY, {
+        chamberId: activeChamberId,
         visitingFee: fee.visitingFee,
         followUpFee: fee.followUpFee.trim() === "" ? null : fee.followUpFee,
       });
-      success("Visiting fee saved");
+      success("Visiting fee saved for this chamber");
     } catch (e: any) {
       showError(e?.response?.data?.message || "Failed to save visiting fee");
     } finally {
@@ -312,11 +323,12 @@ function FeesTab() {
           Consultation Fee
         </h3>
         <p className="mb-5 text-xs text-on-surface-variant">
-          Your fee for{" "}
+          Your consultation fee for{" "}
           <span className="font-semibold text-on-surface">
-            {workspaceName || "this workspace"}
+            {chamberName || "this chamber"}
           </span>
-          . Only you can change this — hospitals and clinics cannot.
+          . Each chamber keeps its own fee. Only you can change it — hospitals
+          and clinics cannot.
         </p>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -696,6 +708,23 @@ function SecurityTab() {
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabId>("prescription");
 
+  // The active operating context — a selected chamber vs the personal
+  // workspace. Same source the sidebar uses.
+  const activeChamberId = useActiveChamber();
+  const isChamberContext = Boolean(activeChamberId);
+
+  // Visiting Fee belongs to a chamber, Personal Prescription belongs to the
+  // personal workspace. Each tab is only rendered in its own context.
+  const isTabApplicable = (id: TabId) =>
+    id === "fees" ? isChamberContext : id === "branding" ? !isChamberContext : true;
+  const visibleTabs = TABS.filter((tab) => isTabApplicable(tab.id));
+
+  // Never leave the user on a tab that no longer applies after a switch.
+  useEffect(() => {
+    if (!isTabApplicable(activeTab)) setActiveTab("prescription");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isChamberContext, activeTab]);
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
@@ -707,7 +736,7 @@ export default function SettingsPage() {
 
       {/* Tabs */}
       <div className="flex border-b border-outline-variant overflow-x-auto">
-        {TABS.map((tab) => {
+        {visibleTabs.map((tab) => {
           const Icon = tab.icon;
           return (
             <button

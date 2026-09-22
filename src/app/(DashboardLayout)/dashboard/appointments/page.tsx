@@ -222,10 +222,17 @@ function AppointmentsContent() {
       settle: "PENDING",
       paymentMethod: "CASH",
     });
+    // The fee shown must be the one configured for the chamber this
+    // appointment is being booked in.
+    const targetChamberId = activeChamberId || chambers[0]?.id || "";
     try {
       const [dRes, fRes] = await Promise.allSettled([
         apiClient.get<any>(API_ROUTES.DOCTOR.PROFILE),
-        apiClient.get<any>(API_ROUTES.VISITING_FEE.MY),
+        targetChamberId
+          ? apiClient.get<any>(
+              `${API_ROUTES.VISITING_FEE.MY}?chamberId=${encodeURIComponent(targetChamberId)}`,
+            )
+          : Promise.resolve({ data: null }),
       ]);
       if (dRes.status === "fulfilled") {
         const dPayload = dRes.value.data?.data ?? dRes.value.data;
