@@ -1,48 +1,43 @@
 // src/lib/api.ts
 import axios from 'axios';
 import { toast } from '@/components/ui/use-toast';
+import { isAuthEndpoint, refreshSession } from '@/lib/auth-session';
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
   timeout: 15000,
-  withCredentials: true, // send cookies (accessToken/refreshToken) automatically
+  withCredentials: true, // send the session cookies automatically
 });
 
-// Attach JWT token to every request
-api.interceptors.request.use((config) => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+// The backend authenticates exclusively from the session cookies
+// (`req.cookies.accessToken`), so no Authorization header is attached and no
+// token is ever written to localStorage/sessionStorage.
 
-// Refresh token on 401 and show toast on errors
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config;
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const originalRequest: any = error.config;
+
+    // Expired access token but a usable refresh token -> refresh once (shared
+    // single-flight request) and retry the original call. Auth endpoints are
+    // excluded so a wrong password never starts a refresh cycle, and _retry
+    // guarantees at most one refresh attempt per request (no refresh loop).
+    if (
+      error.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !isAuthEndpoint(originalRequest.url)
+    ) {
       originalRequest._retry = true;
       try {
-        // Refresh token is an httpOnly cookie; backend is /auth/refresh-token.
-        const refreshRes = await api.post('/auth/refresh-token');
-        const payload = refreshRes.data?.data || refreshRes.data;
-        const newToken = payload?.accessToken;
-        if (newToken) {
-          localStorage.setItem('accessToken', newToken);
-          originalRequest.headers.Authorization = `Bearer ${newToken}`;
-        }
+        await refreshSession();
         return api(originalRequest);
-      } catch (e) {
-        // Refresh failed – force logout
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login';
-        }
+      } catch {
+        // refreshSession has already ended the session and redirected.
+        return Promise.reject(error);
       }
     }
+
     toast({
       title: 'Error',
       description: error.response?.data?.message || error.message,

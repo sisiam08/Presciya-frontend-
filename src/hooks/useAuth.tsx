@@ -3,6 +3,11 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import {
+  clearSessionHint,
+  hasSessionHint,
+  markSessionPresent,
+} from '@/lib/auth-session';
 
 interface User {
   id: string;
@@ -21,7 +26,7 @@ interface AuthContextType {
     password: string,
     redirect?: string,
   ) => Promise<{ requiresWorkspaceSelection: boolean }>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,8 +38,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-      if (!token) {
+      // Only ask the server when a session might exist. The marker is not a
+      // credential — the API is still the source of truth.
+      if (!hasSessionHint()) {
         setLoading(false);
         return;
       }
@@ -43,15 +49,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Backend wraps the response as { success, data: { user, profile, workspaces } }.
         const payload = res.data?.data || res.data;
         const userData = payload?.user ?? payload;
+        // The role travels in the access token and in this server response —
+        // no separate role cookie is written or trusted.
         setUser(userData);
-        if (userData?.systemRole) {
-          const maxAge = 60 * 60 * 12;
-          document.cookie = `systemRole=${userData.systemRole}; path=/; max-age=${maxAge}; SameSite=Lax`;
-        }
+        markSessionPresent();
       } catch {
-        // /auth/me failed — token might be expired or invalid
-        // Don't clear the token here; the api.ts interceptor will attempt a refresh
-        // Only clear if there truly is no valid session after retry
+        // No usable session. If the access token was merely expired the
+        // interceptor already refreshed it; reaching here means the session is
+        // gone (and the interceptor has ended it), so drop the local state.
+        clearSessionHint();
+        setUser(null);
       }
       setLoading(false);
     };
@@ -66,13 +73,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const accessToken = payload?.accessToken;
     const loggedUser = payload?.user;
     const maxAge = 60 * 60 * 12; // 12 hours
+    // No token is kept in localStorage — the backend already set the session
+    // cookies on this response; only a non-secret marker is recorded.
     if (accessToken) {
-      localStorage.setItem('accessToken', accessToken);
       document.cookie = `accessToken=${accessToken}; path=/; max-age=${maxAge}; SameSite=Lax`;
     }
+    markSessionPresent();
     setUser(loggedUser);
-    // Persist role as a cookie for route guards
-    document.cookie = `systemRole=${loggedUser?.systemRole || 'USER'}; path=/; max-age=${maxAge}; SameSite=Lax`;
 
     // Deep-link redirect (e.g. returning to an invitation after login). Persist
     // a workspace when there is exactly one so workspace-scoped pages resolve.
@@ -118,9 +125,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const switchPayload = switchRes.data?.data || switchRes.data;
           const scopedToken = switchPayload?.accessToken;
           if (scopedToken) {
-            localStorage.setItem('accessToken', scopedToken);
             document.cookie = `accessToken=${scopedToken}; path=/; max-age=${maxAge}; SameSite=Lax`;
           }
+          markSessionPresent();
         } catch {
           // Non-fatal — workspace authorization remains enforced server-side.
         }
@@ -137,13 +144,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { requiresWorkspaceSelection: false };
   };
 
-  const logout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    // Clear auth cookies
+  const logout = async () => {
+    clearSessionHint();
     document.cookie = 'accessToken=; path=/; max-age=0';
-    document.cookie = 'systemRole=; path=/; max-age=0';
     setUser(null);
+    try {
+      // Invalidate the server-side session and clear the httpOnly refresh
+      // cookie BEFORE navigating — otherwise the proxy still sees a session
+      // cookie and bounces /login straight back to the dashboard.
+      await api.post('/auth/logout');
+    } catch {
+      // Best effort — local state is already cleared, so the user is signed
+      // out of this browser regardless.
+    }
     router.push('/login');
   };
 

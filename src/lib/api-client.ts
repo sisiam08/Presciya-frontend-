@@ -5,28 +5,25 @@ import axios, {
   AxiosError,
   InternalAxiosRequestConfig,
 } from "axios";
+import { isAuthEndpoint, refreshSession } from "@/lib/auth-session";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
 // Extended Axios config type
 interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
-  retry?: number;
+  /** Set once a request has been retried after a token refresh. */
+  _retry?: boolean;
 }
 
 class ApiClient {
   private client: AxiosInstance;
-  private refreshing = false;
-  private failedQueue: {
-    onSuccess: (token: string) => void;
-    onFailed: (err: Error) => void;
-  }[] = [];
 
   constructor() {
     this.client = axios.create({
       baseURL: API_BASE_URL,
       timeout: 10000,
-      withCredentials: true, // send cookies (accessToken/refreshToken) automatically
+      withCredentials: true, // send the session cookies automatically
       headers: {
         "Content-Type": "application/json",
       },
@@ -35,13 +32,9 @@ class ApiClient {
     // Request interceptor
     this.client.interceptors.request.use(
       (config: ExtendedAxiosRequestConfig) => {
-        const token =
-          typeof window !== "undefined"
-            ? localStorage.getItem("accessToken") || localStorage.getItem("auth_token")
-            : null;
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
+        // The backend authenticates from the session cookies only
+        // (`req.cookies.accessToken`), so no token is attached and none is kept
+        // in localStorage/sessionStorage.
         const activeWorkspaceId =
           typeof window !== "undefined"
             ? localStorage.getItem("activeWorkspaceId")
@@ -60,64 +53,32 @@ class ApiClient {
       async (error: AxiosError) => {
         const originalRequest = error.config as ExtendedAxiosRequestConfig;
 
-        if (error.response?.status === 401 && originalRequest) {
-          if (this.refreshing) {
-            return new Promise((onSuccess, onFailed) => {
-              this.failedQueue.push({ onSuccess, onFailed });
-            }).then((token) => {
-              if (originalRequest.headers) {
-                originalRequest.headers.Authorization = `Bearer ${token}`;
-              }
-              return this.client(originalRequest);
-            });
-          }
-
-          this.refreshing = true;
-
+        // Expired access token but a usable refresh token -> refresh and retry.
+        // `refreshSession` is single-flight, so simultaneous 401s await the SAME
+        // rotation (a second concurrent rotation would revoke the session).
+        // Auth endpoints are excluded and _retry allows a single attempt per
+        // request, so neither a wrong password nor a still-failing request can
+        // start a refresh loop.
+        if (
+          error.response?.status === 401 &&
+          originalRequest &&
+          !originalRequest._retry &&
+          !isAuthEndpoint(originalRequest.url)
+        ) {
+          originalRequest._retry = true;
           try {
-            // The refresh token is an httpOnly cookie; the backend endpoint is
-            // /auth/refresh-token and responds with { data: { accessToken } }.
-            const response = await this.client.post("/auth/refresh-token");
-            const payload = response.data?.data || response.data;
-            const token: string | undefined = payload?.accessToken;
-
-            if (!token) throw new Error("Refresh did not return an access token");
-
-            localStorage.setItem("accessToken", token);
-            localStorage.removeItem("auth_token");
-
-            this.processQueue(null, token);
-
-            if (originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${token}`;
-            }
-
+            await refreshSession();
             return this.client(originalRequest);
-          } catch (err) {
-            this.processQueue(err as Error, null);
-            localStorage.removeItem("accessToken");
-            localStorage.removeItem("auth_token");
-            window.location.href = "/login";
-            return Promise.reject(err);
-          } finally {
-            this.refreshing = false;
+          } catch (refreshError) {
+            // refreshSession has already ended the session and redirected once;
+            // the queued/in-flight requests simply fail.
+            return Promise.reject(refreshError);
           }
         }
 
         return Promise.reject(error);
       },
     );
-  }
-
-  private processQueue(error: Error | null, token: string | null) {
-    this.failedQueue.forEach((prom) => {
-      if (error) {
-        prom.onFailed(error);
-      } else if (token) {
-        prom.onSuccess(token);
-      }
-    });
-    this.failedQueue = [];
   }
 
   public getInstance() {

@@ -35,6 +35,7 @@ import { useTheme } from "next-themes";
 import { toast } from "@/components/ui/use-toast";
 import { apiClient } from "@/lib/api-client";
 import { API_ROUTES } from "@/lib/constants";
+import { markSessionPresent } from "@/lib/auth-session";
 import {
   Workspace,
   WorkspaceRole,
@@ -238,10 +239,9 @@ export default function Sidebar() {
       const res = await apiClient.post<any>("/auth/switch-workspace", {
         workspaceId: ws.id,
       });
-      const data = res.data?.data || res.data;
-      if (data?.accessToken) {
-        localStorage.setItem("accessToken", data.accessToken);
-      }
+      // The backend already re-issued the session cookies on this response;
+      // only record the non-secret session marker.
+      markSessionPresent();
       setActiveWorkspace(ws);
       localStorage.setItem("activeWorkspaceId", ws.id);
       // Chambers belong to a workspace, so a fresh workspace starts with no
@@ -260,7 +260,7 @@ export default function Sidebar() {
   };
 
   const handleSignOut = () => {
-    authLogout();
+    void authLogout();
     localStorage.removeItem("activeWorkspaceId");
   };
 

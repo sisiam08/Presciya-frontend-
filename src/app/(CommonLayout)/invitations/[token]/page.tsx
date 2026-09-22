@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { hasSessionHint } from "@/lib/auth-session";
 import {
   Loader2,
   Mail,
@@ -56,8 +57,8 @@ export default function AcceptInvitationPage() {
   useEffect(() => {
     if (!token) return;
 
-    const isAuthed =
-      typeof window !== "undefined" && !!localStorage.getItem("accessToken");
+    // A non-secret marker only — the API still decides what the user may do.
+    const isAuthed = hasSessionHint();
     if (!isAuthed) {
       setStatus("unauthenticated");
       return;

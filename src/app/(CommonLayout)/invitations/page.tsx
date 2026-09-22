@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { hasSessionHint } from "@/lib/auth-session";
 import {
   Loader2,
   Building2,
@@ -38,8 +39,8 @@ export default function PendingInvitationsPage() {
   const [working, setWorking] = useState<string | null>(null);
 
   useEffect(() => {
-    const isAuthed =
-      typeof window !== "undefined" && !!localStorage.getItem("accessToken");
+    // A non-secret marker only — the API still decides what the user may do.
+    const isAuthed = hasSessionHint();
     if (!isAuthed) {
       setUnauthenticated(true);
       setLoading(false);
