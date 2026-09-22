@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +42,19 @@ export default function PrescriptionsPage() {
 
   const { success, error: showError } = useNotification();
   const confirm = useConfirm();
+
+  // Dashboard → "New Prescription" carries ?new=1 so the builder opens on
+  // arrival. The intent is consumed once (and stripped from the URL) so a
+  // refresh does not reopen the form.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("new") === "1") {
+      setEditingPrescription(null);
+      setIsBuilderOpen(true);
+      window.history.replaceState(null, "", "/dashboard/prescriptions");
+    }
+  }, []);
 
   // Load prescriptions from backend
   const { data: prescriptionsData, loading, refetch } = useQuery<any>(

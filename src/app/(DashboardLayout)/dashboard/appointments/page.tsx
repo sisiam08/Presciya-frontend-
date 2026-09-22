@@ -29,6 +29,7 @@ import { Appointment, AppointmentStatus, AppointmentType, Chamber } from "@/type
 import { formatCurrency, formatDate } from "@/lib/utils";
 import AppointmentPaymentDialog from "@/components/appointment/AppointmentPaymentDialog";
 import PatientCombobox from "@/components/patient/PatientCombobox";
+import PatientFormDialog from "@/components/patient/PatientFormDialog";
 import FeatureGate from "@/components/ui/FeatureGate";
 import ChamberGate from "@/components/ui/ChamberGate";
 import { useEntitlements } from "@/hooks/useEntitlements";
@@ -109,6 +110,9 @@ function AppointmentsContent() {
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [role, setRole] = useState<string>("");
   const [showNew, setShowNew] = useState(false);
+  const [showNewPatient, setShowNewPatient] = useState(false);
+  // Name of a patient created through the full form, so the field can show it.
+  const [newPatientLabel, setNewPatientLabel] = useState("");
   const [doctorId, setDoctorId] = useState<string>("");
   const [myFee, setMyFee] = useState<{ visitingFee: number; followUpFee: number | null } | null>(null);
   const [newForm, setNewForm] = useState({
@@ -518,9 +522,15 @@ function AppointmentsContent() {
 
               <PatientCombobox
                 value={newForm.patientId}
-                onChange={(id) => setNewForm({ ...newForm, patientId: id })}
+                onChange={(id) => {
+                  setNewForm({ ...newForm, patientId: id });
+                  setNewPatientLabel("");
+                }}
+                selectedLabel={newPatientLabel}
                 label="Patient *"
-                placeholder="Search patient or type a new name…"
+                placeholder="Search patient by name or phone…"
+                // Opens the SAME full patient form used by the Patient page.
+                onNewPatient={() => setShowNewPatient(true)}
               />
 
               {/* Visit type (normal vs follow-up) */}
@@ -628,6 +638,21 @@ function AppointmentsContent() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Full patient creation (shared with the Patient page & Personal
+          prescription) — the created patient is selected automatically. */}
+      {showNewPatient && (
+        <PatientFormDialog
+          onClose={() => setShowNewPatient(false)}
+          onSuccess={(p) => {
+            if (p?.id) {
+              setNewForm((f) => ({ ...f, patientId: p.id }));
+              setNewPatientLabel(p.name || "");
+            }
+            setShowNewPatient(false);
+          }}
+        />
       )}
 
       {/* Appointment Details */}

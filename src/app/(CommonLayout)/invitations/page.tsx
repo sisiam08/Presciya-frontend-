@@ -73,7 +73,7 @@ export default function PendingInvitationsPage() {
         null;
       if (workspaceId) localStorage.setItem("activeWorkspaceId", workspaceId);
       success("Invitation accepted");
-      router.push(workspaceId ? "/dashboard" : "/select-workspace");
+      router.push("/dashboard");
     } catch (e: any) {
       showError(e?.response?.data?.message || "Failed to accept the invitation");
       setWorking(null);

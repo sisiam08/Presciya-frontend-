@@ -9,6 +9,7 @@ export const API_ROUTES = {
     LOGOUT_ALL: "/auth/logout-all",
     REFRESH: "/auth/refresh-token",
     ME: "/auth/me",
+    UPDATE_ME: "/auth/me",
     FORGOT_PASSWORD: "/auth/forget-password",
     RESET_PASSWORD: "/auth/reset-password",
   },
@@ -255,13 +256,6 @@ export const SIDEBAR_ITEMS = [
     label: "Appointments",
     href: "/dashboard/appointments",
     icon: "CalendarDays",
-    section: "main",
-  },
-  {
-    id: "analytics",
-    label: "Analytics",
-    href: "/dashboard/analytics",
-    icon: "BarChart3",
     section: "main",
   },
   {

@@ -219,6 +219,13 @@ export interface PrescriptionMedicine {
   quantity?: number;
 }
 
+export interface PrescriptionInvestigation {
+  id?: string;
+  testName: string;
+  note?: string;
+  order?: number;
+}
+
 export interface Prescription {
   id: string;
   patientId: string;
@@ -231,6 +238,18 @@ export interface Prescription {
   clinicalNotes?: string;
   advises?: string;
   nextVisitDate?: string;
+  /** Relevant past medical history (separate from chief complaints). */
+  history?: string;
+  /** On Examination findings — free text shorthand ("Nil", "+", "Mild"). */
+  examRespiratoryRate?: string;
+  examLungs?: string;
+  examHeart?: string;
+  examAnaemia?: string;
+  examCyanosis?: string;
+  examOedema?: string;
+  examDehydration?: string;
+  examOthers?: string;
+  investigations?: PrescriptionInvestigation[];
   medicines: PrescriptionMedicine[];
   status: PrescriptionStatus;
   language?: PrescriptionLanguage;
@@ -539,15 +558,6 @@ export interface Department {
 }
 
 // ─── Analytics ───────────────────────────────────────────────────────────────
-
-export interface AnalyticsDashboard {
-  prescriptionsToday: number;
-  prescriptionsTotal: number;
-  patientsTotal: number;
-  appointmentsToday: number;
-  recentPrescriptions?: Prescription[];
-  prescriptionsByDay?: { date: string; count: number }[];
-}
 
 // ─── API Response Helpers ─────────────────────────────────────────────────────
 

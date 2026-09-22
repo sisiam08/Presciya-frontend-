@@ -19,8 +19,6 @@ export const patientSchema = z.object({
   phone: z.string().optional(),
   email: z.string().email().optional().or(z.literal("")),
   bloodGroup: z.string().optional(),
-  allergies: z.string().optional(),
-  medicalHistory: z.string().optional(),
 });
 
 export const patientSearchSchema = z.object({

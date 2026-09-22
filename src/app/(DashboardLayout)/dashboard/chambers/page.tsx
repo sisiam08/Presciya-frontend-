@@ -24,6 +24,12 @@ import { API_ROUTES } from "@/lib/constants";
 import { Chamber } from "@/types";
 import { useNotification } from "@/hooks/useNotification";
 import { useConfirm } from "@/components/ui/confirm";
+import VerificationNotice from "@/components/verification/VerificationNotice";
+import {
+  BD_PHONE_MESSAGE,
+  isValidBangladeshPhone,
+  normalizeBangladeshPhone,
+} from "@/lib/utils";
 
 function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`animate-pulse rounded-xl bg-outline-variant/30 ${className}`} />;
@@ -136,6 +142,11 @@ function ChamberModal({
     phone: chamber?.phone || (chamber?.phones && chamber?.phones[0]) || "",
     email: chamber?.chamberEmail || chamber?.email || "",
     footerText: chamber?.footerText || "",
+    // Chamber-specific prescription branding.
+    logo: chamber?.logo || "",
+    watermarkEnabled: Boolean((chamber as any)?.templateConfig?.watermarkEnabled),
+    watermarkText: (chamber as any)?.templateConfig?.watermarkText || "",
+    watermarkUrl: (chamber as any)?.templateConfig?.watermarkUrl || "",
   });
   const [saving, setSaving] = useState(false);
 
@@ -155,6 +166,10 @@ function ChamberModal({
     if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
       errs.email = "Please enter a valid email address";
     }
+    // Optional — but a provided value must be a Bangladesh mobile.
+    if (form.phone.trim() && !isValidBangladeshPhone(form.phone)) {
+      errs.phone = BD_PHONE_MESSAGE;
+    }
     if (Object.keys(errs).length > 0) {
       setFieldErrors(errs);
       return showError("Please fix form errors shown below");
@@ -170,9 +185,23 @@ function ChamberModal({
       address: addressText,
       chamberEmail: form.email.trim() || undefined,
       email: form.email.trim() || undefined,
-      phones: form.phone.trim() ? [form.phone.trim()] : undefined,
-      phone: form.phone.trim() || undefined,
+      // Canonical domestic form (+8801712345678 -> 01712345678).
+      phones: form.phone.trim()
+        ? [normalizeBangladeshPhone(form.phone)]
+        : undefined,
+      phone: form.phone.trim()
+        ? normalizeBangladeshPhone(form.phone)
+        : undefined,
+      chamberSlogan: form.footerText.trim() || undefined,
       footerText: form.footerText.trim() || undefined,
+      logo: form.logo.trim() || undefined,
+      // Chamber prescription settings (footer is stored on the chamber row,
+      // watermark on its templateConfig). Entitlement-enforced on the backend.
+      templateConfig: {
+        watermarkEnabled: form.watermarkEnabled,
+        watermarkText: form.watermarkText.trim() || "",
+        watermarkUrl: form.watermarkUrl.trim() || "",
+      },
     };
 
     try {
@@ -228,14 +257,71 @@ function ChamberModal({
               )}
             </div>
           ))}
-          <div>
-            <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Footer Text (for prescription)</label>
-            <Textarea
-              placeholder="Appears at the bottom of printed prescriptions..."
-              rows={2}
-              value={form.footerText}
-              onChange={(e) => update("footerText", e.target.value)}
-            />
+          {/* Prescription Settings — what this chamber prints on its
+              prescriptions. Doctor identity is automatic (from the profile). */}
+          <div className="rounded-xl border border-outline-variant p-4 space-y-4">
+            <div>
+              <h3 className="text-sm font-bold text-on-surface">Prescription Settings</h3>
+              <p className="text-[11px] text-on-surface-variant mt-0.5">
+                Printed on prescriptions issued in this chamber, alongside your doctor
+                identity. Each chamber keeps its own configuration.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Chamber Logo URL</label>
+                <Input
+                  type="url"
+                  placeholder="https://…/logo.png"
+                  value={form.logo}
+                  onChange={(e) => update("logo", e.target.value)}
+                />
+              </div>
+              <div className="md:col-span-1">
+                <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Footer Text (for prescription)</label>
+                <Input
+                  placeholder="e.g. Appointments: 01XXXXXXXXX"
+                  value={form.footerText}
+                  onChange={(e) => update("footerText", e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="flex items-center gap-2 text-sm font-semibold text-on-surface">
+                <input
+                  type="checkbox"
+                  checked={form.watermarkEnabled}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, watermarkEnabled: e.target.checked }))
+                  }
+                  className="h-4 w-4 rounded border-gray-300 accent-primary"
+                />
+                Watermark
+              </label>
+              {form.watermarkEnabled && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Watermark Text</label>
+                    <Input
+                      placeholder="e.g. ABC Chamber"
+                      value={form.watermarkText}
+                      onChange={(e) => update("watermarkText", e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Watermark Image URL</label>
+                    <Input
+                      type="url"
+                      placeholder="https://…/watermark.png"
+                      value={form.watermarkUrl}
+                      onChange={(e) => update("watermarkUrl", e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="flex gap-3 pt-4 border-t border-outline-variant">
@@ -262,6 +348,14 @@ export default function ChambersPage() {
   // Admin-configurable chamber limit for the current plan; null = unlimited.
   const chamberLimit = entitlements?.features?.max_chambers?.limit ?? null;
   const limitReached = chamberLimit !== null && chambers.length >= chamberLimit;
+  // Writes are rejected server-side until the doctor/institution profile is
+  // APPROVED (see checkUserVerification), so mirror that here instead of
+  // letting the user submit a form the API will refuse. Unknown status is not
+  // treated as blocked — only a known non-APPROVED status is.
+  const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
+  const verificationBlocked =
+    verificationStatus !== null && verificationStatus !== "APPROVED";
+  const addBlocked = limitReached || verificationBlocked;
 
   const loadChambers = async () => {
     setLoading(true);
@@ -276,6 +370,23 @@ export default function ChambersPage() {
 
   useEffect(() => {
     loadChambers();
+
+    // Same source VerificationNotice uses — the current doctor/institution
+    // profile returned by /auth/me.
+    let active = true;
+    apiClient
+      .get<any>(API_ROUTES.AUTH.ME)
+      .then((res) => {
+        const payload = res.data?.data || res.data;
+        const profile = payload?.profile;
+        if (active && profile?.verificationStatus) {
+          setVerificationStatus(profile.verificationStatus);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
   }, []);
 
   const handleDelete = async (id: string) => {
@@ -316,14 +427,24 @@ export default function ChambersPage() {
           </Button>
           <Button
             onClick={() => { setEditingChamber(null); setModalOpen(true); }}
-            disabled={limitReached}
-            title={limitReached ? `Your plan allows ${chamberLimit} chamber(s)` : undefined}
+            disabled={addBlocked}
+            title={
+              verificationBlocked
+                ? "Complete professional verification to add chambers"
+                : limitReached
+                  ? `Your plan allows ${chamberLimit} chamber(s)`
+                  : undefined
+            }
             className="flex items-center gap-2"
           >
             <Plus size={16} /> Add New Chamber
           </Button>
         </div>
       </div>
+
+      {/* Explains why chamber writes are unavailable (renders nothing once
+          the profile is APPROVED). */}
+      <VerificationNotice />
 
       {/* Chamber limit notice */}
       {chamberLimit !== null && (
@@ -374,31 +495,42 @@ export default function ChambersPage() {
           {/* Add card */}
           <button
             onClick={() => {
-              if (limitReached) return;
+              if (addBlocked) return;
               setEditingChamber(null);
               setModalOpen(true);
             }}
-            disabled={limitReached}
+            disabled={addBlocked}
+            title={
+              verificationBlocked
+                ? "Complete professional verification to add chambers"
+                : undefined
+            }
             className={`border-2 border-dashed border-outline-variant rounded-2xl p-6 flex flex-col items-center justify-center group transition-all duration-300 min-h-[280px] bg-transparent ${
-              limitReached
+              addBlocked
                 ? "cursor-not-allowed opacity-60"
                 : "hover:border-primary hover:bg-primary/5 cursor-pointer"
             }`}
           >
             <div className="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-primary/10 transition-all">
-              {limitReached ? (
+              {addBlocked ? (
                 <Lock size={36} className="text-amber-500" />
               ) : (
                 <PlusCircle size={40} className="text-outline-variant group-hover:text-primary transition-colors" />
               )}
             </div>
             <span className="text-base font-bold text-on-surface-variant group-hover:text-primary">
-              {limitReached ? "Chamber limit reached" : "Add New Chamber"}
+              {verificationBlocked
+                ? "Verification required"
+                : limitReached
+                  ? "Chamber limit reached"
+                  : "Add New Chamber"}
             </span>
             <p className="text-xs text-outline-variant mt-2 text-center max-w-[200px]">
-              {limitReached
-                ? `Your plan allows ${chamberLimit} chamber(s). Upgrade to add more.`
-                : "Expand your practice with a new clinical location"}
+              {verificationBlocked
+                ? "Complete your professional verification to add chambers."
+                : limitReached
+                  ? `Your plan allows ${chamberLimit} chamber(s). Upgrade to add more.`
+                  : "Expand your practice with a new clinical location"}
             </p>
           </button>
         </div>

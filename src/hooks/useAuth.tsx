@@ -95,21 +95,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { requiresWorkspaceSelection: false };
     }
 
-    // Multiple active workspaces: never assume workspaces[0]; require an
-    // explicit choice before entering the dashboard.
-    if (
-      payload?.requiresWorkspaceSelection ||
-      loggedUser?.requiresWorkspaceSelection
-    ) {
-      router.push('/select-workspace');
-      return { requiresWorkspaceSelection: true };
-    }
-
-    // Exactly one active workspace: persist it so workspace-URL pages
-    // (appointments, dashboard queues) resolve the active workspace on load.
+    // Resolve the active workspace here instead of sending the user to a
+    // separate /select-workspace page (that step is redundant — the dashboard
+    // already has a workspace switcher). Restore the last used workspace when
+    // the user is still a member of it, otherwise fall back to the first.
     const wsList = loggedUser?.workspaces || [];
-    if (wsList.length >= 1 && wsList[0]?.id) {
-      localStorage.setItem('activeWorkspaceId', wsList[0].id);
+    if (wsList.length >= 1) {
+      const saved =
+        typeof window !== 'undefined'
+          ? localStorage.getItem('activeWorkspaceId')
+          : null;
+      const target = wsList.find((w: any) => w.id === saved) || wsList[0];
+
+      if (target?.id) {
+        // Scope the session to the workspace through the same endpoint the
+        // sidebar switcher uses. Best-effort: even if this fails we still land
+        // on the dashboard, and the backend keeps enforcing workspace access.
+        try {
+          const switchRes = await api.post('/auth/switch-workspace', {
+            workspaceId: target.id,
+          });
+          const switchPayload = switchRes.data?.data || switchRes.data;
+          const scopedToken = switchPayload?.accessToken;
+          if (scopedToken) {
+            localStorage.setItem('accessToken', scopedToken);
+            document.cookie = `accessToken=${scopedToken}; path=/; max-age=${maxAge}; SameSite=Lax`;
+          }
+        } catch {
+          // Non-fatal — workspace authorization remains enforced server-side.
+        }
+        localStorage.setItem('activeWorkspaceId', target.id);
+      }
     }
 
     // Route based on system role

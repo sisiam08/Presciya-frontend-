@@ -63,8 +63,11 @@ export default function ChamberGate({ label, children }: ChamberGateProps) {
       >
         {children}
       </div>
-      <div className="absolute inset-0 z-10 flex items-center justify-center p-4">
-        <div className="w-full max-w-md rounded-2xl border border-outline-variant bg-surface/95 p-6 text-center shadow-2xl backdrop-blur-sm">
+      {/* The scrim stays scoped to the gated content, but the card itself is
+          fixed so it sits in the middle of the VIEWPORT (not the page), no
+          matter how tall the page is. */}
+      <div className="absolute inset-0 z-10">
+        <div className="fixed left-1/2 top-1/2 z-20 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-outline-variant bg-surface/95 p-6 text-center shadow-2xl backdrop-blur-sm">
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
             <Building2 className="h-6 w-6" />
           </div>

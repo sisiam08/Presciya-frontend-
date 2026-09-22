@@ -12,7 +12,6 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   FileText: <div>📝</div>,
   Users: <div>👥</div>,
   Building2: <div>🏢</div>,
-  BarChart3: <div>📈</div>,
   CreditCard: <div>💳</div>,
   Settings: <div>⚙️</div>,
 };

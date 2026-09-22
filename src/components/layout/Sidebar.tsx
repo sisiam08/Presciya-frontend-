@@ -9,7 +9,6 @@ import {
   Users,
   Building2,
   CalendarDays,
-  BarChart3,
   Bell,
   UserCircle,
   CreditCard,
@@ -583,7 +582,6 @@ export default function Sidebar() {
         <NavItem href="/dashboard/patients" label="Patients" icon={Users} active={isActive("/dashboard/patients")} />
         <NavItem href="/dashboard/chambers" label="Chambers" icon={Building2} active={isActive("/dashboard/chambers")} />
         <NavItem href="/dashboard/appointments" label="Appointments" icon={CalendarDays} active={isActive("/dashboard/appointments")} />
-        <NavItem href="/dashboard/analytics" label="Analytics" icon={BarChart3} active={isActive("/dashboard/analytics")} />
         <NavItem href="/dashboard/finance" label="Finance" icon={Wallet} active={isActive("/dashboard/finance")} />
         <NavItem href="/dashboard/notifications" label="Notifications" icon={Bell} active={isActive("/dashboard/notifications")} badge={unreadCount} />
 

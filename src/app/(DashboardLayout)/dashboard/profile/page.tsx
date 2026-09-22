@@ -22,7 +22,12 @@ import { Input } from "@/components/ui/input";
 import { apiClient } from "@/lib/api-client";
 import { API_ROUTES, VERIFICATION_STATUS_CONFIG } from "@/lib/constants";
 import { DoctorProfile, VerificationStatus, User as UserType } from "@/types";
-import { formatDate } from "@/lib/utils";
+import {
+  BD_PHONE_MESSAGE,
+  formatDate,
+  isValidBangladeshPhone,
+  normalizeBangladeshPhone,
+} from "@/lib/utils";
 
 // ─── Verification banner ──────────────────────────────────────────────────────
 function VerificationBanner({ status }: { status: VerificationStatus }) {
@@ -87,6 +92,7 @@ function Field({
   onChange,
   type = "text",
   placeholder,
+  error,
 }: {
   label: string;
   value: string;
@@ -95,18 +101,22 @@ function Field({
   onChange: (name: string, val: string) => void;
   type?: string;
   placeholder?: string;
+  error?: string;
 }) {
   return (
     <div>
       <label className="block text-xs text-on-surface-variant mb-1.5 font-medium">{label}</label>
       {editing ? (
-        <Input
-          type={type}
-          value={value}
-          onChange={(e) => onChange(name, e.target.value)}
-          placeholder={placeholder || label}
-          className="text-sm"
-        />
+        <>
+          <Input
+            type={type}
+            value={value}
+            onChange={(e) => onChange(name, e.target.value)}
+            placeholder={placeholder || label}
+            className={error ? "text-sm border-red-500" : "text-sm"}
+          />
+          {error ? <p className="mt-1 text-xs text-red-500">{error}</p> : null}
+        </>
       ) : (
         <p className="text-sm text-on-surface py-2 px-3 rounded-lg bg-surface-container min-h-[38px]">
           {value || <span className="text-on-surface-variant italic">Not set</span>}
@@ -121,6 +131,8 @@ export default function ProfilePage() {
   const [doctor, setDoctor] = useState<DoctorProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [editingProfile, setEditingProfile] = useState(false);
+  const [profileErrors, setProfileErrors] = useState<{ phone?: string }>({});
+  const [savingProfile, setSavingProfile] = useState(false);
   const [editingDoctor, setEditingDoctor] = useState(false);
   const [saving, setSaving] = useState(false);
   const [submittingVerification, setSubmittingVerification] = useState(false);
@@ -174,8 +186,51 @@ export default function ProfilePage() {
     load();
   }, []);
 
-  const updateProfile = (name: string, val: string) =>
+  const updateProfile = (name: string, val: string) => {
     setProfileForm((p) => ({ ...p, [name]: val }));
+    if (name === "phone") setProfileErrors((prev) => ({ ...prev, phone: undefined }));
+  };
+
+  const saveProfile = async () => {
+    // Optional — but a provided value must be a Bangladesh mobile.
+    if (profileForm.phone.trim() && !isValidBangladeshPhone(profileForm.phone)) {
+      setProfileErrors({ phone: BD_PHONE_MESSAGE });
+      return;
+    }
+
+    setSavingProfile(true);
+    try {
+      const res = await apiClient.patch<any>(API_ROUTES.AUTH.UPDATE_ME, {
+        name: profileForm.name.trim(),
+        // Canonical domestic form (+8801712345678 -> 01712345678).
+        phone: profileForm.phone.trim()
+          ? normalizeBangladeshPhone(profileForm.phone)
+          : "",
+      });
+      const updated = res.data?.data || res.data;
+      setUser(updated?.user || updated);
+      setProfileForm({
+        name: updated?.user?.name || updated?.name || "",
+        email: updated?.user?.email || updated?.email || "",
+        phone: updated?.user?.phone || updated?.phone || "",
+      });
+      setEditingProfile(false);
+      setProfileErrors({});
+      toast({
+        title: "Account Updated",
+        description: "Your account information has been saved.",
+      });
+    } catch (e: any) {
+      toast({
+        title: "Profile Error",
+        description:
+          e?.response?.data?.message || "Failed to save account information.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingProfile(false);
+    }
+  };
   const updateDoctor = (name: string, val: string) =>
     setDoctorForm((p) => ({ ...p, [name]: val }));
 
@@ -298,6 +353,7 @@ export default function ProfilePage() {
             editing={editingProfile}
             onChange={updateProfile}
             placeholder="+880 1XXXXXXXXX"
+            error={profileErrors.phone}
           />
           <div>
             <label className="block text-xs text-on-surface-variant mb-1.5 font-medium">
@@ -324,9 +380,9 @@ export default function ProfilePage() {
               <Button variant="outline" size="sm" onClick={() => setEditingProfile(false)}>
                 Cancel
               </Button>
-              <Button size="sm">
+              <Button size="sm" onClick={saveProfile} disabled={savingProfile}>
                 <Save className="h-4 w-4 mr-1" />
-                Save Changes
+                {savingProfile ? "Saving..." : "Save Changes"}
               </Button>
             </>
           ) : (

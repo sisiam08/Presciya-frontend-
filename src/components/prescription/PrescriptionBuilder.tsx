@@ -1,16 +1,17 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { X, Plus, Trash2, Search, ChevronDown, ChevronRight, Loader2, Check, UserPlus, AlertTriangle } from "lucide-react";
+import { X, Plus, Trash2, Search, ChevronDown, ChevronRight, Loader2, Check, AlertTriangle } from "lucide-react";
 import { useNotification } from "@/hooks/useNotification";
-import { toast as globalToast } from "@/components/ui/use-toast";
 import { apiClient } from "@/lib/api-client";
 import { API_ROUTES } from "@/lib/constants";
-import { Prescription, PrescriptionMedicine, Patient } from "@/types";
+import { Prescription, PrescriptionMedicine } from "@/types";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import AppointmentVisitPicker from "@/components/appointment/AppointmentVisitPicker";
+import PatientCombobox from "@/components/patient/PatientCombobox";
+import PatientFormDialog from "@/components/patient/PatientFormDialog";
 
 interface PrescriptionBuilderProps {
   prescription?: Prescription | null;
@@ -23,6 +24,60 @@ interface PrescriptionBuilderProps {
 interface MedRow extends PrescriptionMedicine {
   _id: number;
 }
+
+/** One investigation row. Only the test name is required. */
+interface InvestigationRow {
+  _id: number;
+  testName: string;
+  note: string;
+}
+
+/** On Examination fields, in display order. Labels are medical shorthand. */
+const EXAM_FIELDS: Array<{ key: string; label: string }> = [
+  { key: "examRespiratoryRate", label: "R/R" },
+  { key: "examLungs", label: "Lungs" },
+  { key: "examHeart", label: "Heart" },
+  { key: "examAnaemia", label: "Anaemia" },
+  { key: "examCyanosis", label: "Cyanosis" },
+  { key: "examOedema", label: "Oedema" },
+  { key: "examDehydration", label: "Dehydration" },
+  { key: "examOthers", label: "Others" },
+];
+
+/**
+ * Predefined "Special Instruction" options for a medicine line, plus a free-text
+ * Custom… entry. Mirrors the backend list in
+ * `backend/src/utils/prescription/language.ts` — keep both in sync so the
+ * predefined values localise correctly on a Bangla prescription.
+ */
+const SPECIAL_INSTRUCTION_OPTIONS: string[] = [
+  "Take with plenty of water",
+  "Take on an empty stomach",
+  "Take with food",
+  "Do not take with milk",
+  "Complete the full course",
+  "Do not crush or chew",
+  "Take at bedtime",
+  "Avoid alcohol",
+  "Shake well before use",
+  "Apply thinly to the affected area",
+  "For external use only",
+  "Keep out of reach of children",
+];
+
+/** Sentinel value for the "Custom…" option in the Special Instruction picker. */
+const CUSTOM_INSTRUCTION = "__custom__";
+
+const emptyExam = () => ({
+  examRespiratoryRate: "",
+  examLungs: "",
+  examHeart: "",
+  examAnaemia: "",
+  examCyanosis: "",
+  examOedema: "",
+  examDehydration: "",
+  examOthers: "",
+});
 
 const emptyMed = (id: number): MedRow => ({
   _id: id,
@@ -37,168 +92,6 @@ const emptyMed = (id: number): MedRow => ({
   instruction: "",
 });
 
-// ── PatientSearchCombobox ────────────────────────────────────────────────────
-
-function PatientSearchCombobox({
-  value,
-  onChange,
-  onNameChange,
-}: {
-  value: string;
-  onChange: (id: string, name: string) => void;
-  /** Raw typed text, so callers can create the patient on submit if needed. */
-  onNameChange?: (name: string) => void;
-}) {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<Patient[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [selectedName, setSelectedName] = useState("");
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
-  const creatingRef = useRef(false);
-
-  const fetchRecentPatients = async () => {
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-    setSearching(true);
-    try {
-      const res = await apiClient.get<any>(API_ROUTES.PATIENTS.LIST, {
-        signal: controller.signal,
-      });
-      const list = res.data?.data || res.data || [];
-      setResults(Array.isArray(list) ? list.slice(0, 8) : []);
-    } catch (e: any) {
-      if (e?.name === "CanceledError" || e?.code === "ERR_CANCELED") return;
-      setResults([]);
-    }
-    setSearching(false);
-  };
-
-  const search = async (q: string) => {
-    if (!q.trim()) {
-      fetchRecentPatients();
-      return;
-    }
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-    setSearching(true);
-    try {
-      const res = await apiClient.get<any>(
-        `${API_ROUTES.PATIENTS.SEARCH}?q=${encodeURIComponent(q)}&limit=8`,
-        { signal: controller.signal },
-      );
-      const list = res.data?.data || res.data || [];
-      setResults(Array.isArray(list) ? list : []);
-    } catch (e: any) {
-      if (e?.name === "CanceledError" || e?.code === "ERR_CANCELED") return;
-      setResults([]);
-    }
-    setSearching(false);
-  };
-
-  const handleFocus = () => {
-    setOpen(true);
-    if (results.length === 0) fetchRecentPatients();
-  };
-
-  const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const q = e.target.value;
-    setQuery(q);
-    onNameChange?.(q);
-    setOpen(true);
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => search(q), 300);
-  };
-
-  const handleSelect = (p: Patient) => {
-    onChange(p.id, p.name);
-    onNameChange?.(p.name);
-    setSelectedName(p.name);
-    setQuery(p.name);
-    setOpen(false);
-  };
-
-  const handleQuickAddPatient = async () => {
-    if (!query.trim()) return;
-    if (creatingRef.current) return;
-    creatingRef.current = true;
-    setCreating(true);
-    try {
-      const res = await apiClient.post<any>(API_ROUTES.PATIENTS.CREATE, {
-        name: query.trim(),
-        age: 30,
-        gender: "MALE",
-      });
-      const newPatient: Patient = res.data?.data || res.data;
-      if (newPatient && newPatient.id) {
-        handleSelect(newPatient);
-      }
-    } catch (e: any) {
-      globalToast({
-        title: "Registration Error",
-        description: e?.response?.data?.message || "Failed to create patient",
-        variant: "destructive",
-      });
-    }
-    creatingRef.current = false;
-    setCreating(false);
-  };
-
-  return (
-    <div className="relative">
-      <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Patient *</label>
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-on-surface-variant" />
-        <Input
-          className="pl-9 pr-8"
-          placeholder="Search or type new patient name…"
-          value={query}
-          onChange={handleQueryChange}
-          onFocus={handleFocus}
-        />
-        {searching && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-primary" />}
-      </div>
-
-      {value && (
-        <p className="text-xs text-emerald-600 font-semibold mt-1 flex items-center gap-1">
-          <Check className="h-3 w-3" /> Selected: {selectedName}
-        </p>
-      )}
-
-      {open && (
-        <div className="absolute z-50 mt-1 w-full bg-surface border border-outline-variant rounded-xl shadow-xl max-h-60 overflow-y-auto">
-          {results.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              className="w-full text-left px-4 py-2.5 hover:bg-surface-container transition-colors border-b border-outline-variant/30 last:border-0"
-              onClick={() => handleSelect(p)}
-            >
-              <p className="text-sm font-semibold text-on-surface">{p.name}</p>
-              <p className="text-xs text-on-surface-variant">{p.phone || "No phone"} • {p.gender}</p>
-            </button>
-          ))}
-
-          {query.trim() && (
-            <button
-              type="button"
-              onClick={handleQuickAddPatient}
-              disabled={creating}
-              className="w-full text-left px-4 py-3 bg-primary/5 hover:bg-primary/10 text-primary font-bold text-xs flex items-center gap-2 transition-colors border-t border-outline-variant"
-            >
-              {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
-              <span>+ Quick Add &quot;{query.trim()}&quot; as New Patient</span>
-            </button>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ── ChamberSelect ─────────────────────────────────────────────────────────────
 
@@ -411,6 +304,11 @@ function MedicineRow({
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const usageType = (med.usageType || "DAILY") as string;
+  // An existing note that is not one of the predefined options is doctor text —
+  // show it in the Custom input instead of the picker.
+  const [customInstruction, setCustomInstruction] = useState(
+    Boolean(med.notes && !SPECIAL_INSTRUCTION_OPTIONS.includes(med.notes)),
+  );
 
   const searchMed = async (q: string) => {
     // Abort any in-flight request so a slow earlier response cannot overwrite
@@ -616,6 +514,43 @@ function MedicineRow({
           />
         </div>
       )}
+
+      {/* Special Instruction — a predefined picker plus a free-text "Custom…"
+          entry. Persisted on the medicine's `notes` column and printed under the
+          medicine line. */}
+      <div>
+        <label className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wide">Special Instruction</label>
+        <select
+          value={customInstruction ? CUSTOM_INSTRUCTION : med.notes || ""}
+          onChange={(e) => {
+            const value = e.target.value;
+            if (value === CUSTOM_INSTRUCTION) {
+              setCustomInstruction(true);
+              onChange(index, "notes", "");
+            } else {
+              setCustomInstruction(false);
+              onChange(index, "notes", value);
+            }
+          }}
+          className="w-full h-8 px-2 text-xs mt-0.5 bg-surface border border-gray-200 dark:border-slate-800 rounded-md text-on-surface focus:outline-none"
+        >
+          <option value="">None</option>
+          {SPECIAL_INSTRUCTION_OPTIONS.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+          <option value={CUSTOM_INSTRUCTION}>Custom…</option>
+        </select>
+        {customInstruction && (
+          <Input
+            value={med.notes || ""}
+            onChange={(e) => onChange(index, "notes", e.target.value)}
+            placeholder="Custom special instruction…"
+            className="h-8 text-xs mt-1.5"
+          />
+        )}
+      </div>
       </>
       )}
     </div>
@@ -645,13 +580,19 @@ export default function PrescriptionBuilder({
   const [workspaceType, setWorkspaceType] = useState("PERSONAL");
   const [appointmentId, setAppointmentId] = useState("");
   const [visitEligible, setVisitEligible] = useState(true);
-  // Personal workspaces have no appointments: the patient is typed by name and
-  // resolved/created on submit.
-  const [patientName, setPatientName] = useState("");
+  // Personal workspaces have no appointments, so the patient is either picked
+  // from the search or created through the shared full patient form.
+  const [showNewPatient, setShowNewPatient] = useState(false);
+  // Name of a patient created through the full form, so the field can show it.
+  const [patientLabel, setPatientLabel] = useState("");
   const [complaints, setComplaints] = useState(prescription?.complaints || "");
-  const [diagnosis, setDiagnosis] = useState(prescription?.diagnosis || "General Consultation");
-  const [clinicalNotes, setClinicalNotes] = useState(prescription?.clinicalNotes || "");
-  const [advises, setAdvises] = useState(prescription?.advises || "");
+  const [diagnosis, setDiagnosis] = useState(prescription?.diagnosis || "");
+  // "Instructions" — the form's single free-text instruction field. It reuses
+  // the existing `clinicalNotes` column, which the PDF already prints under the
+  // "Instructions" heading (see the prescription templates).
+  const [instructions, setInstructions] = useState(
+    prescription?.clinicalNotes || "",
+  );
   // Normalize the stored ISO date to the YYYY-MM-DD the date input expects.
   const [nextVisit, setNextVisit] = useState(() => {
     const value = (prescription as any)?.nextVisitDate;
@@ -670,6 +611,25 @@ export default function PrescriptionBuilder({
       height: obs?.height ?? "",
     };
   });
+  // On Examination (O/E) findings — free text, all optional.
+  const [exam, setExam] = useState<Record<string, string>>(() => ({
+    ...emptyExam(),
+    ...Object.fromEntries(
+      EXAM_FIELDS.filter(({ key }) => (prescription as any)?.[key]).map(
+        ({ key }) => [key, String((prescription as any)[key])],
+      ),
+    ),
+  }));
+  // Relevant past medical history (separate from chief complaints).
+  const [history, setHistory] = useState(prescription?.history || "");
+  const [investigations, setInvestigations] = useState<InvestigationRow[]>(() =>
+    (prescription?.investigations || []).map((inv, i) => ({
+      _id: i,
+      testName: inv.testName || "",
+      note: inv.note || "",
+    })),
+  );
+  const invCounter = useRef((prescription?.investigations || []).length);
   const [meds, setMeds] = useState<MedRow[]>(
     prescription?.medicines?.length
       ? prescription.medicines.map((m, i) => ({ ...m, _id: i }))
@@ -700,8 +660,36 @@ export default function PrescriptionBuilder({
     }
   };
 
-  const changeMed = (i: number, f: keyof MedRow, v: string) =>
-    setMeds((prev) => prev.map((m, idx) => idx === i ? { ...m, [f]: v } : m));
+  const changeMed = (i: number, f: keyof MedRow, v: string) => {
+    setMeds((prev) => prev.map((m, idx) => (idx === i ? { ...m, [f]: v } : m)));
+    // Clear a stale "medicine required" error as soon as a medicine is filled
+    // in, instead of leaving it visible until the next submit.
+    if (f === "brandName" && v.trim()) {
+      setFieldErrors((errs) =>
+        errs.medicines ? { ...errs, medicines: "" } : errs,
+      );
+    }
+  };
+
+  const addInvestigation = () => {
+    invCounter.current += 1;
+    setInvestigations((prev) => [
+      ...prev,
+      { _id: invCounter.current, testName: "", note: "" },
+    ]);
+  };
+
+  const removeInvestigation = (i: number) =>
+    setInvestigations((prev) => prev.filter((_, idx) => idx !== i));
+
+  const changeInvestigation = (
+    i: number,
+    field: "testName" | "note",
+    value: string,
+  ) =>
+    setInvestigations((prev) =>
+      prev.map((row, idx) => (idx === i ? { ...row, [field]: value } : row)),
+    );
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [saveState, setSaveState] = useState<
@@ -751,6 +739,9 @@ export default function PrescriptionBuilder({
               ? (m.mealTiming as any)
               : undefined,
           instruction,
+          // Per-medicine note shown on the "Special Instruction" input and
+          // printed under the medicine line.
+          notes: m.notes?.trim() || undefined,
           dose: m.dose?.trim() || undefined,
           intervalDays: usageType === "WEEKLY" ? intervalDays : undefined,
           applicationAmount: m.applicationAmount?.trim() || undefined,
@@ -769,9 +760,27 @@ export default function PrescriptionBuilder({
       chamberId: chamberId && chamberId.trim() !== "" ? chamberId.trim() : undefined,
       complaints: complaints.trim() || undefined,
       diagnosis: diagnosis.trim(),
-      clinicalNotes: clinicalNotes.trim() || undefined,
-      advises: advises.trim() || undefined,
+      // Instructions — stored on the existing `clinicalNotes` column.
+      clinicalNotes: instructions.trim() || undefined,
       nextVisitDate: nextVisit || undefined,
+      // Optional clinical additions — all free text, all optional.
+      history: history.trim() || undefined,
+      examRespiratoryRate: exam.examRespiratoryRate?.trim() || undefined,
+      examLungs: exam.examLungs?.trim() || undefined,
+      examHeart: exam.examHeart?.trim() || undefined,
+      examAnaemia: exam.examAnaemia?.trim() || undefined,
+      examCyanosis: exam.examCyanosis?.trim() || undefined,
+      examOedema: exam.examOedema?.trim() || undefined,
+      examDehydration: exam.examDehydration?.trim() || undefined,
+      examOthers: exam.examOthers?.trim() || undefined,
+      investigations: investigations.filter((inv) => inv.testName.trim()).length
+        ? investigations
+            .filter((inv) => inv.testName.trim())
+            .map((inv) => ({
+              testName: inv.testName.trim(),
+              note: inv.note.trim() || undefined,
+            }))
+        : undefined,
       status: targetStatus,
       bloodPressure: vitals.bloodPressure?.trim() || undefined,
       pulse: vitals.pulse?.trim() || undefined,
@@ -788,10 +797,12 @@ export default function PrescriptionBuilder({
     chamberId,
     complaints,
     diagnosis,
-    clinicalNotes,
-    advises,
+    instructions,
     nextVisit,
     vitals,
+    exam,
+    history,
+    investigations: investigations.map(({ _id, ...row }) => row),
     meds: meds.map(({ _id, ...m }) => m),
   });
 
@@ -847,43 +858,10 @@ export default function PrescriptionBuilder({
     setShowExitDialog(true);
   };
 
-  // Personal workspaces have no appointment→patient flow, so the typed name is
-  // resolved to an existing patient (exact name match) or registered as a new
-  // one — reusing the normal Patient model, not a parallel patient store.
-  const resolvePatientId = async (): Promise<string | null> => {
-    if (patientId) return patientId;
-
-    const name = patientName.trim();
-    if (workspaceType !== "PERSONAL" || !name) return null;
-
-    try {
-      const searchRes = await apiClient.get<any>(
-        `${API_ROUTES.PATIENTS.SEARCH}?q=${encodeURIComponent(name)}&limit=10`,
-      );
-      const list: Patient[] = searchRes.data?.data || searchRes.data || [];
-      const match = Array.isArray(list)
-        ? list.find((p) => p.name?.trim().toLowerCase() === name.toLowerCase())
-        : undefined;
-      if (match?.id) {
-        setPatientId(match.id);
-        return match.id;
-      }
-
-      const created = await apiClient.post<any>(API_ROUTES.PATIENTS.CREATE, {
-        name,
-        age: 30,
-        gender: "MALE",
-      });
-      const newPatient: Patient = created.data?.data || created.data;
-      if (newPatient?.id) {
-        setPatientId(newPatient.id);
-        return newPatient.id;
-      }
-    } catch (e: any) {
-      showError(e?.response?.data?.message || "Failed to register the patient");
-    }
-    return null;
-  };
+  // The patient must be chosen explicitly: either an existing patient from the
+  // search, or one created through the shared FULL patient form. There is no
+  // name-only fallback — that produced incomplete patient records.
+  const resolvePatientId = async (): Promise<string | null> => patientId || null;
 
   const saveDraftAndExit = async () => {
     if (submittingRef.current || exitSaving) return;
@@ -1009,7 +987,8 @@ export default function PrescriptionBuilder({
 
     setMeds((prev) => [...prev.filter((m) => m.brandName.trim()), ...rows]);
     if (!complaints.trim() && tpl.complaints) setComplaints(tpl.complaints);
-    if (!advises.trim() && tpl.advises) setAdvises(tpl.advises);
+    // Stored templates may still carry `advises` (kept in the DB for historical
+    // records) but the form no longer collects an Advice field.
     success(`Template "${tpl.name}" applied`);
   };
 
@@ -1025,7 +1004,6 @@ export default function PrescriptionBuilder({
       const res = await apiClient.post<any>(API_ROUTES.TEMPLATES.CREATE, {
         name: name.trim(),
         complaints: complaints.trim() || undefined,
-        advises: advises.trim() || undefined,
         medicines: buildPayload("DRAFT").medicines,
       });
       const created = res.data?.data || res.data;
@@ -1040,14 +1018,11 @@ export default function PrescriptionBuilder({
     e.preventDefault();
     const errs: Record<string, string> = {};
 
-    // Personal workspaces have no appointment list — the patient is typed in.
-    if (workspaceType === "PERSONAL") {
-      if (!patientId && !patientName.trim()) {
-        errs.patientId = "Enter the patient's name";
-      }
-    } else if (!patientId || patientId.trim() === "") {
+    if (!patientId || patientId.trim() === "") {
       errs.patientId =
-        "Please search and select a patient from the list or click Quick Add";
+        workspaceType === "PERSONAL"
+          ? "Select an existing patient or create a new one"
+          : "Select a paid or free appointment for this patient";
     }
 
     // A chamber is only required outside a Personal workspace.
@@ -1076,7 +1051,9 @@ export default function PrescriptionBuilder({
     }
     if (Object.keys(errs).length > 0) {
       setFieldErrors(errs);
-      return showError("Please fix form validation errors shown below");
+      // Name the actual problems instead of a generic "fix the form" message.
+      // Each message is also shown next to its field.
+      return showError(Object.values(errs).filter(Boolean).join(" "));
     }
     setFieldErrors({});
 
@@ -1197,16 +1174,17 @@ export default function PrescriptionBuilder({
                   }}
                 />
               ) : (
-                <PatientSearchCombobox
+                <PatientCombobox
                   value={patientId}
                   onChange={(id) => {
                     setPatientId(id);
+                    setPatientLabel("");
                     setFieldErrors((e) => ({ ...e, patientId: "" }));
                   }}
-                  onNameChange={(name) => {
-                    setPatientName(name);
-                    setFieldErrors((e) => ({ ...e, patientId: "" }));
-                  }}
+                  selectedLabel={patientLabel}
+                  // Opens the SAME full patient form used by the Patient page
+                  // and the Appointment flow.
+                  onNewPatient={() => setShowNewPatient(true)}
                 />
               )}
               {fieldErrors.patientId && (
@@ -1232,8 +1210,13 @@ export default function PrescriptionBuilder({
             )}
           </div>
 
+          {/* On Examination (O/E) — one optional section holding BOTH the vital
+              signs and the examination findings. Free text on purpose: doctors
+              write varied shorthand ("Nil", "+", "Mild"). */}
           <div className="rounded-xl border border-outline-variant p-4 bg-surface-container/30">
-            <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-3">Vital Signs (optional)</h3>
+            <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-3">On Examination (O/E) (optional)</h3>
+
+            {/* Vital signs (values unchanged — only the section grouping moved). */}
             <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
               {(["bloodPressure", "pulse", "temperature", "weight", "height"] as const).map((f) => (
                 <div key={f}>
@@ -1249,12 +1232,42 @@ export default function PrescriptionBuilder({
                 </div>
               ))}
             </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+              {EXAM_FIELDS.filter(({ key }) => key !== "examOthers").map(({ key, label }) => (
+                <div key={key}>
+                  <label className="text-[10px] font-semibold uppercase tracking-wide text-on-surface-variant">{label}</label>
+                  <Input
+                    className="h-8 text-xs mt-0.5"
+                    value={exam[key] ?? ""}
+                    onChange={(e) => setExam((prev) => ({ ...prev, [key]: e.target.value }))}
+                    placeholder="—"
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Others is a multi-line catch-all for custom findings. */}
+            <div className="mt-3">
+              <label className="text-[10px] font-semibold uppercase tracking-wide text-on-surface-variant">Others</label>
+              <Textarea
+                rows={2}
+                className="text-xs mt-0.5"
+                value={exam.examOthers ?? ""}
+                onChange={(e) => setExam((prev) => ({ ...prev, examOthers: e.target.value }))}
+                placeholder="Other examination findings…"
+              />
+            </div>
           </div>
 
           <div className="space-y-3">
             <div>
               <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Chief Complaints</label>
               <Textarea rows={2} placeholder="Patient's main complaints…" value={complaints} onChange={(e) => setComplaints(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">History</label>
+              <Textarea rows={2} placeholder="Relevant past medical history..." value={history} onChange={(e) => setHistory(e.target.value)} />
             </div>
             <div>
               <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Diagnosis *</label>
@@ -1274,15 +1287,60 @@ export default function PrescriptionBuilder({
                 </p>
               )}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Clinical Notes</label>
-                <Textarea rows={2} placeholder="Lab findings, notes…" value={clinicalNotes} onChange={(e) => setClinicalNotes(e.target.value)} />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Advice</label>
-                <Textarea rows={2} placeholder="Lifestyle advice, follow-up…" value={advises} onChange={(e) => setAdvises(e.target.value)} />
-              </div>
+
+            {/* Investigation — repeatable list; only the test name is required
+                and an empty list is fine. */}
+            <div>
+              <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Investigation</label>
+              {investigations.length > 0 && (
+                <div className="space-y-2">
+                  {investigations.map((inv, i) => (
+                    <div key={inv._id} className="flex items-center gap-2">
+                      <Input
+                        className="h-9 flex-1 text-xs"
+                        placeholder="Test name (e.g. CBC)"
+                        value={inv.testName}
+                        onChange={(e) => changeInvestigation(i, "testName", e.target.value)}
+                      />
+                      <Input
+                        className="h-9 flex-1 text-xs"
+                        placeholder="Note (optional)"
+                        value={inv.note}
+                        onChange={(e) => changeInvestigation(i, "note", e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeInvestigation(i)}
+                        aria-label={`Remove investigation ${i + 1}`}
+                        className="h-9 w-9 shrink-0 rounded-lg border border-red-100 flex items-center justify-center text-red-500 hover:bg-red-50"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addInvestigation}
+                className="mt-2"
+              >
+                <Plus size={14} className="mr-1" /> Add Investigation
+              </Button>
+            </div>
+
+            {/* Instructions — replaces the separate Clinical Notes + Advice
+                inputs. Saved on the existing `clinicalNotes` column. */}
+            <div>
+              <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Instructions</label>
+              <Textarea
+                rows={3}
+                placeholder="Additional instructions for the patient…"
+                value={instructions}
+                onChange={(e) => setInstructions(e.target.value)}
+              />
             </div>
             {/* Status selection removed: generating always finalizes the
                 prescription (the draft/discard flow lives in the exit dialog). */}
@@ -1343,7 +1401,12 @@ export default function PrescriptionBuilder({
                   med={m}
                   index={i}
                   expanded={expandedMedId === m._id}
-                  onToggle={() => setExpandedMedId(m._id)}
+                  // Header button toggles: clicking an open card collapses it.
+                  onToggle={() =>
+                    setExpandedMedId((current) =>
+                      current === m._id ? null : m._id,
+                    )
+                  }
                   onChange={changeMed}
                   onRemove={removeMed}
                 />
@@ -1420,6 +1483,22 @@ export default function PrescriptionBuilder({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Full patient creation (shared with the Patient page & Appointments).
+          The created patient is selected automatically. */}
+      {showNewPatient && (
+        <PatientFormDialog
+          onClose={() => setShowNewPatient(false)}
+          onSuccess={(p) => {
+            if (p?.id) {
+              setPatientId(p.id);
+              setPatientLabel(p.name || "");
+              setFieldErrors((e) => ({ ...e, patientId: "" }));
+            }
+            setShowNewPatient(false);
+          }}
+        />
       )}
     </div>
   );

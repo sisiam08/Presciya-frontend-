@@ -100,7 +100,7 @@ export default function AcceptInvitationPage() {
       success("Invitation accepted");
       setStatus("accepted");
       setTimeout(
-        () => router.push(workspaceId ? "/dashboard" : "/select-workspace"),
+        () => router.push("/dashboard"),
         1200,
       );
     } catch (e: any) {

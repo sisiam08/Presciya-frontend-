@@ -55,10 +55,36 @@ export const isValidEmail = (email: string): boolean => {
   return emailRegex.test(email);
 };
 
-export const isValidPhone = (phone: string): boolean => {
-  const phoneRegex = /^(?:\+88|0088|0)?1[0-9]{9}$/;
-  return phoneRegex.test(phone);
+/**
+ * Bangladesh mobile rules — the single frontend source of truth, mirroring
+ * `backend/src/utils/phone.ts`. Canonical form: 01[3-9]XXXXXXXX (11 digits);
+ * +8801… and light formatting are accepted and normalised before storage.
+ */
+export const BD_MOBILE_REGEX = /^01[3-9]\d{8}$/;
+
+const BD_MOBILE_INPUT_REGEX = /^(?:\+?88)?01[3-9][\d\s\-().]*$/;
+
+/** Strips separators and the +88 / 88 country prefix. */
+export const normalizeBangladeshPhone = (value: string): string =>
+  String(value ?? "")
+    .replace(/[\s\-().]/g, "")
+    .replace(/^\+?88/, "");
+
+/** True when the value is a valid Bangladesh mobile number. */
+export const isValidBangladeshPhone = (value: string): boolean => {
+  const raw = String(value ?? "").trim();
+  if (!raw) return false;
+  return (
+    BD_MOBILE_INPUT_REGEX.test(raw) &&
+    BD_MOBILE_REGEX.test(normalizeBangladeshPhone(raw))
+  );
 };
+
+export const BD_PHONE_MESSAGE =
+  "Enter a valid Bangladesh mobile number (e.g. 01712345678).";
+
+/** Backwards-compatible alias used by older call sites. */
+export const isValidPhone = isValidBangladeshPhone;
 
 // String utilities
 export const truncate = (str: string, length: number): string => {

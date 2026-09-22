@@ -3,14 +3,13 @@
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
-import { SunMoon, LayoutDashboard, LogOut, Moon, Sun } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 export default function Navbar() {
   const { resolvedTheme, setTheme } = useTheme();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -62,25 +61,10 @@ export default function Navbar() {
             </button>
           )}
 
-          {mounted && user ? (
-            <div className="flex items-center gap-3">
-              <Link href="/dashboard">
-                <Button size="sm" variant="outline" className="gap-1.5 h-10 border-slate-300 dark:border-slate-700 font-semibold rounded-full dark:text-slate-200">
-                  <LayoutDashboard className="h-4 w-4 text-primary" />
-                  Dashboard
-                </Button>
-              </Link>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={logout}
-                className="text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-full h-10 w-10 flex items-center justify-center p-0"
-                title="Logout"
-              >
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : (
+          {/* Only signed-out visitors see the auth actions. Signed-in users do
+              not get Dashboard/Logout here — those live in the dashboard
+              sidebar, and signed-in users cannot reach the public pages. */}
+          {mounted && !user && (
             <div className="flex items-center gap-3">
               <Link href="/login">
                 <Button variant="ghost" className="text-sm font-semibold text-primary dark:text-blue-400 hover:underline px-4 h-10">

@@ -15,12 +15,10 @@ import {
   Stethoscope,
   TrendingUp,
   Award,
-  Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { apiClient } from "@/lib/api-client";
 import { API_ROUTES } from "@/lib/constants";
-import { formatCurrency } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import VerificationNotice from "@/components/verification/VerificationNotice";
 
@@ -61,7 +59,6 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const [analytics, setAnalytics] = useState<any>(null);
   const [appointments, setAppointments] = useState<any[]>([]);
-  const [financeSummary, setFinanceSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -71,21 +68,16 @@ export default function DashboardPage() {
     try {
       const activeWs = targetWsId || (typeof window !== "undefined" ? localStorage.getItem("activeWorkspaceId") : null);
       
-      const [analyticsRes, apptsRes, financeRes] = await Promise.allSettled([
+      const [analyticsRes, apptsRes] = await Promise.allSettled([
         apiClient.get<any>(API_ROUTES.ANALYTICS.DASHBOARD),
         activeWs 
           ? apiClient.get<any>(API_ROUTES.APPOINTMENTS.LIST(activeWs))
           : Promise.resolve({ data: { data: [] } }),
-        apiClient.get<any>(`${API_ROUTES.FINANCE.SUMMARY}?period=month`),
       ]);
 
       if (analyticsRes.status === "fulfilled") {
         const val = analyticsRes.value as any;
         setAnalytics(val.data?.data || val.data || null);
-      }
-      if (financeRes.status === "fulfilled") {
-        const val = financeRes.value as any;
-        setFinanceSummary(val.data?.data || val.data || null);
       }
       if (apptsRes.status === "fulfilled") {
         const val = apptsRes.value as any;
@@ -322,7 +314,9 @@ export default function DashboardPage() {
           <Button variant="outline" size="sm" onClick={() => loadData()}>
             <RefreshCw className="h-4 w-4 mr-1" /> Refresh
           </Button>
-          <Link href="/dashboard/prescriptions">
+          {/* Carries the "create" intent so the prescriptions page opens the
+              builder automatically (see handleNewIntent there). */}
+          <Link href="/dashboard/prescriptions?new=1">
             <Button className="flex items-center gap-2">
               <Plus size={16} /> New Prescription
             </Button>
@@ -372,52 +366,6 @@ export default function DashboardPage() {
                 </div>
               );
             })}
-          </div>
-
-          {/* Financial Overview (compact) */}
-          <div className="flex flex-col gap-4 rounded-2xl border border-outline-variant bg-surface p-5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <span className="rounded-xl bg-primary/10 p-2.5 text-primary">
-                <Wallet size={20} />
-              </span>
-              <div>
-                <h3 className="text-base font-bold text-on-surface">
-                  Financial Overview
-                </h3>
-                <p className="text-xs text-on-surface-variant">This month</p>
-              </div>
-            </div>
-            <div className="grid flex-1 grid-cols-3 gap-4 sm:justify-items-center">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
-                  Income
-                </p>
-                <p className="text-lg font-extrabold text-emerald-600">
-                  {formatCurrency(financeSummary?.totalIncome ?? 0)}
-                </p>
-              </div>
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
-                  Expense
-                </p>
-                <p className="text-lg font-extrabold text-rose-600">
-                  {formatCurrency(financeSummary?.totalExpense ?? 0)}
-                </p>
-              </div>
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
-                  Net Result
-                </p>
-                <p className="text-lg font-extrabold text-on-surface">
-                  {formatCurrency(financeSummary?.netResult ?? 0)}
-                </p>
-              </div>
-            </div>
-            <Link href="/dashboard/finance">
-              <Button variant="outline" size="sm" className="flex items-center gap-1.5">
-                View Finance <ArrowRight size={14} />
-              </Button>
-            </Link>
           </div>
 
           {/* Interactive Chart Dashboard Grid */}

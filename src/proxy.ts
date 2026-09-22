@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// Routes only for unauthenticated users
-const authRoutes = ["/login", "/signup"];
+// Routes only for unauthenticated users.
+const authRoutes = ["/login", "/signup", "/forgot-password"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -11,6 +11,10 @@ export function proxy(request: NextRequest) {
 
   const isAdminRoute = pathname.startsWith("/dashboard/admin");
   const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
+  // The marketing landing page is signed-out only too. It must be an EXACT
+  // match — `startsWith("/")` would match every route.
+  const isLandingRoute = pathname === "/";
+  const isSignedOutOnlyRoute = isAuthRoute || isLandingRoute;
   // Workspace selection is part of the authenticated flow.
   const isWorkspaceRoute = pathname.startsWith("/select-workspace");
 
@@ -38,13 +42,14 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard/admin", request.url));
   }
 
-  // 4. Logged-in SUPER_ADMIN trying to access auth pages (login/signup) -> Redirect to /dashboard/admin
-  if (isAuthRoute && token && systemRole === "SUPER_ADMIN") {
+  // 4. Logged-in SUPER_ADMIN on a signed-out-only page (/, /login, /signup,
+  //    /forgot-password) -> Redirect to their admin dashboard.
+  if (isSignedOutOnlyRoute && token && systemRole === "SUPER_ADMIN") {
     return NextResponse.redirect(new URL("/dashboard/admin", request.url));
   }
 
-  // 5. Logged-in regular user trying to access auth pages (login/signup) -> Redirect to /dashboard
-  if (isAuthRoute && token) {
+  // 5. Logged-in regular user on a signed-out-only page -> Redirect to /dashboard
+  if (isSignedOutOnlyRoute && token) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

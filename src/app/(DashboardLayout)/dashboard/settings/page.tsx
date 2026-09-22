@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import {
-  User,
   Palette,
   Shield,
   Loader2,
@@ -32,137 +32,18 @@ import {
   PrescriptionDesignTemplate,
 } from "@/types";
 
-type TabId = "profile" | "prescription" | "fees" | "branding" | "security";
+type TabId = "prescription" | "fees" | "branding" | "security";
 
+// NOTE: no "Profile" tab here — the dedicated /dashboard/profile section in the
+// sidebar owns profile editing.
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
-  { id: "profile", label: "Profile", icon: User },
   { id: "prescription", label: "Prescription", icon: FileText },
   { id: "fees", label: "Visiting Fee", icon: Wallet },
-  { id: "branding", label: "Branding", icon: Palette },
+  // Personal prescription settings only — chamber branding lives in
+  // Chambers → Manage Chamber.
+  { id: "branding", label: "Personal Prescription", icon: Palette },
   { id: "security", label: "Security", icon: Shield },
 ];
-
-// ─── Profile Tab ─────────────────────────────────────────────────────────────
-
-function ProfileTab() {
-  const { success, error: showError } = useNotification();
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [profile, setProfile] = useState({
-    name: "",
-    bmdcNumber: "",
-    qualifications: "",
-    specialization: "",
-    bio: "",
-    yearsOfExperience: "",
-  });
-
-  useEffect(() => {
-    apiClient.get<any>(API_ROUTES.DOCTOR.PROFILE)
-      .then((res) => {
-        const d = res.data?.data || res.data;
-        setProfile({
-          name: d?.user?.name || "",
-          bmdcNumber: d?.bmdcNumber || "",
-          qualifications: d?.qualifications || "",
-          specialization: d?.specialization || "",
-          bio: d?.bio || "",
-          yearsOfExperience: String(d?.yearsOfExperience || ""),
-        });
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      await apiClient.patch(API_ROUTES.DOCTOR.UPDATE_PROFILE, {
-        bmdcNumber: profile.bmdcNumber,
-        qualifications: profile.qualifications,
-        specialization: profile.specialization,
-        bio: profile.bio,
-        yearsOfExperience: Number(profile.yearsOfExperience) || undefined,
-      });
-      success("Profile updated successfully");
-    } catch (e: any) {
-      showError(e?.response?.data?.message || "Failed to update profile");
-    }
-    setSaving(false);
-  };
-
-  if (loading) return (
-    <div className="flex items-center justify-center py-20">
-      <Loader2 className="h-6 w-6 animate-spin text-primary" />
-    </div>
-  );
-
-  return (
-    <div className="space-y-5">
-      <div className="bg-surface rounded-2xl border border-outline-variant p-6">
-        <h3 className="text-base font-bold text-on-surface mb-5">Professional Identity</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Full Name</label>
-            <Input value={profile.name} disabled className="bg-surface-container/50" />
-            <p className="text-[10px] text-on-surface-variant mt-1">Name is managed via Auth settings.</p>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">BMDC Number</label>
-            <Input
-              value={profile.bmdcNumber}
-              onChange={(e) => setProfile({ ...profile, bmdcNumber: e.target.value })}
-              placeholder="e.g. A-12345"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Specialization</label>
-            <Input
-              value={profile.specialization}
-              onChange={(e) => setProfile({ ...profile, specialization: e.target.value })}
-              placeholder="e.g. Cardiology"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Years of Experience</label>
-            <Input
-              type="number"
-              min={0}
-              value={profile.yearsOfExperience}
-              onChange={(e) => setProfile({ ...profile, yearsOfExperience: e.target.value })}
-              placeholder="e.g. 10"
-            />
-          </div>
-          <div className="col-span-full">
-            <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Qualifications / Degrees</label>
-            <Textarea
-              rows={2}
-              value={profile.qualifications}
-              onChange={(e) => setProfile({ ...profile, qualifications: e.target.value })}
-              placeholder="MBBS, MD, FCPS…"
-            />
-          </div>
-          <div className="col-span-full">
-            <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Bio</label>
-            <Textarea
-              rows={3}
-              value={profile.bio}
-              onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-              placeholder="Brief professional summary…"
-            />
-          </div>
-        </div>
-
-        <div className="mt-5 flex justify-end">
-          <Button onClick={handleSave} disabled={saving} className="min-w-[140px]">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
-            {saving ? "Saving…" : "Save Profile"}
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ─── Prescription Tab ─────────────────────────────────────────────────────────
 
@@ -489,111 +370,228 @@ function FeesTab() {
 
 // ─── Branding Tab ─────────────────────────────────────────────────────────────
 
+/**
+ * Prescription branding is WORKSPACE-AWARE:
+ *  - PERSONAL    → a personal prescription is issued in the doctor's own name, so
+ *                  it uses the Doctor Profile identity. No clinic/chamber fields.
+ *  - CHAMBER     → doctor identity (automatic) + chamber-specific branding.
+ *  - INSTITUTION → not part of the current public release.
+ *
+ * Prescription colours are deliberately NOT configurable — each template owns
+ * its own design (the old Primary/Secondary colour pickers are gone).
+ */
+/**
+ * Personal Prescription settings — ONLY for prescriptions created in the
+ * PERSONAL workspace.
+ *
+ * Doctor identity is resolved automatically from the Doctor Profile and is
+ * never re-entered here. The footer + watermark are the doctor's PERSONAL
+ * prescription customization and are subscription-controlled through the
+ * existing `custom_branding` entitlement — the existing FeatureGate renders the
+ * locked state, so no new restriction UI is introduced.
+ *
+ * Chamber prescription branding lives in Chambers → Manage Chamber.
+ */
 function BrandingTab() {
   const { success, error: showError } = useNotification();
-  const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({
-    legalName: "",
-    address: "",
+  const [saving, setSaving] = useState(false);
+  const [workspaceId, setWorkspaceId] = useState("");
+  const [doctor, setDoctor] = useState({
+    name: "",
+    qualification: "",
+    specialization: "",
+    registrationNo: "",
     phone: "",
     email: "",
-    website: "",
-    primaryColor: "#1a73e8",
-    secondaryColor: "#00897b",
   });
+  const [footerText, setFooterText] = useState("");
+  const [watermarkEnabled, setWatermarkEnabled] = useState(false);
+  const [watermarkText, setWatermarkText] = useState("");
+  const [watermarkUrl, setWatermarkUrl] = useState("");
 
   useEffect(() => {
-    apiClient.get<any>(API_ROUTES.INSTITUTION.PROFILE)
-      .then((res) => {
-        const d = res.data?.data || res.data;
-        if (d) {
-          setForm({
-            legalName: d.legalName || "",
-            address: d.address || "",
-            phone: d.phone || "",
-            email: d.email || "",
-            website: d.website || "",
-            primaryColor: d.primaryColor || "#1a73e8",
-            secondaryColor: d.secondaryColor || "#00897b",
-          });
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    const load = async () => {
+      const wsId =
+        typeof window !== "undefined"
+          ? localStorage.getItem("activeWorkspaceId")
+          : null;
+      try {
+        const [wsRes, docRes] = await Promise.all([
+          apiClient.get<any>(API_ROUTES.WORKSPACES.LIST).catch(() => ({ data: [] })),
+          apiClient.get<any>(API_ROUTES.DOCTOR.PROFILE).catch(() => ({ data: null })),
+        ]);
+
+        const list = wsRes.data?.data || wsRes.data || [];
+        const active = list.find((w: any) => w.id === wsId) || list[0];
+        setWorkspaceId(active?.id || "");
+
+        const cfg = (active?.templateConfig || {}) as any;
+        setFooterText(cfg.footerText || "");
+        setWatermarkEnabled(Boolean(cfg.watermarkEnabled));
+        setWatermarkText(cfg.watermarkText || "");
+        setWatermarkUrl(cfg.watermarkUrl || "");
+
+        const d = docRes.data?.data || docRes.data;
+        setDoctor({
+          name: d?.user?.name || d?.name || "",
+          qualification: d?.qualifications || d?.qualification || "",
+          specialization: d?.specialization || "",
+          registrationNo: d?.bmdcNumber || d?.registrationNo || "",
+          phone: d?.user?.phone || d?.phone || "",
+          email: d?.user?.email || d?.email || "",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
   }, []);
 
   const handleSave = async () => {
+    if (!workspaceId) return;
     setSaving(true);
     try {
-      await apiClient.patch(API_ROUTES.INSTITUTION.UPDATE_BRANDING, form);
-      success("Branding settings saved");
+      await apiClient.patch(API_ROUTES.WORKSPACES.UPDATE(workspaceId), {
+        templateConfig: {
+          footerText: footerText.trim() || "",
+          watermarkEnabled,
+          watermarkText: watermarkText.trim() || "",
+          watermarkUrl: watermarkUrl.trim() || "",
+        },
+      });
+      success("Personal prescription settings saved");
     } catch (e: any) {
-      showError(e?.response?.data?.message || "Failed to save branding");
+      showError(
+        e?.response?.data?.message ||
+          "Failed to save personal prescription settings",
+      );
     }
     setSaving(false);
   };
 
-  if (loading) return (
-    <div className="flex items-center justify-center py-20">
-      <Loader2 className="h-6 w-6 animate-spin text-primary" />
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
 
+  // The WHOLE tab is the premium "Personal prescription" surface, so the gate
+  // wraps everything — the doctor identity block included.
   return (
+    <FeatureGate feature="custom_branding" label="Personal prescription">
     <div className="space-y-5">
+      {/* Doctor identity — automatic, resolved from the profile. */}
       <div className="bg-surface rounded-2xl border border-outline-variant p-6">
-        <h3 className="text-base font-bold text-on-surface mb-5">Prescription Letterhead</h3>
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
+          <div>
+            <h3 className="text-base font-bold text-on-surface">Doctor Identity</h3>
+            <p className="text-xs text-on-surface-variant mt-0.5">
+              A personal prescription is issued in your own name — these come from
+              your Profile and are never re-entered here.
+            </p>
+          </div>
+          <Link href="/dashboard/profile">
+            <Button variant="outline" size="sm">Edit Profile</Button>
+          </Link>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[
-            { label: "Institution / Clinic Name", key: "legalName", type: "text", placeholder: "e.g. Dhaka Heart Institute" },
-            { label: "Phone", key: "phone", type: "tel", placeholder: "+880 1XXX-XXXXXX" },
-            { label: "Email", key: "email", type: "email", placeholder: "clinic@example.com" },
-            { label: "Website", key: "website", type: "url", placeholder: "https://yoursite.com" },
-          ].map(({ label, key, type, placeholder }) => (
-            <div key={key}>
-              <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">{label}</label>
-              <Input
-                type={type}
-                value={(form as any)[key]}
-                onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-                placeholder={placeholder}
-              />
+            { label: "Doctor Name", value: doctor.name },
+            { label: "Qualifications", value: doctor.qualification },
+            { label: "Specialty", value: doctor.specialization },
+            { label: "BMDC / Registration No.", value: doctor.registrationNo },
+            { label: "Phone", value: doctor.phone },
+            { label: "Email", value: doctor.email },
+          ].map(({ label, value }) => (
+            <div key={label}>
+              <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">
+                {label}
+              </label>
+              <Input value={value || "—"} disabled className="bg-surface-container/50" />
             </div>
           ))}
-          <div className="col-span-full">
-            <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Address</label>
-            <Textarea
-              rows={2}
-              value={form.address}
-              onChange={(e) => setForm({ ...form, address: e.target.value })}
-              placeholder="Full postal address…"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Primary Color</label>
-            <div className="flex items-center gap-3">
-              <input type="color" value={form.primaryColor} onChange={(e) => setForm({ ...form, primaryColor: e.target.value })} className="h-9 w-16 cursor-pointer rounded border border-input" />
-              <Input value={form.primaryColor} onChange={(e) => setForm({ ...form, primaryColor: e.target.value })} className="flex-1 font-mono" />
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Secondary Color</label>
-            <div className="flex items-center gap-3">
-              <input type="color" value={form.secondaryColor} onChange={(e) => setForm({ ...form, secondaryColor: e.target.value })} className="h-9 w-16 cursor-pointer rounded border border-input" />
-              <Input value={form.secondaryColor} onChange={(e) => setForm({ ...form, secondaryColor: e.target.value })} className="flex-1 font-mono" />
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-5 flex justify-end">
-          <Button onClick={handleSave} disabled={saving} className="min-w-[140px]">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
-            {saving ? "Saving…" : "Save Branding"}
-          </Button>
         </div>
       </div>
+
+      {/* Personal prescription customization — part of the gated tab above. */}
+      <div className="bg-surface rounded-2xl border border-outline-variant p-6">
+          <h3 className="text-base font-bold text-on-surface mb-1">
+            Personal Prescription
+          </h3>
+          <p className="text-xs text-on-surface-variant mb-5">
+            Extra information printed on prescriptions you issue from your Personal
+            workspace.
+          </p>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">
+                Custom Footer
+              </label>
+              <Textarea
+                rows={2}
+                value={footerText}
+                onChange={(e) => setFooterText(e.target.value)}
+                placeholder="e.g. For appointments: 01XXXXXXXXX"
+              />
+              <p className="text-[10px] text-on-surface-variant mt-1">
+                Printed exactly as entered (never translated).
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-outline-variant p-4">
+              <label className="flex items-center gap-2 text-sm font-semibold text-on-surface">
+                <input
+                  type="checkbox"
+                  checked={watermarkEnabled}
+                  onChange={(e) => setWatermarkEnabled(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 accent-primary"
+                />
+                Watermark
+              </label>
+              {watermarkEnabled && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">
+                      Watermark Text
+                    </label>
+                    <Input
+                      value={watermarkText}
+                      onChange={(e) => setWatermarkText(e.target.value)}
+                      placeholder="e.g. Dr. John Doe"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">
+                      Watermark Image URL
+                    </label>
+                    <Input
+                      value={watermarkUrl}
+                      onChange={(e) => setWatermarkUrl(e.target.value)}
+                      placeholder="https://…/watermark.png"
+                    />
+                  </div>
+                  <p className="col-span-full text-[10px] text-on-surface-variant">
+                    The image is used when provided, otherwise the text. Drawn subtly
+                    behind the content — it never covers medicines or the signature.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-5 flex justify-end">
+            <Button onClick={handleSave} disabled={saving} className="min-w-[180px]">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
+              {saving ? "Saving…" : "Save Personal Prescription"}
+            </Button>
+          </div>
+        </div>
     </div>
+    </FeatureGate>
   );
 }
 
@@ -696,7 +694,7 @@ function SecurityTab() {
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<TabId>("profile");
+  const [activeTab, setActiveTab] = useState<TabId>("prescription");
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -730,7 +728,6 @@ export default function SettingsPage() {
 
       {/* Tab Content */}
       <div>
-        {activeTab === "profile" && <ProfileTab />}
         {activeTab === "prescription" && (
           <FeatureGate
             feature="prescription_language"

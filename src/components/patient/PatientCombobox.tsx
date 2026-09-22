@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Search, Loader2, Check, UserPlus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { apiClient } from "@/lib/api-client";
 import { API_ROUTES } from "@/lib/constants";
-import { toast } from "@/components/ui/use-toast";
+import { useDismissable } from "@/hooks/useDismissable";
 import { Patient } from "@/types";
 
 interface PatientComboboxProps {
@@ -13,31 +13,52 @@ interface PatientComboboxProps {
   onChange: (id: string, name: string) => void;
   label?: string;
   placeholder?: string;
-  /** Show the "Quick Add <name> as New Patient" action. */
-  allowQuickAdd?: boolean;
+  /**
+   * Opens the caller's FULL "New Patient" form (the shared
+   * PatientFormDialog). There is deliberately no name-only quick-add — a
+   * patient must be created with the complete profile.
+   */
+  onNewPatient?: () => void;
+  /**
+   * Name to show for a patient selected OUTSIDE the dropdown (e.g. just created
+   * through the full patient form), so the field never shows a blank selection.
+   */
+  selectedLabel?: string;
 }
 
 /**
  * Searchable patient picker used by the appointment and prescription flows.
- * Search by name or phone, pick an existing patient, or Quick Add a brand new
- * one inline — so a first-time patient never blocks booking.
+ * Search by name or phone and pick an existing patient; creating a new one
+ * opens the caller's full PatientFormDialog via `onNewPatient`.
  */
 export default function PatientCombobox({
   value,
   onChange,
   label = "Patient *",
-  placeholder = "Search or type new patient name…",
-  allowQuickAdd = true,
+  placeholder = "Search patient by name or phone…",
+  onNewPatient,
+  selectedLabel,
 }: PatientComboboxProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Patient[]>([]);
   const [searching, setSearching] = useState(false);
-  const [creating, setCreating] = useState(false);
   const [open, setOpen] = useState(false);
   const [selectedName, setSelectedName] = useState("");
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
-  const creatingRef = useRef(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // Close the suggestions on outside click or Escape (shared behaviour).
+  useDismissable(containerRef, () => setOpen(false), open);
+
+  // A patient selected OUTSIDE the dropdown (e.g. just created through the
+  // shared full patient form) must populate the visible name field and replace
+  // any stale internal selection, so the user never has to search again.
+  useEffect(() => {
+    if (!value || !selectedLabel) return;
+    setSelectedName((prev) => (prev === selectedLabel ? prev : selectedLabel));
+    setQuery((prev) => (prev === selectedLabel ? prev : selectedLabel));
+  }, [value, selectedLabel]);
 
   const fetchRecent = async () => {
     abortRef.current?.abort();
@@ -92,40 +113,8 @@ export default function PatientCombobox({
     setOpen(false);
   };
 
-  const handleQuickAdd = async () => {
-    if (!query.trim()) return;
-    // Guard against duplicate creation before the creating state re-renders.
-    if (creatingRef.current) return;
-    creatingRef.current = true;
-    setCreating(true);
-    try {
-      const res = await apiClient.post<any>(API_ROUTES.PATIENTS.CREATE, {
-        name: query.trim(),
-        age: 30,
-        gender: "MALE",
-      });
-      const newPatient: Patient = res.data?.data || res.data;
-      if (newPatient?.id) {
-        handleSelect(newPatient);
-        toast({
-          title: "Patient added",
-          description: `"${newPatient.name}" was created and selected.`,
-          variant: "success",
-        });
-      }
-    } catch (e: any) {
-      toast({
-        title: "Registration Error",
-        description: e?.response?.data?.message || "Failed to create patient",
-        variant: "destructive",
-      });
-    }
-    creatingRef.current = false;
-    setCreating(false);
-  };
-
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       <label className="mb-1.5 block text-xs font-semibold text-on-surface-variant">
         {label}
       </label>
@@ -148,7 +137,7 @@ export default function PatientCombobox({
 
       {value && (
         <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-emerald-600">
-          <Check className="h-3 w-3" /> Selected: {selectedName}
+            <Check className="h-3 w-3" /> Selected: {selectedLabel || selectedName}
         </p>
       )}
 
@@ -168,22 +157,22 @@ export default function PatientCombobox({
             </button>
           ))}
 
-          {allowQuickAdd && query.trim() && (
-            <button
-              type="button"
-              onClick={handleQuickAdd}
-              disabled={creating}
-              className="flex w-full items-center gap-2 border-t border-outline-variant bg-primary/5 px-4 py-3 text-left text-xs font-bold text-primary transition-colors hover:bg-primary/10"
-            >
-              {creating ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <UserPlus className="h-4 w-4" />
-              )}
-              <span>+ Quick Add &quot;{query.trim()}&quot; as New Patient</span>
-            </button>
-          )}
         </div>
+      )}
+
+      {/* Full patient creation lives in the shared form — never a name-only
+          shortcut, so records are always complete. */}
+      {onNewPatient && (
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(false);
+            onNewPatient();
+          }}
+          className="mt-1.5 flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
+        >
+          <UserPlus className="h-3.5 w-3.5" /> New Patient
+        </button>
       )}
     </div>
   );
