@@ -20,7 +20,7 @@ import { apiClient } from "@/lib/api-client";
 import { API_ROUTES } from "@/lib/constants";
 import { Prescription, PrescriptionStatus } from "@/types";
 import { normalizePrescription } from "@/lib/prescriptions";
-import { formatDate, formatDateTime } from "@/lib/utils";
+import { formatDate, formatDateTime, formatDosage } from "@/lib/utils";
 
 function StatusBadge({ status }: { status: PrescriptionStatus }) {
   const cfg: Record<string, { label: string; className: string; icon: React.ElementType }> = {
@@ -55,8 +55,8 @@ function MedicineRow({ med, idx }: { med: any; idx: number }) {
     if (med.morning != null || med.noon != null || med.night != null) {
       return `${med.morning ?? 0} + ${med.noon ?? 0} + ${med.night ?? 0}`;
     }
-    if (med.dosagePattern) return med.dosagePattern;
-    if (med.frequency) return med.frequency;
+    if (med.dosagePattern) return formatDosage(med.dosagePattern);
+    if (med.frequency) return formatDosage(med.frequency);
     return "—";
   };
 

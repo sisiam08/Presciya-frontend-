@@ -25,7 +25,7 @@ import { useMutation, useQuery } from "@/hooks/useApi";
 import { useNotification } from "@/hooks/useNotification";
 import { useConfirm } from "@/components/ui/confirm";
 import { API_ROUTES } from "@/lib/constants";
-import { formatDate, formatDateTime } from "@/lib/utils";
+import { formatDate, formatDateTime, formatDosage } from "@/lib/utils";
 import { Prescription, PrescriptionStatus } from "@/types";
 import { normalizePrescription, normalizePrescriptions } from "@/lib/prescriptions";
 import PrescriptionBuilder from "@/components/prescription/PrescriptionBuilder";
@@ -284,7 +284,7 @@ export default function PrescriptionsPage() {
                     </div>
                     {rx.medicines?.slice(0, 2).map((med, idx) => (
                       <p key={idx} className="text-xs text-on-surface truncate font-medium">
-                        • {med.brandName} <span className="text-on-surface-variant text-[11px]">({med.frequency || "1+0+1"})</span>
+                        • {med.brandName} <span className="text-on-surface-variant text-[11px]">({formatDosage(med.frequency || "1+0+1")})</span>
                       </p>
                     ))}
                     {(rx.medicines?.length || 0) > 2 && (
@@ -395,7 +395,7 @@ function PrescriptionPreview({ prescription, onClose, onPrint, onAmend }: { pres
                   <div key={i} className="p-3 flex items-center justify-between text-xs">
                     <div>
                       <p className="font-bold text-on-surface">{m.brandName} <span className="font-medium text-on-surface-variant">({m.generic || m.type})</span></p>
-                      <p className="text-on-surface-variant text-[11px]">{m.dosagePattern || m.frequency} • {m.duration} • {m.mealTiming}</p>
+                      <p className="text-on-surface-variant text-[11px]">{formatDosage(m.dosagePattern || m.frequency)} • {m.duration} • {m.mealTiming}</p>
                     </div>
                     <span className="font-mono font-semibold text-primary">{m.strength || "—"}</span>
                   </div>

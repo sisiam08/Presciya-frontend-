@@ -86,6 +86,29 @@ export const BD_PHONE_MESSAGE =
 /** Backwards-compatible alias used by older call sites. */
 export const isValidPhone = isValidBangladeshPhone;
 
+// Dosage utilities
+export const DOSAGE_POSITIONS = 4;
+
+/**
+ * Dosage patterns have four positions (e.g. "1+1+1+0"). The fourth position is
+ * only meaningful when it is not zero, so a trailing "+0" is omitted for
+ * display. Positions 1-3 are preserved exactly, including their zeros
+ * ("1+0+1+0" -> "1+0+1", "0+0+0+0" -> "0+0+0").
+ *
+ * This is presentation only — it must never be applied to data that is
+ * submitted or stored. Use the single shared helper everywhere a dosage is
+ * shown instead of re-implementing the rule.
+ */
+export const formatDosage = (value?: string | null): string => {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  const parts = raw.split("+").map((part) => part.trim());
+  if (parts.length !== DOSAGE_POSITIONS) return raw;
+  if (parts[DOSAGE_POSITIONS - 1] !== "0") return raw;
+  // Drop only the final position, keeping the earlier positions verbatim.
+  return raw.slice(0, raw.lastIndexOf("+")).trimEnd();
+};
+
 // String utilities
 export const truncate = (str: string, length: number): string => {
   return str.length > length ? str.substring(0, length) + "..." : str;
