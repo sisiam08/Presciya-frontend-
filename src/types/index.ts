@@ -115,10 +115,17 @@ export interface Patient {
   dateOfBirth?: string;
   age?: number;
   bloodGroup?: string;
+  weight?: number;
   address?: string;
   allergies?: string;
+  /** Backend field name. */
+  chronicDiseases?: string;
+  /** Backwards-compatible alias kept for older call sites. */
   chronicConditions?: string;
   emergencyContact?: string;
+  /** Backend field name. */
+  patientNotes?: string;
+  /** Backwards-compatible alias kept for older call sites. */
   medicalNotes?: string;
   patientId?: string;
   workspaceId?: string;

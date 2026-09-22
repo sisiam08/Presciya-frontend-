@@ -13,8 +13,6 @@ import {
   Heart,
   FileText,
   Clock,
-  Plus,
-  Edit2,
   User,
   MapPin,
   Activity,
@@ -22,7 +20,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { apiClient } from "@/lib/api-client";
 import { API_ROUTES } from "@/lib/constants";
-import { Patient, PatientTimeline, Prescription, PrescriptionStatus } from "@/types";
+import { Patient, Prescription, PrescriptionStatus } from "@/types";
+import { normalizePrescriptions } from "@/lib/prescriptions";
 import { formatDate, formatDateTime } from "@/lib/utils";
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
@@ -64,13 +63,67 @@ function InfoRow({
 }
 
 // ─── Timeline Event ───────────────────────────────────────────────────────────
-function TimelineEvent({ event }: { event: PatientTimeline }) {
-  const iconMap: Record<string, React.ElementType> = {
-    PRESCRIPTION: FileText,
-    APPOINTMENT: Calendar,
-    NOTE: Activity,
-  };
-  const Icon = iconMap[event.eventType] || Activity;
+// The timeline endpoint returns { type, id, date, ...typeSpecificFields }.
+type TimelineEventRaw = {
+  type: string;
+  id: string;
+  date: string;
+  // appointment
+  chamberName?: string | null;
+  doctorName?: string | null;
+  status?: string | null;
+  serialNo?: number | null;
+  notes?: string | null;
+  // prescription
+  diagnosis?: string | null;
+  complaints?: string | null;
+  // audit
+  actionType?: string | null;
+};
+
+const humanize = (value?: string | null) =>
+  value ? value.toLowerCase().replace(/_/g, " ") : "";
+
+const timelineMeta = (event: TimelineEventRaw) => {
+  switch (event.type) {
+    case "appointment":
+      return {
+        Icon: Calendar,
+        title: "Appointment",
+        description: [
+          humanize(event.status),
+          event.serialNo != null ? `Serial ${event.serialNo}` : null,
+          event.chamberName,
+          event.notes,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+      };
+    case "prescription":
+      return {
+        Icon: FileText,
+        title: "Prescription",
+        description: [event.diagnosis || event.complaints, humanize(event.status)]
+          .filter(Boolean)
+          .join(" · "),
+      };
+    case "audit":
+      return {
+        Icon: Activity,
+        title: "Patient record",
+        description: humanize(event.actionType),
+      };
+    default:
+      return {
+        Icon: Activity,
+        title: humanize(event.type) || "Event",
+        description: "",
+      };
+  }
+};
+
+function TimelineEvent({ event }: { event: TimelineEventRaw }) {
+  const { Icon, title, description } = timelineMeta(event);
 
   return (
     <div className="flex gap-3">
@@ -81,15 +134,13 @@ function TimelineEvent({ event }: { event: PatientTimeline }) {
         <div className="w-px flex-1 bg-outline-variant mt-1" />
       </div>
       <div className="pb-4 min-w-0">
-        <p className="text-sm font-medium text-on-surface capitalize">
-          {event.eventType.toLowerCase().replace("_", " ")}
-        </p>
-        {event.description && (
-          <p className="text-xs text-on-surface-variant mt-0.5">{event.description}</p>
+        <p className="text-sm font-medium text-on-surface">{title}</p>
+        {description && (
+          <p className="text-xs text-on-surface-variant mt-0.5 capitalize">{description}</p>
         )}
         <p className="text-xs text-on-surface-variant mt-1 flex items-center gap-1">
           <Clock className="h-3 w-3" />
-          {formatDateTime(event.createdAt)}
+          {formatDateTime(event.date)}
         </p>
       </div>
     </div>
@@ -107,7 +158,7 @@ export default function PatientDetailPage() {
   const router = useRouter();
 
   const [patient, setPatient] = useState<Patient | null>(null);
-  const [timeline, setTimeline] = useState<PatientTimeline[]>([]);
+  const [timeline, setTimeline] = useState<TimelineEventRaw[]>([]);
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -121,15 +172,31 @@ export default function PatientDetailPage() {
       setLoading(true);
       setError(null);
       try {
-        const [patientRes, timelineRes] = await Promise.all([
+        const [patientRes, timelineRes, rxRes] = await Promise.all([
           apiClient.get<any>(API_ROUTES.PATIENTS.GET(params.id)),
           apiClient.get<any>(API_ROUTES.PATIENTS.TIMELINE(params.id)),
+          // The prescriptions list has no by-patient filter, so read the
+          // workspace list (bounded) and keep only THIS patient's records.
+          apiClient.get<any>(`${API_ROUTES.PRESCRIPTIONS.LIST}?limit=100`),
         ]);
+
         const p = patientRes.data?.data || patientRes.data;
         setPatient(p);
-        setTimeline(timelineRes.data?.data || timelineRes.data || []);
-        // Extract prescriptions from patient data if embedded
-        if (p?.prescriptions) setPrescriptions(p.prescriptions);
+
+        const events = timelineRes.data?.data || timelineRes.data || [];
+        setTimeline(Array.isArray(events) ? events : []);
+
+        const rxPayload = rxRes.data?.data ?? rxRes.data;
+        const rxList = Array.isArray(rxPayload)
+          ? rxPayload
+          : rxPayload?.prescriptions ?? [];
+        // Only THIS patient's records, normalised the same way as the
+        // prescriptions list/detail pages (snapshot* -> medicines shape).
+        setPrescriptions(
+          normalizePrescriptions(
+            rxList.filter((rx: any) => rx.patientId === params.id),
+          ),
+        );
       } catch (e: any) {
         setError(e?.response?.data?.message || "Failed to load patient.");
       } finally {
@@ -195,18 +262,6 @@ export default function PatientDetailPage() {
                   )}
                 </div>
               </div>
-              <div className="flex gap-2 flex-wrap">
-                <Link href={`/dashboard/prescriptions?patientId=${patient.id}`}>
-                  <Button size="sm">
-                    <Plus className="h-4 w-4 mr-1" />
-                    New Prescription
-                  </Button>
-                </Link>
-                <Button variant="outline" size="sm">
-                  <Edit2 className="h-4 w-4 mr-1" />
-                  Edit
-                </Button>
-              </div>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6">
@@ -217,7 +272,9 @@ export default function PatientDetailPage() {
               <InfoRow icon={Phone} label="Emergency Contact" value={patient.emergencyContact} />
             </div>
 
-            {(patient.allergies || patient.chronicConditions) && (
+            {(patient.allergies ||
+              patient.chronicDiseases ||
+              patient.chronicConditions) && (
               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                 {patient.allergies && (
                   <div className="rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 p-4">
@@ -228,13 +285,15 @@ export default function PatientDetailPage() {
                     <p className="text-sm text-red-700 dark:text-red-300">{patient.allergies}</p>
                   </div>
                 )}
-                {patient.chronicConditions && (
+                {(patient.chronicDiseases || patient.chronicConditions) && (
                   <div className="rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 p-4">
                     <div className="flex items-center gap-2 mb-1">
                       <Heart className="h-4 w-4 text-amber-600" />
                       <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Chronic Conditions</p>
                     </div>
-                    <p className="text-sm text-amber-700 dark:text-amber-300">{patient.chronicConditions}</p>
+                    <p className="text-sm text-amber-700 dark:text-amber-300">
+                      {patient.chronicDiseases || patient.chronicConditions}
+                    </p>
                   </div>
                 )}
               </div>
@@ -274,9 +333,9 @@ export default function PatientDetailPage() {
           {activeTab === "overview" && (
             <div className="rounded-2xl border border-outline-variant bg-surface p-6">
               <h2 className="text-base font-semibold text-on-surface mb-4">Medical Notes</h2>
-              {patient.medicalNotes ? (
+              {patient.patientNotes || patient.medicalNotes ? (
                 <p className="text-sm text-on-surface-variant whitespace-pre-wrap">
-                  {patient.medicalNotes}
+                  {patient.patientNotes || patient.medicalNotes}
                 </p>
               ) : (
                 <p className="text-sm text-on-surface-variant italic">No medical notes recorded.</p>
@@ -290,12 +349,6 @@ export default function PatientDetailPage() {
                 <div className="text-center py-16 rounded-2xl border border-dashed border-outline-variant">
                   <FileText className="h-10 w-10 text-on-surface-variant/40 mx-auto mb-3" />
                   <p className="text-on-surface-variant">No prescriptions yet.</p>
-                  <Link href={`/dashboard/prescriptions?patientId=${patient.id}`}>
-                    <Button size="sm" className="mt-4">
-                      <Plus className="h-4 w-4 mr-1" />
-                      Create Prescription
-                    </Button>
-                  </Link>
                 </div>
               ) : (
                 prescriptions.map((rx) => (
