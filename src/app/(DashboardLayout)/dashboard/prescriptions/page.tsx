@@ -29,6 +29,7 @@ import { formatDate, formatDateTime, formatDosage } from "@/lib/utils";
 import { Prescription, PrescriptionStatus } from "@/types";
 import { normalizePrescription, normalizePrescriptions } from "@/lib/prescriptions";
 import PrescriptionBuilder from "@/components/prescription/PrescriptionBuilder";
+import { useActiveChamber } from "@/hooks/useActiveChamber";
 import PrescriptionPrintModal from "@/components/prescription/PrescriptionPrintModal";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -60,6 +61,14 @@ export default function PrescriptionsPage() {
   const { data: prescriptionsData, loading, refetch } = useQuery<any>(
     API_ROUTES.PRESCRIPTIONS.LIST
   );
+
+  // Refetch when the operating chamber changes so the previous chamber's
+  // prescriptions are never shown.
+  const activeChamberId = useActiveChamber();
+  useEffect(() => {
+    void refetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeChamberId]);
 
   const rawPrescriptions: any[] = prescriptionsData?.data || prescriptionsData || [];
   const prescriptions: Prescription[] = normalizePrescriptions(rawPrescriptions);

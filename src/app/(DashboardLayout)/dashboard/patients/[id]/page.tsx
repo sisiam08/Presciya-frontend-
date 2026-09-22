@@ -22,6 +22,7 @@ import { apiClient } from "@/lib/api-client";
 import { API_ROUTES } from "@/lib/constants";
 import { Patient, Prescription, PrescriptionStatus } from "@/types";
 import { normalizePrescriptions } from "@/lib/prescriptions";
+import PrescriptionPrintModal from "@/components/prescription/PrescriptionPrintModal";
 import { formatDate, formatDateTime } from "@/lib/utils";
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
@@ -160,6 +161,10 @@ export default function PatientDetailPage() {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [timeline, setTimeline] = useState<TimelineEventRaw[]>([]);
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
+  // The canonical prescription viewer, shared with the Prescriptions page.
+  const [viewingPrescription, setViewingPrescription] = useState<Prescription | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "prescriptions" | "timeline">(
@@ -352,7 +357,12 @@ export default function PatientDetailPage() {
                 </div>
               ) : (
                 prescriptions.map((rx) => (
-                  <Link key={rx.id} href={`/dashboard/prescriptions/${rx.id}`}>
+                  <button
+                    key={rx.id}
+                    type="button"
+                    onClick={() => setViewingPrescription(rx)}
+                    className="w-full text-left"
+                  >
                     <div className="flex items-center gap-4 p-4 rounded-xl border border-outline-variant bg-surface hover:bg-surface-container transition-colors cursor-pointer">
                       <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
                         <FileText className="h-5 w-5 text-primary" />
@@ -367,7 +377,7 @@ export default function PatientDetailPage() {
                       </div>
                       <StatusBadge status={rx.status} />
                     </div>
-                  </Link>
+                  </button>
                 ))
               )}
             </div>
@@ -391,6 +401,17 @@ export default function PatientDetailPage() {
           )}
         </>
       ) : null}
+
+      {/* Canonical prescription view — the SAME component the Prescriptions
+          page uses, so the template, medicines, dosage and PDF behaviour are
+          identical wherever a prescription is opened. */}
+      {viewingPrescription && (
+        <PrescriptionPrintModal
+          prescriptionId={viewingPrescription.id}
+          status={viewingPrescription.status}
+          onClose={() => setViewingPrescription(null)}
+        />
+      )}
     </div>
   );
 }

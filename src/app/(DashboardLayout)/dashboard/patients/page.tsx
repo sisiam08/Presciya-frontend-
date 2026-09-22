@@ -1,7 +1,7 @@
 // src/app/(DashboardLayout)/dashboard/patients/page.tsx
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { AnimatePresence } from "framer-motion";
 import {
@@ -10,7 +10,6 @@ import {
   Trash2,
   Edit2,
   Phone,
-  Filter,
   Users,
   Activity,
   ChevronLeft,
@@ -28,11 +27,10 @@ import { Patient } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import PatientFormDialog from "@/components/patient/PatientFormDialog";
+import { useActiveChamber } from "@/hooks/useActiveChamber";
 
 export default function PatientsPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [chamberFilter, setChamberFilter] = useState("All Chambers");
-  const [conditionFilter, setConditionFilter] = useState("Medical Condition");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const { success, error: showError } = useNotification();
@@ -44,6 +42,14 @@ export default function PatientsPage() {
     loading,
     refetch,
   } = useQuery<any>(API_ROUTES.PATIENTS.LIST);
+
+  // The operating chamber is part of the data scope: refetch when it changes
+  // so the previous chamber's patients never stay on screen.
+  const activeChamberId = useActiveChamber();
+  useEffect(() => {
+    void refetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeChamberId]);
 
   const patients: Patient[] = Array.isArray(patientsResponse)
     ? patientsResponse
@@ -207,36 +213,8 @@ export default function PatientsPage() {
             className="pl-10 h-10 text-xs"
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          <select
-            value={chamberFilter}
-            onChange={(e) => setChamberFilter(e.target.value)}
-            className="h-10 px-3 bg-surface border border-gray-200 dark:border-slate-800 rounded-lg text-xs font-semibold text-on-surface focus:outline-none"
-          >
-            <option>All Chambers</option>
-            <option>Dhanmondi General</option>
-            <option>Gulshan Clinic</option>
-            <option>UHC Sylhet</option>
-          </select>
-          <select
-            value={conditionFilter}
-            onChange={(e) => setConditionFilter(e.target.value)}
-            className="h-10 px-3 bg-surface border border-gray-200 dark:border-slate-800 rounded-lg text-xs font-semibold text-on-surface focus:outline-none"
-          >
-            <option>Medical Condition</option>
-            <option>Hypertension</option>
-            <option>Diabetes Type II</option>
-            <option>Post-Op Recovery</option>
-            <option>Neuropathy</option>
-          </select>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-10 w-10 p-0 flex items-center justify-center border-gray-200 dark:border-slate-800"
-          >
-            <Filter size={15} className="text-on-surface-variant" />
-          </Button>
-        </div>
+        {/* The chamber context is chosen in the workspace switcher, so no
+            per-page chamber filter is offered here. */}
       </div>
 
       {/* Patient Table */}

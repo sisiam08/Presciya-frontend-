@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { apiClient } from "@/lib/api-client";
+import { refreshUnreadCount } from "@/hooks/useUnreadCount";
 import { API_ROUTES } from "@/lib/constants";
 import { Notification, NotificationType } from "@/types";
 import { formatDateTime } from "@/lib/utils";
@@ -133,6 +134,8 @@ export default function NotificationsPage() {
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
       );
+      // Keep the sidebar badge in step with this page immediately.
+      await refreshUnreadCount();
     } catch {}
   };
 
@@ -140,6 +143,7 @@ export default function NotificationsPage() {
     try {
       await apiClient.patch(API_ROUTES.NOTIFICATIONS.MARK_ALL_READ);
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      await refreshUnreadCount();
     } catch {}
   };
 
@@ -147,6 +151,7 @@ export default function NotificationsPage() {
     try {
       await apiClient.delete(API_ROUTES.NOTIFICATIONS.DELETE(id));
       setNotifications((prev) => prev.filter((n) => n.id !== id));
+      await refreshUnreadCount();
     } catch {}
   };
 

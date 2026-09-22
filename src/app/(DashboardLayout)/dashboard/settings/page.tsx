@@ -725,6 +725,23 @@ export default function SettingsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isChamberContext, activeTab]);
 
+  // Data scope — only meaningful from the personal workspace. Persisted, and
+  // always explicit: the default is the current workspace.
+  const [dataScope, setDataScope] = useState<"current" | "all">("current");
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setDataScope(
+      localStorage.getItem("workspaceScope") === "all" ? "all" : "current",
+    );
+  }, []);
+  const changeDataScope = (value: "current" | "all") => {
+    if (value === dataScope) return;
+    setDataScope(value);
+    localStorage.setItem("workspaceScope", value);
+    // Reload so every page refetches under the new scope.
+    window.location.reload();
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
@@ -733,6 +750,65 @@ export default function SettingsPage() {
           Manage your profile, branding, and account security.
         </p>
       </div>
+
+      {/* Data scope — hidden entirely while working inside a chamber, because
+          a chamber always operates on its own data only. */}
+      {!isChamberContext && (
+        <div className="rounded-2xl border border-outline-variant bg-surface p-5">
+          <h2 className="text-base font-bold text-on-surface">Data Scope</h2>
+          <p className="mt-1 text-xs text-on-surface-variant">
+            Choose which data the application shows while you are in your
+            personal workspace.
+          </p>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            {(
+              [
+                {
+                  value: "current",
+                  title: "Current Workspace",
+                  body: "Show only your personal workspace data.",
+                },
+                {
+                  value: "all",
+                  title: "All Workspaces",
+                  body: "Show combined data from every workspace you have access to.",
+                },
+              ] as const
+            ).map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => changeDataScope(opt.value)}
+                className={`rounded-xl border p-3 text-left transition-colors ${
+                  dataScope === opt.value
+                    ? "border-primary bg-primary/5"
+                    : "border-outline-variant hover:bg-surface-container"
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <span
+                    className={`flex h-4 w-4 items-center justify-center rounded-full border ${
+                      dataScope === opt.value
+                        ? "border-primary"
+                        : "border-outline-variant"
+                    }`}
+                  >
+                    {dataScope === opt.value && (
+                      <span className="h-2 w-2 rounded-full bg-primary" />
+                    )}
+                  </span>
+                  <span className="text-sm font-semibold text-on-surface">
+                    {opt.title}
+                  </span>
+                </span>
+                <span className="mt-1 block pl-6 text-[11px] text-on-surface-variant">
+                  {opt.body}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex border-b border-outline-variant overflow-x-auto">

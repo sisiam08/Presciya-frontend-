@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -44,6 +44,8 @@ import {
   Chamber,
 } from "@/types";
 import { useAuth } from "@/hooks/useAuth";
+import { useDismissable } from "@/hooks/useDismissable";
+import { refreshUnreadCount, useUnreadCount } from "@/hooks/useUnreadCount";
 import { useAvailability } from "@/hooks/useAvailability";
 import {
   persistActiveChamber,
@@ -162,7 +164,12 @@ export default function Sidebar() {
   const [chambers, setChambers] = useState<Chamber[]>([]);
   const activeChamberId = useActiveChamber();
   const [wsMenuOpen, setWsMenuOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const wsMenuRef = useRef<HTMLDivElement | null>(null);
+
+  // Close the workspace menu on outside click or Escape.
+  useDismissable(wsMenuRef, () => setWsMenuOpen(false), wsMenuOpen);
+  // Shared with the notifications page so the badge never goes stale.
+  const unreadCount = useUnreadCount();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isInstitution, setIsInstitution] = useState(false);
 
@@ -208,8 +215,7 @@ export default function Sidebar() {
           persistActiveChamber("");
         }
 
-        const notifRes = await apiClient.get<any>(API_ROUTES.NOTIFICATIONS.UNREAD_COUNT);
-        setUnreadCount(notifRes.data?.count || notifRes.data?.data?.count || 0);
+      await refreshUnreadCount();
 
         if (user?.systemRole === SystemRole.SUPER_ADMIN || (user as any)?.role === "ADMIN") {
           setIsAdmin(true);
@@ -244,6 +250,9 @@ export default function Sidebar() {
       markSessionPresent();
       setActiveWorkspace(ws);
       localStorage.setItem("activeWorkspaceId", ws.id);
+      // Leaving the personal workspace always drops back to the current-scope
+      // default — All Workspaces must be re-enabled explicitly from Settings.
+      localStorage.setItem("workspaceScope", "current");
       // Chambers belong to a workspace, so a fresh workspace starts with no
       // chamber selected.
       persistActiveChamber("");
@@ -441,7 +450,7 @@ export default function Sidebar() {
 
       {/* Workspace Switcher */}
       {workspaces.length > 0 && (
-        <div className="px-3 pt-3 flex-shrink-0">
+        <div className="px-3 pt-3 flex-shrink-0" ref={wsMenuRef}>
           <button
             onClick={() => setWsMenuOpen((o) => !o)}
             className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-container dark:bg-surface-container-high border border-outline-variant text-sm text-on-surface hover:bg-surface-container-high transition-colors"

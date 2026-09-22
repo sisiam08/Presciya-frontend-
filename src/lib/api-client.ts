@@ -52,6 +52,16 @@ class ApiClient {
         if (activeChamberId) {
           config.headers["x-chamber-id"] = activeChamberId;
         }
+        // Data scope. Absent => "current" (the safe default); the backend only
+        // widens to all authorized workspaces on an explicit "all", and only
+        // from the personal context — a chamber always scopes to that chamber.
+        const workspaceScope =
+          typeof window !== "undefined"
+            ? localStorage.getItem("workspaceScope")
+            : null;
+        if (workspaceScope === "all" && !activeChamberId) {
+          config.headers["x-workspace-scope"] = "all";
+        }
         return config;
       },
       (error) => Promise.reject(error),

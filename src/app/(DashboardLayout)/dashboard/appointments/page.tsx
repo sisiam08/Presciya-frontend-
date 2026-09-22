@@ -33,7 +33,7 @@ import PatientFormDialog from "@/components/patient/PatientFormDialog";
 import FeatureGate from "@/components/ui/FeatureGate";
 import ChamberGate from "@/components/ui/ChamberGate";
 import { useEntitlements } from "@/hooks/useEntitlements";
-import { isTodayInBangladesh } from "@/lib/datetime";
+import { bangladeshDateKey, isTodayInBangladesh } from "@/lib/datetime";
 import {
   persistActiveChamber,
   useActiveChamber,
@@ -108,6 +108,10 @@ function AppointmentsContent() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
+  // The day the queue shows. Defaults to TODAY in Bangladesh time; the user
+  // can deliberately request another day.
+  const [listDate, setListDate] = useState(() => bangladeshDateKey(new Date()));
+  const isViewingToday = listDate === bangladeshDateKey(new Date());
   const [role, setRole] = useState<string>("");
   const [showNew, setShowNew] = useState(false);
   const [showNewPatient, setShowNewPatient] = useState(false);
@@ -166,8 +170,10 @@ function AppointmentsContent() {
     }
     setLoading(true);
     try {
+      // The queue is date-scoped on the SERVER: the default day is today and
+      // the user can request another day explicitly.
       const res = await apiClient.get<any>(
-        API_ROUTES.APPOINTMENTS.LIST(workspaceId),
+        `${API_ROUTES.APPOINTMENTS.LIST(workspaceId)}?date=${encodeURIComponent(listDate)}`,
       );
       const payload = res.data?.data ?? res.data;
       const items = Array.isArray(payload) ? payload : payload?.items ?? [];
@@ -183,14 +189,17 @@ function AppointmentsContent() {
     } finally {
       setLoading(false);
     }
-  }, [workspaceId]);
+  }, [workspaceId, listDate]);
 
   useEffect(() => {
     loadChambers();
   }, []);
+  // Refetch when the OPERATING CHAMBER changes too - otherwise switching
+  // chambers inside one workspace would leave the previous chamber's rows on
+  // screen. The chamber travels on the x-chamber-id header.
   useEffect(() => {
     if (workspaceId) loadAppointments();
-  }, [workspaceId]);
+  }, [workspaceId, activeChamberId, loadAppointments]);
 
   const updateStatus = async (id: string, status: AppointmentStatus) => {
     if (!workspaceId) return;
@@ -309,26 +318,30 @@ function AppointmentsContent() {
     isTodayInBangladesh(a.scheduledDate || a.appointmentDate || ""),
   );
 
-  // All of today's appointments (not filtered by the search box) for the limit.
-  const todayTotal = appointments.filter((a) =>
-    isTodayInBangladesh(a.scheduledDate || a.appointmentDate || ""),
-  ).length;
+  // Today's appointment count for the plan's daily-limit indicator. The list is
+  // already today-only by default; the authoritative limit is still enforced by
+  // the backend.
+  const todayTotal = isViewingToday ? appointments.length : 0;
 
-  const todayCollected = today
+  // The stats describe the DAY BEING VIEWED (the loaded list is already
+  // date-scoped by the server), so they stay truthful when another date is
+  // selected instead of always reporting today.
+  const dayCollected = appointments
     .filter((a) => a.paymentStatus === "PAID")
     .reduce((sum, a) => sum + Number(a.paidAmount ?? 0), 0);
 
   const stats = [
-    { title: "Today's Appointments", value: today.length, icon: CalendarDays, bgColor: "bg-primary/10", iconColor: "text-primary" },
-    { title: "Pending Payments", value: today.filter((a) => a.paymentStatus === "PENDING").length, icon: Clock, bgColor: "bg-amber-50 dark:bg-amber-950/30", iconColor: "text-amber-600" },
-    { title: "Collected Today", value: formatCurrency(todayCollected), icon: Wallet, bgColor: "bg-emerald-50 dark:bg-emerald-950/30", iconColor: "text-emerald-600" },
+    { title: isViewingToday ? "Today's Appointments" : "Appointments", value: appointments.length, icon: CalendarDays, bgColor: "bg-primary/10", iconColor: "text-primary" },
+    { title: "Pending Payments", value: appointments.filter((a) => a.paymentStatus === "PENDING").length, icon: Clock, bgColor: "bg-amber-50 dark:bg-amber-950/30", iconColor: "text-amber-600" },
+    { title: isViewingToday ? "Collected Today" : "Collected", value: formatCurrency(dayCollected), icon: Wallet, bgColor: "bg-emerald-50 dark:bg-emerald-950/30", iconColor: "text-emerald-600" },
     { title: "Queue Patients", value: filtered.length, icon: Users, bgColor: "bg-purple-50 dark:bg-purple-950/30", iconColor: "text-purple-600" },
   ];
 
-  // Follow-up uses the follow-up fee when configured, else the normal fee.
+  // The fee follows the VISIT TYPE: a follow-up is charged the follow-up fee
+  // (0 when none is configured) and a normal visit the visiting fee.
   const previewFee =
-    newForm.visitType === "FOLLOW_UP" && myFee?.followUpFee != null
-      ? myFee.followUpFee
+    newForm.visitType === "FOLLOW_UP"
+      ? myFee?.followUpFee ?? 0
       : myFee?.visitingFee ?? 0;
   const previewPayable = (() => {
     const d = Math.min(Math.max(Number(newForm.discount) || 0, 0), previewFee);
@@ -399,6 +412,26 @@ function AppointmentsContent() {
             onChange={(e) => setSearch(e.target.value)}
             className="h-10 pl-10 text-xs"
           />
+        </div>
+        {/* The queue is a day at a time: today by default, any day on request. */}
+        <div className="flex items-center gap-2">
+          <CalendarDays className="h-4 w-4 text-on-surface-variant" />
+          <Input
+            type="date"
+            value={listDate}
+            onChange={(e) => setListDate(e.target.value || bangladeshDateKey(new Date()))}
+            className="h-10 w-40 text-xs"
+          />
+          {!isViewingToday && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-10"
+              onClick={() => setListDate(bangladeshDateKey(new Date()))}
+            >
+              Today
+            </Button>
+          )}
         </div>
         {chambers.length > 0 && (
           <div className="flex items-center gap-2">
@@ -589,11 +622,18 @@ function AppointmentsContent() {
                   <span className="font-semibold text-on-surface">Payable</span>
                   <span className="font-bold text-primary">{formatCurrency(previewPayable)}</span>
                 </div>
-                {!myFee && (
-                  <p className="mt-2 text-[11px] text-amber-600">
-                    No visiting fee configured for this workspace yet.
-                  </p>
-                )}
+                {newForm.visitType === "FOLLOW_UP"
+                  ? myFee?.followUpFee == null && (
+                      <p className="mt-2 text-[11px] text-amber-600">
+                        No follow-up fee configured for this chamber - a
+                        follow-up is charged 0 until you set one.
+                      </p>
+                    )
+                  : !myFee && (
+                      <p className="mt-2 text-[11px] text-amber-600">
+                        No visiting fee configured for this chamber yet.
+                      </p>
+                    )}
               </div>
 
               <div>
