@@ -28,6 +28,8 @@ import { useNotification } from "@/hooks/useNotification";
 import { useActiveChamber } from "@/hooks/useActiveChamber";
 import A4PreviewFrame from "@/components/prescription/A4PreviewFrame";
 import FeatureGate from "@/components/ui/FeatureGate";
+import ImageUploadField from "@/components/ui/ImageUploadField";
+import { useEntitlements } from "@/hooks/useEntitlements";
 import {
   PrescriptionLanguage,
   PrescriptionDesignTemplate,
@@ -50,6 +52,12 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
 
 function PrescriptionTab() {
   const { success, error: showError } = useNotification();
+  // Three INDEPENDENT entitlements. Each section below is gated by its own, and
+  // the save only submits the fields the plan actually lets the doctor change —
+  // so holding one entitlement never unlocks (or blocks) another.
+  const { isAllowed } = useEntitlements();
+  const canLanguage = isAllowed("prescription_language");
+  const canDesign = isAllowed("prescription_design_templates");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [language, setLanguage] = useState<PrescriptionLanguage>(
@@ -74,7 +82,14 @@ function PrescriptionTab() {
   }, []);
 
   // Preview uses the SAME backend renderer as the real prescription/PDF.
+  // It renders a DESIGN sample, so it is only requested when the plan includes
+  // the design-template entitlement (the endpoint enforces the same rule).
   useEffect(() => {
+    if (!canDesign) {
+      setPreviewHtml(null);
+      setPreviewLoading(false);
+      return;
+    }
     let active = true;
     setPreviewLoading(true);
     apiClient
@@ -94,15 +109,24 @@ function PrescriptionTab() {
     return () => {
       active = false;
     };
-  }, [template, language]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [template, language, canDesign]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await apiClient.patch(API_ROUTES.DOCTOR.UPDATE_PROFILE, {
-        prescriptionLanguage: language,
-        prescriptionTemplate: template,
-      });
+      // Send ONLY what the plan entitles: sending a restricted field would make
+      // the backend reject the whole save and block the allowed one.
+      const payload: Record<string, unknown> = {};
+      if (canLanguage) payload.prescriptionLanguage = language;
+      if (canDesign) payload.prescriptionTemplate = template;
+
+      if (Object.keys(payload).length === 0) {
+        setSaving(false);
+        return;
+      }
+
+      await apiClient.patch(API_ROUTES.DOCTOR.UPDATE_PROFILE, payload);
       success("Prescription settings saved");
     } catch (e: any) {
       showError(
@@ -122,7 +146,8 @@ function PrescriptionTab() {
 
   return (
     <div className="space-y-5">
-      {/* Language */}
+      {/* Language — gated by its OWN entitlement. */}
+      <FeatureGate feature="prescription_language" label="Prescription language" variant="inline">
       <div className="bg-surface rounded-2xl border border-outline-variant p-6">
         <h3 className="text-base font-bold text-on-surface mb-1">
           Prescription Language
@@ -169,8 +194,11 @@ function PrescriptionTab() {
           })}
         </div>
       </div>
+      </FeatureGate>
 
-      {/* Template */}
+      {/* Built-in DESIGN templates — a DIFFERENT feature from the language above
+          and from the doctor's saved (reusable) templates. */}
+      <FeatureGate feature="prescription_design_templates" label="Prescription design templates" variant="inline">
       <div className="bg-surface rounded-2xl border border-outline-variant p-6">
         <h3 className="text-base font-bold text-on-surface mb-1">
           Prescription Template
@@ -211,7 +239,13 @@ function PrescriptionTab() {
           })}
         </div>
 
-        <div className="mt-5 flex justify-end">
+      </div>
+      </FeatureGate>
+
+      {/* Save stays OUTSIDE the gates so it is always reachable; it submits only
+          the fields this plan entitles. */}
+      {(canLanguage || canDesign) && (
+        <div className="flex justify-end">
           <Button onClick={handleSave} disabled={saving} className="min-w-[160px]">
             {saving ? (
               <Loader2 className="h-4 w-4 animate-spin mr-1" />
@@ -221,9 +255,10 @@ function PrescriptionTab() {
             {saving ? "Saving…" : "Save Prescription Settings"}
           </Button>
         </div>
-      </div>
+      )}
 
-      {/* Live preview (same renderer as PDF/print) */}
+      {/* Live preview (same renderer as PDF/print) — it previews a DESIGN. */}
+      <FeatureGate feature="prescription_design_templates" label="Prescription design templates" variant="inline">
       <div className="bg-surface rounded-2xl border border-outline-variant p-6">
         <div className="flex items-center justify-between mb-3">
           <div>
@@ -240,6 +275,7 @@ function PrescriptionTab() {
           <A4PreviewFrame html={previewHtml} title="Template preview" />
         </div>
       </div>
+      </FeatureGate>
     </div>
   );
 }
@@ -406,6 +442,12 @@ function FeesTab() {
  */
 function BrandingTab() {
   const { success, error: showError } = useNotification();
+  // The watermark is its own plan entitlement (`watermark`), separate from the
+  // branding entitlement that gates this tab. Both use the shared FeatureGate.
+  const { isAllowed } = useEntitlements();
+  const canBranding = isAllowed("custom_branding");
+  const canWatermark = isAllowed("watermark");
+  const [baseConfig, setBaseConfig] = useState<Record<string, unknown>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [workspaceId, setWorkspaceId] = useState("");
@@ -439,6 +481,8 @@ function BrandingTab() {
         setWorkspaceId(active?.id || "");
 
         const cfg = (active?.templateConfig || {}) as any;
+        // Keep the rest of the config so saving never drops unrelated keys.
+        setBaseConfig(cfg);
         setFooterText(cfg.footerText || "");
         setWatermarkEnabled(Boolean(cfg.watermarkEnabled));
         setWatermarkText(cfg.watermarkText || "");
@@ -466,10 +510,18 @@ function BrandingTab() {
     try {
       await apiClient.patch(API_ROUTES.WORKSPACES.UPDATE(workspaceId), {
         templateConfig: {
+          ...baseConfig,
           footerText: footerText.trim() || "",
-          watermarkEnabled,
-          watermarkText: watermarkText.trim() || "",
-          watermarkUrl: watermarkUrl.trim() || "",
+          // Only send watermark fields when the plan includes the entitlement —
+          // otherwise the backend would reject the save (and the UI would have
+          // hidden the control anyway).
+          ...(canWatermark
+            ? {
+                watermarkEnabled,
+                watermarkText: watermarkText.trim() || "",
+                watermarkUrl: watermarkUrl.trim() || "",
+              }
+            : {}),
         },
       });
       success("Personal prescription settings saved");
@@ -554,6 +606,10 @@ function BrandingTab() {
               </p>
             </div>
 
+            {/* Only rendered when the branding entitlement is present, so the
+                outer gate never stacks a second lock card on top of this one. */}
+            {canBranding && (
+            <FeatureGate feature="watermark" label="Prescription watermark" variant="inline">
             <div className="rounded-xl border border-outline-variant p-4">
               <label className="flex items-center gap-2 text-sm font-semibold text-on-surface">
                 <input
@@ -576,16 +632,12 @@ function BrandingTab() {
                       placeholder="e.g. Dr. John Doe"
                     />
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">
-                      Watermark Image URL
-                    </label>
-                    <Input
-                      value={watermarkUrl}
-                      onChange={(e) => setWatermarkUrl(e.target.value)}
-                      placeholder="https://…/watermark.png"
-                    />
-                  </div>
+                  <ImageUploadField
+                    label="Watermark Image"
+                    value={watermarkUrl}
+                    onChange={setWatermarkUrl}
+                    hint="Optional — used instead of the text when provided. JPEG, PNG or WebP up to 5 MB."
+                  />
                   <p className="col-span-full text-[10px] text-on-surface-variant">
                     The image is used when provided, otherwise the text. Drawn subtly
                     behind the content — it never covers medicines or the signature.
@@ -593,6 +645,8 @@ function BrandingTab() {
                 </div>
               )}
             </div>
+            </FeatureGate>
+            )}
           </div>
 
           <div className="mt-5 flex justify-end">
@@ -833,14 +887,10 @@ export default function SettingsPage() {
 
       {/* Tab Content */}
       <div>
-        {activeTab === "prescription" && (
-          <FeatureGate
-            feature="prescription_language"
-            label="Prescription language & templates"
-          >
-            <PrescriptionTab />
-          </FeatureGate>
-        )}
+        {/* NOT gated at tab level: this tab holds three INDEPENDENT entitlements
+            (language, design templates, and the saved templates live elsewhere),
+            so each section is gated individually inside the tab. */}
+        {activeTab === "prescription" && <PrescriptionTab />}
         {activeTab === "fees" && (
           <FeatureGate feature="visiting_fees" label="Visiting fees">
             <FeesTab />

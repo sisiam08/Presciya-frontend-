@@ -22,7 +22,6 @@ interface TransactionDialogProps {
   onSaved: () => void;
   workspaces: Workspace[];
   defaultWorkspaceId: string;
-  initialType?: FinancialTransactionType;
   transaction?: FinancialTransaction | null;
 }
 
@@ -34,13 +33,13 @@ export default function TransactionDialog({
   onSaved,
   workspaces,
   defaultWorkspaceId,
-  initialType = FinancialTransactionType.INCOME,
   transaction = null,
 }: TransactionDialogProps) {
   const { success, error: showError } = useNotification();
-  const isEdit = Boolean(transaction);
 
-  const [type, setType] = useState<FinancialTransactionType>(initialType);
+  const [type, setType] = useState<FinancialTransactionType>(
+    FinancialTransactionType.INCOME,
+  );
   const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
@@ -61,7 +60,8 @@ export default function TransactionDialog({
   const [patientOpen, setPatientOpen] = useState(false);
   const [patientLabel, setPatientLabel] = useState("");
 
-  // Reset / preload when the dialog opens.
+  // Preload the row being edited when the dialog opens. The dialog is edit-only,
+  // so there is no "new transaction" state to reset to.
   useEffect(() => {
     if (!open) return;
     if (transaction) {
@@ -75,21 +75,10 @@ export default function TransactionDialog({
       setWorkspaceId(transaction.workspaceId);
       setPatientId(transaction.patientId || null);
       setPatientLabel(transaction.patient?.name || "");
-    } else {
-      setType(initialType);
-      setAmount("");
-      setCategoryId("");
-      setPaymentMethod("CASH");
-      setTransactionDate(todayIso());
-      setDescription("");
-      setNotes("");
-      setWorkspaceId(defaultWorkspaceId);
-      setPatientId(null);
-      setPatientLabel("");
     }
     setPatientQuery("");
     setPatientResults([]);
-  }, [open, transaction, initialType, defaultWorkspaceId]);
+  }, [open, transaction, defaultWorkspaceId]);
 
   // Load categories for the selected type.
   useEffect(() => {
@@ -150,34 +139,24 @@ export default function TransactionDialog({
 
     setSaving(true);
     try {
-      const payload = {
+      // Edit-only: finance rows are produced by the payment workflow, so this
+      // dialog can only correct an existing row — never create one.
+      if (!transaction) {
+        showError("No transaction selected");
+        return;
+      }
+
+      await apiClient.patch(API_ROUTES.FINANCE.TRANSACTION(transaction.id), {
         type,
         amount,
         categoryId,
         paymentMethod,
         transactionDate,
-        description: description.trim() || undefined,
-        notes: notes.trim() || undefined,
-        patientId: patientId || undefined,
-        workspaceId,
-      };
-
-      if (isEdit && transaction) {
-        await apiClient.patch(API_ROUTES.FINANCE.TRANSACTION(transaction.id), {
-          type,
-          amount,
-          categoryId,
-          paymentMethod,
-          transactionDate,
-          description: description.trim() || null,
-          notes: notes.trim() || null,
-          patientId: patientId || null,
-        });
-        success("Transaction updated");
-      } else {
-        await apiClient.post(API_ROUTES.FINANCE.TRANSACTIONS, payload);
-        success(type === FinancialTransactionType.INCOME ? "Income recorded" : "Expense recorded");
-      }
+        description: description.trim() || null,
+        notes: notes.trim() || null,
+        patientId: patientId || null,
+      });
+      success("Transaction updated");
       onSaved();
       onClose();
     } catch (e: any) {
@@ -196,7 +175,7 @@ export default function TransactionDialog({
       <div className="relative z-10 flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-outline-variant bg-surface shadow-2xl">
         <div className="flex items-center justify-between border-b border-outline-variant px-6 py-4">
           <h2 className="text-base font-bold text-on-surface">
-            {isEdit ? "Edit Transaction" : "Add Transaction"}
+            Edit Transaction
           </h2>
           <button
             onClick={onClose}
@@ -309,7 +288,7 @@ export default function TransactionDialog({
               <select
                 value={workspaceId}
                 onChange={(e) => setWorkspaceId(e.target.value)}
-                disabled={isEdit}
+                disabled
                 className="h-10 w-full rounded-lg border border-outline-variant bg-surface px-3 text-sm text-on-surface focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60"
               >
                 {workspaces.map((ws) => (
@@ -410,9 +389,9 @@ export default function TransactionDialog({
 
           {selectedCategory && (
             <p className="text-[11px] text-on-surface-variant">
-              This will be recorded as a{" "}
-              <span className="font-semibold">{type.toLowerCase()}</span> under{" "}
-              <span className="font-semibold">{selectedCategory.name}</span>.
+                This transaction will be saved as a{" "}
+                <span className="font-semibold">{type.toLowerCase()}</span> under{" "}
+                <span className="font-semibold">{selectedCategory.name}</span>.
             </p>
           )}
         </div>
@@ -423,7 +402,7 @@ export default function TransactionDialog({
           </Button>
           <Button onClick={handleSave} disabled={saving} className="flex-1">
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {saving ? "Saving…" : isEdit ? "Save Changes" : "Save Transaction"}
+            {saving ? "Saving…" : "Save Changes"}
           </Button>
         </div>
       </div>

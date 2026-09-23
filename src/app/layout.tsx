@@ -1,9 +1,24 @@
 // src/app/layout.tsx
 import "./globals.css";
+import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/toaster";
 import { ConfirmProvider } from "@/components/ui/confirm";
+
+/**
+ * Self-hosted Inter via `next/font`. This replaces the external
+ * `<link href="https://fonts.googleapis.com/...">` request: the font is
+ * downloaded at build time and served from our own origin, so it is no longer a
+ * render-blocking third-party request and it cannot cause a layout shift
+ * (`adjustFontFallback` matches the fallback metrics).
+ */
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+  variable: "--font-inter",
+});
 
 export const metadata = {
   title: "Presciya – Digital Prescription",
@@ -17,21 +32,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
       <body
-        className="min-h-screen flex flex-col antialiased bg-background text-foreground"
+        className="min-h-screen flex flex-col antialiased bg-background text-on-background"
         suppressHydrationWarning
       >
         <ThemeProvider

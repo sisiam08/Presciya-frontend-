@@ -175,18 +175,41 @@ export const API_ROUTES = {
       limitSuffix: (n: number) => `up to ${n}`,
     },
     medicine_favorites: { label: "Frequently used medicine favourites" },
-    advanced_pdf: { label: "Advanced PDF templates" },
+    // ── Configured entitlements with NO runtime implementation ───────────────
+    // These exist in the feature catalogue and are admin-toggleable, but nothing
+    // in the backend or UI reads them, so they must NOT be advertised to users as
+    // something a plan unlocks. `implemented: false` keeps them visible to the
+    // Admin panel (so the truth is auditable) and hides them from the
+    // user-facing plan list.
+    //
+    // advanced_pdf: the built-in design templates (Classic / Modern Clinical /
+    // …) are gated by `prescription_design_templates`; no separate "advanced
+    // PDF" capability exists.
+    advanced_pdf: { label: "Advanced PDF templates", implemented: false },
     qr_verification: { label: "Public QR prescription verification" },
     analytics: { label: "Analytics dashboard" },
     custom_branding: { label: "Custom branding" },
-    export: { label: "Export prescriptions and records" },
+    watermark: { label: "Prescription watermark" },
+    // export: there is no export endpoint anywhere in the backend (no CSV/JSON/
+    // PDF export, no download route). Configured only — do not advertise it.
+    export: { label: "Export prescriptions and records", implemented: false },
     finance: { label: "Business finance and accounting" },
     visiting_fees: { label: "Visiting and follow-up fees" },
-    prescription_language: { label: "Prescription language and templates" },
+    // Three INDEPENDENT prescription features — never merge these labels.
+    prescription_language: { label: "Prescription language" },
+    prescription_design_templates: {
+      label: "Prescription design templates",
+    },
+    prescription_templates: { label: "Prescription templates" },
     institution: { label: "Institution, hospital and clinic workspaces" },
   } as Record<
     string,
-    { label: string; limitSuffix?: (n: number) => string }
+    {
+      label: string;
+      limitSuffix?: (n: number) => string;
+      /** false = configured in the catalogue but has no runtime implementation. */
+      implemented?: boolean;
+    }
   >,
 
   // ── Verification ──────────────────────────────────────────────────────────
@@ -214,6 +237,14 @@ export const API_ROUTES = {
   // Public (no auth) — drives "coming soon" / disabled states in the client.
   SYSTEM: {
     AVAILABILITY: "/system/availability",
+  },
+
+  // ── Uploads ───────────────────────────────────────────────────────────────
+  // Generic configuration-image upload backed by the existing Cloudinary
+  // infrastructure. Returns { url, publicId, ... } to store in the caller's own
+  // configuration.
+  UPLOADS: {
+    IMAGE: "/uploads/image",
   },
 
   // ── Notifications ─────────────────────────────────────────────────────────

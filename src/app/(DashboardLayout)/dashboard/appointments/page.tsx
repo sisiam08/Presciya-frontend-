@@ -537,7 +537,7 @@ function AppointmentsContent() {
       {showNew && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setShowNew(false)} />
-          <div className="relative z-10 w-full max-w-md rounded-2xl border border-outline-variant bg-surface p-6 shadow-2xl">
+          <div className="relative z-10 max-h-[85vh] w-full max-w-md overflow-y-auto rounded-2xl border border-outline-variant bg-surface p-6 shadow-2xl">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="text-base font-bold text-on-surface">New Appointment</h2>
               <button onClick={() => setShowNew(false)} className="flex h-8 w-8 items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container">
@@ -709,7 +709,7 @@ function AppointmentsContent() {
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setDetails(null)}
           />
-          <div className="relative z-10 w-full max-w-md rounded-2xl border border-outline-variant bg-surface p-6 shadow-2xl">
+          <div className="relative z-10 max-h-[85vh] w-full max-w-md overflow-y-auto rounded-2xl border border-outline-variant bg-surface p-6 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-base font-bold text-on-surface">
                 Appointment Details

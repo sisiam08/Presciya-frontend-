@@ -293,7 +293,7 @@ export default function InstitutionSettingsPage() {
               { label: "Legal Name", key: "legalName", placeholder: "Institution legal name" },
               { label: "Registration Number", key: "registrationNumber", placeholder: "Trade license / registration" },
               { label: "Address", key: "address", placeholder: "Full address" },
-              { label: "Phone", key: "phone", placeholder: "+880..." },
+                { label: "Phone", key: "phone", placeholder: "01XXXXXXXXX" },
               { label: "Email", key: "email", placeholder: "info@institution.com" },
               { label: "Website", key: "website", placeholder: "https://..." },
             ].map((f) => (

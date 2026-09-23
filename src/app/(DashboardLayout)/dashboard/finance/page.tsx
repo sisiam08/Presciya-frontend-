@@ -6,11 +6,9 @@ import {
   TrendingUp,
   TrendingDown,
   Wallet,
-  Plus,
   ArrowRight,
   RefreshCw,
   FileBarChart,
-  Tags,
   Receipt,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,7 +17,6 @@ import { API_ROUTES } from "@/lib/constants";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useFinanceScope } from "@/hooks/useFinanceScope";
 import FinanceScopeBar from "@/components/finance/FinanceScopeBar";
-import TransactionDialog from "@/components/finance/TransactionDialog";
 import FeatureGate from "@/components/ui/FeatureGate";
 import {
   FinanceReport,
@@ -79,7 +76,7 @@ export default function FinanceDashboardPage() {
 }
 
 function FinanceDashboardContent() {
-  const { workspaces, scope, setScope, withScope, can, loading: scopeLoading } = useFinanceScope();
+  const { workspaces, scope, setScope, withScope, loading: scopeLoading } = useFinanceScope();
   const [period, setPeriod] = useState("month");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -87,10 +84,6 @@ function FinanceDashboardContent() {
   const [recent, setRecent] = useState<FinancialTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogType, setDialogType] = useState<FinancialTransactionType>(
-    FinancialTransactionType.INCOME,
-  );
 
   const periodQuery = () => {
     const base = `period=${period}`;
@@ -110,7 +103,11 @@ function FinanceDashboardContent() {
           withScope(`${API_ROUTES.FINANCE.REPORTS}?${periodQuery()}`),
         ),
         apiClient.get<any>(
-          withScope(`${API_ROUTES.FINANCE.TRANSACTIONS}?limit=5&page=1`),
+          // Recent transactions must honour the SAME scope + period as the
+          // statistics above, otherwise the list and the totals disagree.
+          withScope(
+            `${API_ROUTES.FINANCE.TRANSACTIONS}?limit=5&page=1&${periodQuery()}`,
+          ),
         ),
       ]);
       if (reportRes.status === "fulfilled") {
@@ -129,11 +126,6 @@ function FinanceDashboardContent() {
   useEffect(() => {
     load();
   }, [load]);
-
-  const openDialog = (type: FinancialTransactionType) => {
-    setDialogType(type);
-    setDialogOpen(true);
-  };
 
   const summary = report?.summary;
   const timeSeries = report?.timeSeries || [];
@@ -237,38 +229,20 @@ function FinanceDashboardContent() {
         <div>
           <h1 className="text-2xl font-bold text-on-surface">Finance</h1>
           <p className="mt-1 text-sm text-on-surface-variant">
-            Record and review your business income and expenses.
+            Review your business income and expenses.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={load}>
             <RefreshCw className="mr-1 h-4 w-4" /> Refresh
           </Button>
-          {can.create && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => openDialog(FinancialTransactionType.EXPENSE)}
-              >
-                <TrendingDown className="mr-1 h-4 w-4" /> Add Expense
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => openDialog(FinancialTransactionType.INCOME)}
-              >
-                <Plus className="mr-1 h-4 w-4" /> Add Income
-              </Button>
-            </>
-          )}
         </div>
       </div>
 
       {/* Quick links */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {[
           { href: "/dashboard/finance/transactions", label: "Transactions", icon: Receipt },
-          { href: "/dashboard/finance/categories", label: "Categories", icon: Tags },
           { href: "/dashboard/finance/reports", label: "Reports", icon: FileBarChart },
         ].map((l) => {
           const Icon = l.icon;
@@ -344,25 +318,9 @@ function FinanceDashboardContent() {
                 No financial transactions yet.
               </p>
               <p className="mt-1 text-xs text-on-surface-variant">
-                Record your first income or expense to see your summary.
+                Income is recorded automatically when appointment payments are
+                collected.
               </p>
-              {can.create && (
-                <div className="mt-5 flex justify-center gap-2">
-                  <Button
-                    size="sm"
-                    onClick={() => openDialog(FinancialTransactionType.INCOME)}
-                  >
-                    <Plus className="mr-1 h-4 w-4" /> Add Income
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => openDialog(FinancialTransactionType.EXPENSE)}
-                  >
-                    <Plus className="mr-1 h-4 w-4" /> Add Expense
-                  </Button>
-                </div>
-              )}
             </div>
           ) : (
             <>
@@ -537,15 +495,6 @@ function FinanceDashboardContent() {
           </div>
         </>
       )}
-
-      <TransactionDialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        onSaved={load}
-        workspaces={workspaces}
-        defaultWorkspaceId={scope === "all" ? workspaces[0]?.id || "" : scope}
-        initialType={dialogType}
-      />
     </div>
   );
 }

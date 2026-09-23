@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   FileText,
@@ -20,6 +20,8 @@ import { Button } from "@/components/ui/button";
 import { apiClient } from "@/lib/api-client";
 import { API_ROUTES } from "@/lib/constants";
 import { useAuth } from "@/hooks/useAuth";
+import { useActiveChamber } from "@/hooks/useActiveChamber";
+import { isTodayInBangladesh } from "@/lib/datetime";
 import VerificationNotice from "@/components/verification/VerificationNotice";
 
 // Import and register Chart.js components
@@ -60,24 +62,68 @@ export default function DashboardPage() {
   const [analytics, setAnalytics] = useState<any>(null);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [workspaceId, setWorkspaceId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
-  const loadData = async (targetWsId?: string | null) => {
+  // The SAME active-context hook every other page uses. Chamber selection does
+  // NOT reload the page (only workspace switching does), so a page that ignores
+  // it keeps rendering the previous chamber's numbers — which is exactly the
+  // staleness this page had.
+  const activeChamberId = useActiveChamber();
+
+  // Bumped on every request. A response whose id is no longer current is
+  // discarded, so a slow request for a previous scope can never overwrite the
+  // numbers of the scope the user has since selected (rapid A → B → A switching).
+  const requestSeq = useRef(0);
+
+  const loadData = useCallback(async () => {
+    const seq = ++requestSeq.current;
     setLoading(true);
+    setLoadError(null);
+
+    // Drop the previous scope's data up front: while the new scope loads the
+    // dashboard must not present old numbers as if they were current.
+    setAnalytics(null);
+    setAppointments([]);
+
     try {
-      const activeWs = targetWsId || (typeof window !== "undefined" ? localStorage.getItem("activeWorkspaceId") : null);
-      
+      // Read the scope at REQUEST time (never from stale component state).
+      const activeWs =
+        typeof window !== "undefined"
+          ? localStorage.getItem("activeWorkspaceId")
+          : null;
+
+      // The dashboard obeys the SAME data-scope rule as the rest of the app:
+      // "all" only from the personal context (no active chamber) and only when
+      // the user explicitly enabled it in Settings. The backend re-derives the
+      // authorized workspace set, so this is a request hint, never authority.
+      const scopeAll =
+        typeof window !== "undefined" &&
+        localStorage.getItem("workspaceScope") === "all" &&
+        !localStorage.getItem("activeChamberId");
+      const analyticsUrl = scopeAll
+        ? `${API_ROUTES.ANALYTICS.DASHBOARD}?scope=all`
+        : API_ROUTES.ANALYTICS.DASHBOARD;
+
       const [analyticsRes, apptsRes] = await Promise.allSettled([
-        apiClient.get<any>(API_ROUTES.ANALYTICS.DASHBOARD),
-        activeWs 
+        apiClient.get<any>(analyticsUrl),
+        activeWs
           ? apiClient.get<any>(API_ROUTES.APPOINTMENTS.LIST(activeWs))
           : Promise.resolve({ data: { data: [] } }),
       ]);
 
+      // A newer scope was requested while this one was in flight — discard.
+      if (seq !== requestSeq.current) return;
+
       if (analyticsRes.status === "fulfilled") {
         const val = analyticsRes.value as any;
         setAnalytics(val.data?.data || val.data || null);
+      } else {
+        // Never present a failure as "0" — that reads as real data.
+        setAnalytics(null);
+        setLoadError(
+          "Your dashboard summary could not be loaded. Pull to refresh to try again.",
+        );
       }
       if (apptsRes.status === "fulfilled") {
         const val = apptsRes.value as any;
@@ -94,33 +140,25 @@ export default function DashboardPage() {
     } catch (e) {
       console.error("Dashboard load failed:", e);
     } finally {
-      setLoading(false);
+      if (seq === requestSeq.current) setLoading(false);
     }
-  };
+  }, []);
+
+  // Refetch whenever the active scope changes. The workspace is included for
+  // correctness even though switching workspaces reloads the app by design.
+  useEffect(() => {
+    void loadData();
+  }, [loadData, activeChamberId]);
 
   useEffect(() => {
     setMounted(true);
-    const wsId = localStorage.getItem("activeWorkspaceId");
-    setWorkspaceId(wsId);
-    
-    // Load immediately
-    loadData(wsId);
-
-    // Watch activeWorkspaceId initialization from sidebar (re-fetch if it changes or initializes)
-    const checkInterval = setInterval(() => {
-      const currentWsId = localStorage.getItem("activeWorkspaceId");
-      if (currentWsId && currentWsId !== wsId) {
-        setWorkspaceId(currentWsId);
-        loadData(currentWsId);
-        clearInterval(checkInterval);
-      }
-    }, 800);
-
-    return () => clearInterval(checkInterval);
   }, []);
 
-  const todayAppts = appointments.filter(
-    (a) => new Date(a.scheduledDate).toDateString() === new Date().toDateString()
+  // "Today" is the Bangladesh business day, matching the backend's day windows
+  // (appointment list defaults to the BD today). Using the browser's local date
+  // could disagree with the server and silently zero this KPI.
+  const todayAppts = appointments.filter((a) =>
+    isTodayInBangladesh(a.scheduledDate),
   );
 
   // Real metrics only — never fabricate counts when the workspace is empty.
@@ -325,6 +363,22 @@ export default function DashboardPage() {
       </div>
 
       <VerificationNotice />
+
+      {loadError && !loading && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300">
+          <Activity className="mt-0.5 h-5 w-5 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-bold">{loadError}</p>
+            <button
+              type="button"
+              onClick={() => loadData()}
+              className="mt-1 text-xs font-bold underline underline-offset-2"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="space-y-6">

@@ -3,14 +3,12 @@
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  Plus,
   Search,
   RefreshCw,
   Pencil,
   Trash2,
   Eye,
   X,
-  TrendingDown,
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
@@ -67,9 +65,6 @@ function FinanceTransactionsContent() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<FinancialTransaction | null>(null);
-  const [dialogType, setDialogType] = useState<FinancialTransactionType>(
-    FinancialTransactionType.INCOME,
-  );
   const [details, setDetails] = useState<FinancialTransaction | null>(null);
 
   // Categories for the filter dropdown.
@@ -140,12 +135,6 @@ function FinanceTransactionsContent() {
     }
   };
 
-  const openAdd = (type: FinancialTransactionType) => {
-    setEditing(null);
-    setDialogType(type);
-    setDialogOpen(true);
-  };
-
   const openEdit = (tx: FinancialTransaction) => {
     setEditing(tx);
     setDialogOpen(true);
@@ -166,30 +155,13 @@ function FinanceTransactionsContent() {
           </Link>
           <h1 className="text-2xl font-bold text-on-surface">Transactions</h1>
           <p className="mt-1 text-sm text-on-surface-variant">
-            Search, filter and manage your income and expenses.
+            Search, filter and review recorded income and expenses.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={load}>
             <RefreshCw className="mr-1 h-4 w-4" /> Refresh
           </Button>
-          {can.create && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => openAdd(FinancialTransactionType.EXPENSE)}
-              >
-                <TrendingDown className="mr-1 h-4 w-4" /> Add Expense
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => openAdd(FinancialTransactionType.INCOME)}
-              >
-                <Plus className="mr-1 h-4 w-4" /> Add Income
-              </Button>
-            </>
-          )}
         </div>
       </div>
 
@@ -262,20 +234,10 @@ function FinanceTransactionsContent() {
             <p className="text-sm font-medium text-on-surface">
               No financial transactions yet.
             </p>
-            {can.create && (
-              <div className="mt-5 flex justify-center gap-2">
-                <Button size="sm" onClick={() => openAdd(FinancialTransactionType.INCOME)}>
-                  <Plus className="mr-1 h-4 w-4" /> Add Income
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => openAdd(FinancialTransactionType.EXPENSE)}
-                >
-                  <Plus className="mr-1 h-4 w-4" /> Add Expense
-                </Button>
-              </div>
-            )}
+            <p className="mt-1 text-xs text-on-surface-variant">
+              Income is recorded automatically when appointment payments are
+              collected.
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -414,7 +376,7 @@ function FinanceTransactionsContent() {
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setDetails(null)}
           />
-          <div className="relative z-10 w-full max-w-md rounded-2xl border border-outline-variant bg-surface p-6 shadow-2xl">
+          <div className="relative z-10 max-h-[85vh] w-full max-w-md overflow-y-auto rounded-2xl border border-outline-variant bg-surface p-6 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-base font-bold text-on-surface">
                 Transaction Details
@@ -511,7 +473,6 @@ function FinanceTransactionsContent() {
         defaultWorkspaceId={
           scope === "all" ? workspaces[0]?.id || "" : scope
         }
-        initialType={dialogType}
         transaction={editing}
       />
     </div>

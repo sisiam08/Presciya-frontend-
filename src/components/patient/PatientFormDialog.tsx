@@ -204,7 +204,7 @@ export default function PatientFormDialog({
               </Label>
               <Input
                 type="tel"
-                placeholder="01712345678"
+                placeholder="01XXXXXXXXX"
                 value={formData.phone || ""}
                 onChange={(e) => {
                   setFormData({ ...formData, phone: e.target.value });

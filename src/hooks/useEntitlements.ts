@@ -1,9 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { apiClient } from "@/lib/api-client";
 import { API_ROUTES } from "@/lib/constants";
-import { useRefreshOnFocus } from "@/hooks/useRefreshOnFocus";
 
 export interface FeatureEntitlement {
   allowed: boolean;
@@ -24,42 +23,93 @@ export interface Entitlements {
 }
 
 /**
+ * Shared, single-flight entitlements store.
+ *
+ * Entitlements are read by every `FeatureGate` and by several pages. With the
+ * previous per-hook state, a page with four gates (e.g. Settings) issued FOUR
+ * identical `GET /subscription/entitlements` requests on mount and again on
+ * every focus. This module keeps one cache and one in-flight promise, so any
+ * number of consumers costs exactly one request.
+ *
+ * The cache is workspace-scoped and the workspace switcher performs a full page
+ * reload (`window.location.reload()`), so a workspace change always starts from
+ * a clean store — entitlements can never leak across workspaces.
+ */
+let cached: Entitlements | null = null;
+let loaded = false;
+let inFlight: Promise<void> | null = null;
+const subscribers = new Set<() => void>();
+
+const notify = () => subscribers.forEach((fn) => fn());
+
+const fetchEntitlements = (): Promise<void> => {
+  // Single-flight: concurrent callers share one request.
+  if (inFlight) return inFlight;
+
+  inFlight = (async () => {
+    try {
+      const res = await apiClient.get<{ data: Entitlements }>(
+        API_ROUTES.SUBSCRIPTION.ENTITLEMENTS,
+      );
+      cached = res.data?.data || (res.data as unknown as Entitlements) || null;
+    } catch {
+      cached = null;
+    } finally {
+      loaded = true;
+      inFlight = null;
+      notify();
+    }
+  })();
+
+  return inFlight;
+};
+
+/** Drops the cache and refetches (e.g. after a plan change). */
+export const refreshEntitlements = (): Promise<void> => {
+  loaded = false;
+  return fetchEntitlements();
+};
+
+/**
  * Loads the current workspace's plan entitlements (admin-configurable). Used to
  * gate / blur features the plan does not include.
  */
 export function useEntitlements() {
-  const [entitlements, setEntitlements] = useState<Entitlements | null>(null);
-  const [loading, setLoading] = useState(true);
-  // Guards against out-of-order responses when a focus refresh races the mount.
-  const requestId = useRef(0);
-
-  const load = useCallback(async () => {
-    const id = ++requestId.current;
-    try {
-      const res = await apiClient.get<any>(
-        API_ROUTES.SUBSCRIPTION.ENTITLEMENTS,
-      );
-      if (id === requestId.current) {
-        setEntitlements(res.data?.data || res.data || null);
-      }
-    } catch {
-      if (id === requestId.current) setEntitlements(null);
-    } finally {
-      if (id === requestId.current) setLoading(false);
-    }
-  }, []);
+  const [state, setState] = useState<{
+    entitlements: Entitlements | null;
+    loading: boolean;
+  }>(() => ({ entitlements: cached, loading: !loaded }));
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    const sync = () => setState({ entitlements: cached, loading: !loaded });
+    subscribers.add(sync);
+    // The useState initialiser already reflects the cache, so there is no
+    // synchronous setState here — only the first fetch.
+    if (!loaded) void fetchEntitlements();
 
-  // Refresh usage when the user comes back to the tab so a day rollover is
-  // reflected without requiring a manual reload.
-  useRefreshOnFocus(load);
+    // A single global focus listener (not one per consumer) so a day rollover
+    // is reflected without a manual reload, at the cost of one request.
+    const onFocus = () => {
+      if (document.visibilityState === "visible") void refreshEntitlements();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+
+    return () => {
+      subscribers.delete(sync);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
+  }, []);
 
   const feature = (key: string): FeatureEntitlement | undefined =>
-    entitlements?.features?.[key];
+    state.entitlements?.features?.[key];
   const isAllowed = (key: string): boolean => Boolean(feature(key)?.allowed);
 
-  return { entitlements, loading, feature, isAllowed };
+  return {
+    entitlements: state.entitlements,
+    loading: state.loading,
+    feature,
+    isAllowed,
+  };
 }

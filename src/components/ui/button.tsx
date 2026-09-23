@@ -10,10 +10,13 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'default', ...props }, ref) => {
-    const base = "inline-flex items-center justify-center font-medium rounded-lg transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98] select-none";
+    const base = "inline-flex items-center justify-center font-medium rounded-lg transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 cursor-pointer disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98] select-none";
 
     const variants = {
-      primary:   "bg-primary text-on-primary hover:bg-primary-container shadow-sm",
+      // `hover:text-on-primary-container` is required: in dark mode
+      // `primary-container` is a DARK blue while `on-primary` is also dark, so
+      // without it the label becomes unreadable on hover.
+      primary:   "bg-primary text-on-primary hover:bg-primary-container hover:text-on-primary-container shadow-sm",
       secondary: "bg-secondary text-on-secondary hover:opacity-90 shadow-sm",
       outline:   "border border-outline dark:border-outline-variant bg-transparent text-on-surface hover:bg-surface-container dark:hover:bg-surface-container-high",
       ghost:     "bg-transparent text-on-surface-variant hover:text-on-surface hover:bg-surface-container dark:hover:bg-surface-container-high",

@@ -1,6 +1,8 @@
 // src/app/(CommonLayout)/login/page.tsx
 "use client";
 
+import Link from "next/link";
+
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNotification } from "@/hooks/useNotification";
@@ -128,9 +130,9 @@ export default function LoginPage() {
                 <Label htmlFor="password" className="font-label-md text-label-md text-on-surface-variant">
                   Security Password
                 </Label>
-                <a href="/forgot-password" className="font-label-sm text-[12px] text-primary hover:underline font-semibold">
-                  Forgot password?
-                </a>
+              <Link href="/forgot-password" className="font-label-sm text-[12px] text-primary hover:underline font-semibold">
+                Forgot password?
+              </Link>
               </div>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-outline h-5 w-5" />
@@ -146,16 +148,11 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 px-1">
-              <input
-                id="remember"
-                type="checkbox"
-                className="w-4 h-4 rounded text-primary border-outline-variant focus:ring-primary dark:bg-slate-900"
-              />
-              <Label htmlFor="remember" className="font-label-md text-label-md text-on-surface-variant cursor-pointer select-none">
-                Stay logged in for 12 hours
-              </Label>
-            </div>
+          {/* The former "Stay logged in for N hours" checkbox was removed: it had
+              no state and no handler, so it controlled nothing. Session length is
+              governed entirely by the server (short-lived access token renewed by
+              the rotating refresh-token cookie), and the UI must not advertise a
+              duration that does not match that behaviour. */}
 
             <Button
               type="submit"
@@ -169,9 +166,9 @@ export default function LoginPage() {
           <footer className="mt-stack-lg text-center space-y-6">
             <p className="font-body-md text-body-md text-on-surface-variant">
               New to Presciya?{" "}
-              <a href="/signup" className="text-primary font-bold hover:underline">
-                Register
-              </a>
+                <Link href="/signup" className="text-primary font-bold hover:underline">
+                  Register
+                </Link>
             </p>
             <div className="flex justify-center gap-stack-lg pt-6 border-t border-outline-variant/30 text-xs font-medium text-outline">
               <button

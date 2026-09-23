@@ -72,7 +72,10 @@ export default function Navbar() {
                 </Button>
               </Link>
               <Link href="/signup">
-                <Button className="bg-primary hover:bg-primary/90 text-white px-5 py-2 rounded-full text-sm font-bold shadow-sm h-10">
+                {/* No `text-white` here: in dark mode `primary` is a light blue,
+                    so white would be unreadable. The variant supplies
+                    `text-on-primary`, which is correct in both themes. */}
+                <Button className="bg-primary hover:bg-primary/90 px-5 py-2 rounded-full text-sm font-bold shadow-sm h-10">
                   Get Started
                 </Button>
               </Link>

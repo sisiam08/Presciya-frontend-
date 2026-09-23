@@ -252,27 +252,52 @@ export default function SubscriptionPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {plans.map((plan: any) => {
                   const isCurrent = plan.id === currentVariantId;
+                  // Admin-deactivated plan. Shown for information only: the price
+                  // is never exposed and it cannot enter the checkout flow (the
+                  // backend rejects inactive variants too).
+                  const isComingSoon = plan.isActive === false;
                   return (
                     <div
                       key={plan.id}
                       className={`rounded-2xl border p-6 flex flex-col relative overflow-hidden ${
-                        isCurrent
+                        isCurrent && !isComingSoon
                           ? "border-primary bg-primary/5 ring-2 ring-primary ring-offset-2"
                           : "border-outline-variant bg-surface"
                       }`}
                     >
-                      {isCurrent && (
-                        <span className="absolute top-3 right-3 text-[10px] font-bold bg-primary text-on-primary px-2 py-0.5 rounded-full uppercase">
-                          Current
+                      {isComingSoon ? (
+                        <span className="absolute top-3 right-3 text-[10px] font-bold bg-surface-container text-on-surface-variant px-2 py-0.5 rounded-full uppercase">
+                          Coming Soon
                         </span>
+                      ) : (
+                        isCurrent && (
+                          <span className="absolute top-3 right-3 text-[10px] font-bold bg-primary text-on-primary px-2 py-0.5 rounded-full uppercase">
+                            Current
+                          </span>
+                        )
                       )}
                       <div className="mb-4">
                         <p className="text-base font-bold text-on-surface">{plan.variantName}</p>
+                        {isComingSoon && plan.description?.en ? (
+                          <p className="mt-1 text-xs text-on-surface-variant">
+                            {plan.description.en}
+                          </p>
+                        ) : null}
                         <div className="flex items-baseline gap-1 mt-2">
-                          <span className="text-3xl font-extrabold text-on-surface">৳{plan.price}</span>
-                          <span className="text-xs text-on-surface-variant">/month</span>
+                          {isComingSoon ? (
+                            // Price deliberately hidden — a plan that cannot be
+                            // bought must not advertise its price.
+                            <span className="text-3xl font-extrabold text-on-surface-variant">
+                              ---
+                            </span>
+                          ) : (
+                            <>
+                              <span className="text-3xl font-extrabold text-on-surface">৳{plan.price}</span>
+                              <span className="text-xs text-on-surface-variant">/month</span>
+                            </>
+                          )}
                         </div>
-                        {voucherResult && !voucherResult.error && (
+                        {!isComingSoon && voucherResult && !voucherResult.error && (
                           <p className="text-xs text-emerald-600 font-medium mt-1">
                             After discount: ৳{(plan.price * (1 - (voucherResult.discountPercentage || 0) / 100)).toFixed(0)}
                           </p>
@@ -283,7 +308,13 @@ export default function SubscriptionPage() {
                           taken from the same plan-feature rows the backend
                           gates on — including numeric limits. */}
                       <ul className="space-y-2 flex-1 mb-6">
-                        {Object.entries(API_ROUTES.PLAN_FEATURE_INFO).map(
+                        {/* Only features that actually exist at runtime are
+                            advertised. Entries flagged `implemented: false` are
+                            configured in the catalogue but control nothing, so
+                            listing them would be a false promise. */}
+                        {Object.entries(API_ROUTES.PLAN_FEATURE_INFO)
+                          .filter(([, info]) => info.implemented !== false)
+                          .map(
                           ([key, info]) => {
                             const pf = (plan.planFeatures || []).find(
                               (f: any) => f.feature?.key === key,
@@ -320,15 +351,23 @@ export default function SubscriptionPage() {
                       </ul>
 
                       <Button
-                        className={`w-full ${isCurrent ? "opacity-50 cursor-not-allowed" : ""}`}
-                        variant={isCurrent ? "outline" : "primary"}
-                        disabled={isCurrent || !!subscribing}
-                        onClick={() => !isCurrent && handleSubscribe(plan.id)}
+                        className={`w-full ${
+                          isCurrent || isComingSoon ? "opacity-60 cursor-not-allowed" : ""
+                        }`}
+                        variant={isCurrent || isComingSoon ? "outline" : "primary"}
+                        disabled={isCurrent || isComingSoon || !!subscribing}
+                        onClick={() =>
+                          !isCurrent && !isComingSoon && handleSubscribe(plan.id)
+                        }
                       >
                         {subscribing === plan.id ? (
                           <Loader2 className="h-4 w-4 animate-spin mr-1" />
                         ) : null}
-                        {isCurrent ? "Current Plan" : "Subscribe"}
+                        {isComingSoon
+                          ? "Coming Soon"
+                          : isCurrent
+                            ? "Current Plan"
+                            : "Subscribe"}
                       </Button>
                     </div>
                   );

@@ -15,6 +15,7 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Plus, Trash2, Printer, Check, Search } from "lucide-react";
+import { formatDosage } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
 
 interface MockMedicine {
@@ -437,7 +438,7 @@ export default function DemoPage() {
                               {med.genericName}
                             </p>
                             <p className="text-xs font-semibold text-primary pl-5">
-                              {med.dosage} — {med.duration}{" "}
+                              {formatDosage(med.dosage)} — {med.duration}{" "}
                               <span className="font-normal text-gray-500">
                                 ({med.instruction})
                               </span>

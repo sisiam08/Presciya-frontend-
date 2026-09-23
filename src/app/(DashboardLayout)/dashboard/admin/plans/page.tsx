@@ -12,20 +12,20 @@ function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`animate-pulse rounded-xl bg-slate-200 dark:bg-slate-800 ${className}`} />;
 }
 
-const FEATURE_LABELS: Record<string, string> = {
-  max_chambers: "Max Chambers",
-  appointments: "Appointments (daily limit)",
-  finance: "Finance",
-  visiting_fees: "Visiting Fees",
-  prescription_language: "Prescription Language",
-  create_prescription: "Prescriptions (daily limit)",
-  advanced_pdf: "Advanced PDF",
-  qr_verification: "QR Verification",
-  analytics: "Analytics",
-  custom_branding: "Custom Branding",
-  medicine_favorites: "Medicine Favorites",
-  export: "Data Export",
-  institution: "Institution / Hospital",
+/**
+ * Feature labels come from the ONE canonical frontend registry
+ * (`API_ROUTES.PLAN_FEATURE_INFO`), which the user-facing Subscription page
+ * also renders from. This page previously kept its own hand-written map, which
+ * is exactly how the Admin and User plan views drifted apart. There is now a
+ * single definition; keys that are not in the registry fall back to a readable
+ * form of their own key.
+ */
+const featureLabel = (key: string): string => {
+  const info = API_ROUTES.PLAN_FEATURE_INFO[key];
+  const base = info?.label ?? key.replace(/_/g, " ");
+  // The admin must see the truth: this catalogue entry has no runtime
+  // implementation anywhere, so toggling it changes nothing.
+  return info?.implemented === false ? `${base} (not implemented)` : base;
 };
 
 export default function AdminPlansPage() {
@@ -137,13 +137,10 @@ export default function AdminPlansPage() {
         variantName: editingPlan.variantName.trim(),
         price: parseFloat(editingPlan.price),
       });
-      setPlans((prev) =>
-        prev.map((p) =>
-          p.id === editingPlan.id
-            ? { ...p, variantName: editingPlan.variantName.trim(), price: parseFloat(editingPlan.price) }
-            : p,
-        ),
-      );
+      // Refetch from the server rather than trusting an optimistic patch: the
+      // list must always reflect the true database state (a rename must update
+      // this row, never add another one).
+      await loadPlans();
       toast({ title: "Plan Updated", description: "Plan details saved.", variant: "success" });
     } catch (e: any) {
       toast({ title: "Error", description: e?.response?.data?.message || "Failed to update plan.", variant: "destructive" });
@@ -320,7 +317,7 @@ export default function AdminPlansPage() {
                     const enabled = Boolean(pf);
                     const key = `${plan.id}-${f.id}`;
                     const isUpdating = updatingId === key;
-                    const label = FEATURE_LABELS[f.key] || f.key.replace(/_/g, " ");
+                    const label = featureLabel(f.key);
                     return (
                       <div key={f.id} className="flex items-center justify-between gap-2">
                         <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300">

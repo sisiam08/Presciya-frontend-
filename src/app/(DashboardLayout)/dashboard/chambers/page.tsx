@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { useState, useEffect } from "react";
 import {
   Hospital,
@@ -25,6 +26,9 @@ import { Chamber } from "@/types";
 import { useNotification } from "@/hooks/useNotification";
 import { useConfirm } from "@/components/ui/confirm";
 import VerificationNotice from "@/components/verification/VerificationNotice";
+import FeatureGate from "@/components/ui/FeatureGate";
+import ImageUploadField from "@/components/ui/ImageUploadField";
+import { useMe } from "@/hooks/useMe";
 import {
   BD_PHONE_MESSAGE,
   isValidBangladeshPhone,
@@ -136,6 +140,17 @@ function ChamberModal({
   onSaved: () => void;
 }) {
   const { success, error: showError } = useNotification();
+  // Prescription branding is plan-controlled. The UI must not offer controls
+  // the active plan does not include — otherwise the user only discovers the
+  // restriction after submitting. `FeatureGate` below renders the existing
+  // restricted-feature view when a key is missing.
+  const { isAllowed } = useEntitlements();
+  const canBranding = isAllowed("custom_branding");
+  const canWatermark = isAllowed("watermark");
+  // Existing templateConfig (theme keys etc.) is preserved on save so the
+  // watermark fields never wipe unrelated chamber branding settings.
+  const baseTemplateConfig: Record<string, unknown> =
+    chamber?.templateConfig || {};
   const [form, setForm] = useState({
     name: chamber?.chamberName || chamber?.name || "",
     address: chamber?.chamberAddress || chamber?.address || "",
@@ -192,16 +207,23 @@ function ChamberModal({
       phone: form.phone.trim()
         ? normalizeBangladeshPhone(form.phone)
         : undefined,
-      chamberSlogan: form.footerText.trim() || undefined,
-      footerText: form.footerText.trim() || undefined,
-      logo: form.logo.trim() || undefined,
-      // Chamber prescription settings (footer is stored on the chamber row,
-      // watermark on its templateConfig). Entitlement-enforced on the backend.
-      templateConfig: {
-        watermarkEnabled: form.watermarkEnabled,
-        watermarkText: form.watermarkText.trim() || "",
-        watermarkUrl: form.watermarkUrl.trim() || "",
-      },
+      // Branding fields are only sent when the plan actually includes the
+      // entitlement (the backend enforces the same thing, but sending values
+      // the plan excludes would produce a late, confusing error).
+      chamberSlogan: canBranding ? form.footerText.trim() || undefined : undefined,
+      footerText: canBranding ? form.footerText.trim() || undefined : undefined,
+      logo: canBranding ? form.logo.trim() || undefined : undefined,
+      // Watermark lives on the chamber's templateConfig. It is omitted entirely
+      // when the plan has no watermark entitlement so chamber creation keeps its
+      // default template settings.
+      templateConfig: canWatermark
+        ? {
+            ...baseTemplateConfig,
+            watermarkEnabled: form.watermarkEnabled,
+            watermarkText: form.watermarkText.trim() || "",
+            watermarkUrl: form.watermarkUrl.trim() || "",
+          }
+        : undefined,
     };
 
     try {
@@ -238,7 +260,7 @@ function ChamberModal({
           {[
             { label: "Chamber Name * (min 3 chars)", key: "name", type: "text", placeholder: "e.g. Dhanmondi Medical Center" },
             { label: "Address (min 5 chars)", key: "address", type: "text", placeholder: "House #12, Road #5, Dhanmondi, Dhaka" },
-            { label: "Phone", key: "phone", type: "tel", placeholder: "+880 1712-345678" },
+            { label: "Phone", key: "phone", type: "tel", placeholder: "01XXXXXXXXX" },
             { label: "Email", key: "email", type: "email", placeholder: "chamber@example.com" },
           ].map(({ label, key, type, placeholder }) => (
             <div key={key}>
@@ -258,7 +280,13 @@ function ChamberModal({
             </div>
           ))}
           {/* Prescription Settings — what this chamber prints on its
-              prescriptions. Doctor identity is automatic (from the profile). */}
+              prescriptions. Doctor identity is automatic (from the profile).
+              Footer/logo require `custom_branding`; the watermark additionally
+              requires `watermark`. Both reuse the shared FeatureGate so the
+              restricted-feature view is identical to the rest of the app. */}
+          {/* Section-level gate: only this block is restricted — the chamber's
+              name/address/phone/email fields above stay fully usable. */}
+          <FeatureGate feature="custom_branding" label="Prescription branding" variant="inline">
           <div className="rounded-xl border border-outline-variant p-4 space-y-4">
             <div>
               <h3 className="text-sm font-bold text-on-surface">Prescription Settings</h3>
@@ -269,15 +297,12 @@ function ChamberModal({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Chamber Logo URL</label>
-                <Input
-                  type="url"
-                  placeholder="https://…/logo.png"
-                  value={form.logo}
-                  onChange={(e) => update("logo", e.target.value)}
-                />
-              </div>
+              <ImageUploadField
+                label="Chamber Logo"
+                value={form.logo}
+                onChange={(url) => update("logo", url)}
+                hint="JPEG, PNG or WebP up to 5 MB."
+              />
               <div className="md:col-span-1">
                 <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Footer Text (for prescription)</label>
                 <Input
@@ -288,6 +313,10 @@ function ChamberModal({
               </div>
             </div>
 
+            {/* Only rendered when the branding entitlement is present, so the
+                outer gate never stacks a second lock card on top of this one. */}
+            {canBranding && (
+            <FeatureGate feature="watermark" label="Prescription watermark" variant="inline">
             <div>
               <label className="flex items-center gap-2 text-sm font-semibold text-on-surface">
                 <input
@@ -310,19 +339,19 @@ function ChamberModal({
                       onChange={(e) => update("watermarkText", e.target.value)}
                     />
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Watermark Image URL</label>
-                    <Input
-                      type="url"
-                      placeholder="https://…/watermark.png"
-                      value={form.watermarkUrl}
-                      onChange={(e) => update("watermarkUrl", e.target.value)}
-                    />
-                  </div>
+                  <ImageUploadField
+                    label="Watermark Image"
+                    value={form.watermarkUrl}
+                    onChange={(url) => update("watermarkUrl", url)}
+                    hint="Optional — used instead of the text when provided."
+                  />
                 </div>
               )}
             </div>
+            </FeatureGate>
+            )}
           </div>
+          </FeatureGate>
 
           <div className="flex gap-3 pt-4 border-t border-outline-variant">
             <Button type="button" variant="ghost" onClick={onClose} className="flex-1">Cancel</Button>
@@ -352,7 +381,11 @@ export default function ChambersPage() {
   // APPROVED (see checkUserVerification), so mirror that here instead of
   // letting the user submit a form the API will refuse. Unknown status is not
   // treated as blocked — only a known non-APPROVED status is.
-  const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
+  // Shared single-flight `/auth/me` (also used by VerificationNotice, so the two
+  // no longer issue separate identical requests).
+  const { profile } = useMe();
+  const verificationStatus =
+    (profile?.verificationStatus as string | undefined) ?? null;
   const verificationBlocked =
     verificationStatus !== null && verificationStatus !== "APPROVED";
   const addBlocked = limitReached || verificationBlocked;
@@ -370,23 +403,6 @@ export default function ChambersPage() {
 
   useEffect(() => {
     loadChambers();
-
-    // Same source VerificationNotice uses — the current doctor/institution
-    // profile returned by /auth/me.
-    let active = true;
-    apiClient
-      .get<any>(API_ROUTES.AUTH.ME)
-      .then((res) => {
-        const payload = res.data?.data || res.data;
-        const profile = payload?.profile;
-        if (active && profile?.verificationStatus) {
-          setVerificationStatus(profile.verificationStatus);
-        }
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
   }, []);
 
   const handleDelete = async (id: string) => {
@@ -468,9 +484,9 @@ export default function ChambersPage() {
             )}
           </div>
           {limitReached && (
-            <a href="/dashboard/subscription">
-              <Button size="sm">View Plans</Button>
-            </a>
+                      <Link href="/dashboard/subscription">
+                        <Button size="sm">View Plans</Button>
+                      </Link>
           )}
         </div>
       )}

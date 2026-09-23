@@ -1,8 +1,10 @@
 // src/app/(DashboardLayout)/layout.tsx
-import Sidebar from "@/components/layout/Sidebar";
+import DashboardShell from "@/components/layout/DashboardShell";
 
 export const metadata = {
   title: "Dashboard – Presciya",
+  // Private application area: it must never be indexed by search engines.
+  robots: { index: false, follow: false },
 };
 
 export default function DashboardLayout({
@@ -10,12 +12,5 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
-      <Sidebar />
-      <main className="flex-1 min-w-0 overflow-y-auto p-4 md:p-6 lg:p-8 bg-slate-50 dark:bg-slate-950">
-        {children}
-      </main>
-    </div>
-  );
+  return <DashboardShell>{children}</DashboardShell>;
 }

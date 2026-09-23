@@ -48,7 +48,8 @@
   --radius-lg: 1rem;
   --radius-xl: 1.5rem;
   
-  --font-sans: "Inter", "system-ui", "sans-serif";
+  /* `--font-inter` is provided by next/font in app/layout.tsx. */
+  --font-sans: var(--font-inter), "system-ui", "sans-serif";
 }
 
 :root {
@@ -133,6 +134,26 @@
   
   --outline: #8b949e;
   --outline-variant: #30363d;
+}
+
+/* Interactive affordance — decided in ONE place.
+ *
+ * Browsers give <button> a `default` cursor, not a pointer, so clickability
+ * depended on whether each component happened to add `cursor-pointer`. This
+ * makes every enabled control show the pointer, and every genuinely disabled
+ * control show the correct disabled cursor, without touching every component. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  select:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
+  button:disabled,
+  select:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
 }
 
 body {

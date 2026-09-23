@@ -28,7 +28,7 @@ import {
   Sun,
   Moon,
   Pill,
-  ArrowLeft,
+
   Wallet,
 } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -357,7 +357,7 @@ export default function Sidebar() {
   // ─── ADMIN PANEL SIDEBAR (SOFT COLOR PALETTE) ──────────────────────────────
   if (isInAdminPanel) {
     return (
-      <aside className="w-64 shrink-0 flex flex-col h-screen sticky top-0 bg-surface-container-lowest dark:bg-surface-container-low border-r border-outline-variant overflow-hidden">
+      <aside className="w-64 shrink-0 flex flex-col h-screen sticky top-0 bg-surface-container-lowest dark:bg-surface-container-low border-r border-outline-variant overflow-hidden print:hidden">
         {/* Admin Soft Brand */}
         <div className="flex items-center gap-3 px-4 py-4 border-b border-outline-variant flex-shrink-0">
           <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
@@ -369,16 +369,12 @@ export default function Sidebar() {
           </div>
         </div>
 
-        {/* Return to App Button (Soft Pill) */}
-        <div className="px-3 pt-3 flex-shrink-0">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-colors"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span>Switch to Doctor Portal</span>
-          </Link>
-        </div>
+        {/* The former "Switch to Doctor Portal" shortcut was removed entirely.
+            It was an admin-only convenience link into /dashboard — there was no
+            impersonation, session-switching or backend logic behind it, and the
+            Doctor Portal itself (including super-admin-less doctors) is
+            unaffected. The Admin Panel is reachable from the same sidebar it
+            always was. */}
 
         {/* Admin Navigation */}
         <nav className="flex-1 px-3 py-3 overflow-y-auto space-y-0.5">
@@ -439,7 +435,7 @@ export default function Sidebar() {
 
   // ─── REGULAR USER / DOCTOR SIDEBAR ─────────────────────────────────────────
   return (
-    <aside className="w-64 shrink-0 flex flex-col h-screen sticky top-0 bg-surface-container-lowest dark:bg-surface-container-low border-r border-outline-variant overflow-hidden">
+    <aside className="w-64 shrink-0 flex flex-col h-screen sticky top-0 bg-surface-container-lowest dark:bg-surface-container-low border-r border-outline-variant overflow-hidden print:hidden">
       {/* Brand */}
       <div className="flex items-center gap-2 px-4 py-4 border-b border-outline-variant flex-shrink-0">
         <div className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center">

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { X, Plus, Trash2, Search, ChevronDown, ChevronRight, Loader2, Check, AlertTriangle } from "lucide-react";
 import { useNotification } from "@/hooks/useNotification";
+import { useEntitlements } from "@/hooks/useEntitlements";
 import { apiClient } from "@/lib/api-client";
 import { API_ROUTES } from "@/lib/constants";
 import { Prescription, PrescriptionMedicine } from "@/types";
@@ -457,7 +458,7 @@ function MedicineRow({
       </div>
 
       {usageType === "DAILY" && (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
           <DosageCheckboxPicker
             value={med.frequency || "1+1+1+0"}
             onChange={(newFreq) => onChange(index, "frequency", newFreq)}
@@ -940,9 +941,19 @@ export default function PrescriptionBuilder({
 
   // ── Templates (Section 13.6) ───────────────────────────────────────────────
   const [templates, setTemplates] = useState<any[]>([]);
+  // SAVED (reusable) templates have their OWN entitlement — independent of the
+  // built-in DESIGN templates and of the prescription language.
+  const { isAllowed } = useEntitlements();
+  const canUseSavedTemplates = isAllowed("prescription_templates");
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
 
   useEffect(() => {
+    // Don't even ask when the plan does not include saved templates (the API
+    // would reject it as well).
+    if (!canUseSavedTemplates) {
+      setTemplates([]);
+      return;
+    }
     let active = true;
     apiClient
       .get<any>(API_ROUTES.TEMPLATES.LIST)
@@ -953,7 +964,7 @@ export default function PrescriptionBuilder({
     return () => {
       active = false;
     };
-  }, []);
+  }, [canUseSavedTemplates]);
 
   // Copy a template into the current prescription. The stored template is never
   // mutated by later edits to the prescription.
@@ -1354,7 +1365,9 @@ export default function PrescriptionBuilder({
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <h3 className="text-sm font-bold text-on-surface">Medicines *</h3>
               <div className="flex flex-wrap items-center gap-2">
-                {templates.length > 0 && (
+                {/* The whole saved-template surface (load + save-as-template) is
+                    gated by `prescription_templates` only. */}
+                {canUseSavedTemplates && templates.length > 0 && (
                   <>
                     <select
                       value={selectedTemplateId}
@@ -1379,14 +1392,16 @@ export default function PrescriptionBuilder({
                     </Button>
                   </>
                 )}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={saveAsTemplate}
-                >
-                  Save as template
-                </Button>
+                {canUseSavedTemplates && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={saveAsTemplate}
+                  >
+                    Save as template
+                  </Button>
+                )}
               </div>
             </div>
             {fieldErrors.medicines && (
@@ -1444,7 +1459,7 @@ export default function PrescriptionBuilder({
           <div
             role="alertdialog"
             aria-modal="true"
-            className="relative z-10 w-full max-w-md rounded-2xl border border-outline-variant bg-surface p-6 shadow-2xl"
+                className="relative z-10 max-h-[85vh] w-full max-w-md overflow-y-auto rounded-2xl border border-outline-variant bg-surface p-6 shadow-2xl"
           >
             <div className="flex items-start gap-4">
               <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400">

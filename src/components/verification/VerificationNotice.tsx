@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ShieldAlert, Clock, XCircle, ArrowRight } from "lucide-react";
-import { apiClient } from "@/lib/api-client";
-import { API_ROUTES } from "@/lib/constants";
+import { useMe } from "@/hooks/useMe";
 
 type Status = "PENDING" | "UNDER_REVIEW" | "APPROVED" | "REJECTED";
 
@@ -40,24 +38,10 @@ const CONFIG: Record<
  * disabling features (Section 7.4).
  */
 export default function VerificationNotice() {
-  const [status, setStatus] = useState<Status | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    apiClient
-      .get<any>(API_ROUTES.AUTH.ME)
-      .then((res) => {
-        const payload = res.data?.data || res.data;
-        const profile = payload?.profile;
-        if (active && profile?.verificationStatus) {
-          setStatus(profile.verificationStatus as Status);
-        }
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, []);
+  // Shared single-flight `/auth/me` — this component and the chambers page both
+  // need `profile.verificationStatus`, and previously each fetched it itself.
+  const { profile } = useMe();
+  const status = (profile?.verificationStatus as Status | undefined) ?? null;
 
   if (!status || status === "APPROVED") return null;
 

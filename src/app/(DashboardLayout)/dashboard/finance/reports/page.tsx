@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { apiClient } from "@/lib/api-client";
 import { API_ROUTES } from "@/lib/constants";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import { useFinanceScope } from "@/hooks/useFinanceScope";
 import FinanceScopeBar from "@/components/finance/FinanceScopeBar";
 import FeatureGate from "@/components/ui/FeatureGate";
@@ -63,6 +63,18 @@ function FinanceReportsContent() {
   const summary = report?.summary;
   const hasData = (summary?.transactionCount ?? 0) > 0;
 
+  // Human-readable period for the printed document (the on-screen header is
+  // hidden while printing, so the report must identify itself).
+  const periodLabel = (() => {
+    const p = report?.period;
+    if (!p) return "";
+    if (p.period === "custom" && p.start && p.end) {
+      return `${formatDate(p.start)} – ${formatDate(p.end)}`;
+    }
+    if (p.period === "all") return "All time";
+    return p.period.charAt(0).toUpperCase() + p.period.slice(1);
+  })();
+
   const cards = [
     { title: "Total Income", value: formatCurrency(summary?.totalIncome ?? 0), icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
     { title: "Total Expense", value: formatCurrency(summary?.totalExpense ?? 0), icon: TrendingDown, color: "text-rose-600", bg: "bg-rose-50 dark:bg-rose-950/30" },
@@ -70,7 +82,19 @@ function FinanceReportsContent() {
   ];
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 pb-12">
+    <div className="mx-auto max-w-5xl space-y-6 pb-12 print:max-w-none print:pb-0">
+      {/* Print-only document header. Everything else on the page (sidebar,
+          navigation, buttons, filters) is excluded from the print output. */}
+      <div className="hidden print:mb-4 print:block">
+        <h1 className="text-xl font-bold text-black">
+          Presciya — Finance Report
+        </h1>
+        <p className="mt-1 text-xs text-black">
+          Period: {periodLabel || "All time"}
+          {scope === "all" ? " · All workspaces" : ""}
+        </p>
+      </div>
+
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between print:hidden">
         <div>
           <Link
@@ -132,7 +156,7 @@ function FinanceReportsContent() {
               return (
                 <div
                   key={c.title}
-                  className="rounded-2xl border border-outline-variant bg-surface p-5 shadow-xs"
+                  className="rounded-2xl border border-outline-variant bg-surface p-5 shadow-xs print:break-inside-avoid print:shadow-none"
                 >
                   <span className={`mb-3 inline-flex rounded-xl p-2.5 ${c.bg} ${c.color}`}>
                     <Icon size={20} />
@@ -156,7 +180,7 @@ function FinanceReportsContent() {
             ].map((group) => (
               <div
                 key={group.title}
-                className="overflow-hidden rounded-2xl border border-outline-variant bg-surface"
+                className="overflow-hidden rounded-2xl border border-outline-variant bg-surface print:break-inside-avoid print:shadow-none"
               >
                 <div className="border-b border-outline-variant px-6 py-4">
                   <h3 className="text-base font-bold text-on-surface">
@@ -168,6 +192,10 @@ function FinanceReportsContent() {
                     No data for this period.
                   </p>
                 ) : (
+                  /* Scrollable on narrow screens: the card clips its corners
+                     with `overflow-hidden`, so without this wrapper a long
+                     category name would be CUT OFF instead of scrollable. */
+                  <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <tbody>
                       {group.items!.map((c) => (
@@ -185,16 +213,17 @@ function FinanceReportsContent() {
                             {formatCurrency(c.total)}
                           </td>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            ))}
-          </div>
+                       ))}
+                     </tbody>
+                   </table>
+                   </div>
+                 )}
+               </div>
+             ))}
+           </div>
 
           {/* Time series */}
-          <div className="overflow-hidden rounded-2xl border border-outline-variant bg-surface">
+          <div className="overflow-hidden rounded-2xl border border-outline-variant bg-surface print:break-inside-avoid print:shadow-none">
             <div className="border-b border-outline-variant px-6 py-4">
               <h3 className="text-base font-bold text-on-surface">
                 Trend ({report?.period?.groupBy})
@@ -234,7 +263,7 @@ function FinanceReportsContent() {
 
           {/* Workspace summary */}
           {scope === "all" && (report?.workspaceSummary?.length || 0) > 0 && (
-            <div className="overflow-hidden rounded-2xl border border-outline-variant bg-surface">
+            <div className="overflow-hidden rounded-2xl border border-outline-variant bg-surface print:break-inside-avoid print:shadow-none">
               <div className="border-b border-outline-variant px-6 py-4">
                 <h3 className="text-base font-bold text-on-surface">
                   Workspace Summary

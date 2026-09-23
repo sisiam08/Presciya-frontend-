@@ -179,6 +179,13 @@ export default function PrescriptionsPage() {
           <Button variant="outline" size="sm" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4 mr-1" /> Refresh
           </Button>
+          {/* Saved (reusable) prescription templates — a different concept from
+              the built-in design templates in Settings. */}
+          <Link href="/dashboard/prescriptions/templates">
+            <Button variant="outline" size="sm" className="flex items-center gap-1.5">
+              <FileText size={14} /> Templates
+            </Button>
+          </Link>
           <Button onClick={() => { setEditingPrescription(null); setIsBuilderOpen(true); }} className="flex items-center gap-2">
             <Plus size={16} /> New Prescription
           </Button>

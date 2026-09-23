@@ -81,7 +81,7 @@ export const isValidBangladeshPhone = (value: string): boolean => {
 };
 
 export const BD_PHONE_MESSAGE =
-  "Enter a valid Bangladesh mobile number (e.g. 01712345678).";
+  "Enter a valid Bangladesh mobile number (e.g. 01XXXXXXXXX).";
 
 /** Backwards-compatible alias used by older call sites. */
 export const isValidPhone = isValidBangladeshPhone;

@@ -31,6 +31,29 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/**
+ * Cookie lifetime suffix for the access-token cookie.
+ *
+ * Derived from the token's OWN `exp` claim instead of a hardcoded number: the
+ * cookie used to be pinned at "12 hours", which matched neither the access-token
+ * lifetime nor the refresh-token architecture (the session is kept alive by the
+ * rotating refresh cookie, not by this one). Deriving it means the client can
+ * never grant — or claim — a lifetime different from what the server issued.
+ */
+const accessTokenCookieMaxAge = (token: unknown): string => {
+  try {
+    const encoded = String(token).split(".")[1];
+    if (!encoded) return "";
+    const base64 = encoded.replace(/-/g, "+").replace(/_/g, "/");
+    const claims = JSON.parse(typeof atob === "function" ? atob(base64) : "");
+    if (typeof claims?.exp !== "number") return "";
+    const seconds = Math.max(0, claims.exp - Math.floor(Date.now() / 1000));
+    return `; max-age=${seconds}`;
+  } catch {
+    return "";
+  }
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,11 +95,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const payload = res.data?.data || res.data;
     const accessToken = payload?.accessToken;
     const loggedUser = payload?.user;
-    const maxAge = 60 * 60 * 12; // 12 hours
     // No token is kept in localStorage — the backend already set the session
     // cookies on this response; only a non-secret marker is recorded.
     if (accessToken) {
-      document.cookie = `accessToken=${accessToken}; path=/; max-age=${maxAge}; SameSite=Lax`;
+      document.cookie = `accessToken=${accessToken}; path=/; SameSite=Lax${accessTokenCookieMaxAge(accessToken)}`;
     }
     markSessionPresent();
     setUser(loggedUser);
@@ -125,7 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const switchPayload = switchRes.data?.data || switchRes.data;
           const scopedToken = switchPayload?.accessToken;
           if (scopedToken) {
-            document.cookie = `accessToken=${scopedToken}; path=/; max-age=${maxAge}; SameSite=Lax`;
+            document.cookie = `accessToken=${scopedToken}; path=/; SameSite=Lax${accessTokenCookieMaxAge(scopedToken)}`;
           }
           markSessionPresent();
         } catch {

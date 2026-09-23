@@ -62,6 +62,16 @@ class ApiClient {
         if (workspaceScope === "all" && !activeChamberId) {
           config.headers["x-workspace-scope"] = "all";
         }
+        // Multipart uploads must let the browser set the Content-Type so it can
+        // include the multipart boundary — the JSON default would break them.
+        if (
+          typeof FormData !== "undefined" &&
+          config.data instanceof FormData
+        ) {
+          // `config.headers` is always an AxiosHeaders instance here, so this
+          // uses its typed `delete` rather than an untyped index removal.
+          config.headers.delete("Content-Type");
+        }
         return config;
       },
       (error) => Promise.reject(error),
@@ -123,6 +133,18 @@ class ApiClient {
 
   public async delete<T>(url: string, config = {}) {
     return this.client.delete<T>(url, config);
+  }
+
+  /**
+   * Multipart upload. Uses the existing axios instance (so workspace headers
+   * and the refresh/retry interceptor still apply) with a longer timeout than
+   * the default JSON requests.
+   */
+  public async upload<T>(url: string, formData: FormData, config = {}) {
+    return this.client.post<T>(url, formData, {
+      ...config,
+      timeout: 60000,
+    });
   }
 }
 

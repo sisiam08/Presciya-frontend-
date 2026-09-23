@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   User,
   Shield,
@@ -136,6 +136,8 @@ export default function ProfilePage() {
   const [editingDoctor, setEditingDoctor] = useState(false);
   const [saving, setSaving] = useState(false);
   const [submittingVerification, setSubmittingVerification] = useState(false);
+  const [uploadingSignature, setUploadingSignature] = useState(false);
+  const signatureInputRef = useRef<HTMLInputElement>(null);
 
   // Editable fields
   const [profileForm, setProfileForm] = useState({ name: "", email: "", phone: "" });
@@ -260,6 +262,61 @@ export default function ProfilePage() {
     }
   };
 
+  // Digital signature upload. This uses the EXISTING multipart doctor-profile
+  // endpoint (which resizes the image, stores it in Cloudinary, replaces the old
+  // signature and persists `signatureUrl`) rather than a new upload path.
+  const handleSignatureUpload = async (file: File | undefined) => {
+    if (!file) return;
+
+    const ACCEPTED = ["image/jpeg", "image/png", "image/webp"];
+    if (!ACCEPTED.includes(file.type)) {
+      toast({
+        title: "Unsupported file",
+        description: "Please choose a JPEG, PNG or WebP image.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Image too large",
+        description: "The maximum size is 5 MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingSignature(true);
+    try {
+      const formData = new FormData();
+      formData.append("signature", file);
+      const res = await apiClient.patch<{ data: DoctorProfile }>(
+        API_ROUTES.DOCTOR.UPDATE_PROFILE,
+        formData,
+        { timeout: 60000 },
+      );
+      if (res.data?.data) {
+        setDoctor(res.data.data);
+      } else {
+        const fresh = await apiClient.get<any>(API_ROUTES.DOCTOR.PROFILE);
+        setDoctor(fresh.data?.data || fresh.data);
+      }
+      toast({
+        title: "Signature Uploaded",
+        description: "Your digital signature has been updated.",
+      });
+    } catch (e: any) {
+      toast({
+        title: "Upload Failed",
+        description: e?.response?.data?.message || "Failed to upload signature.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingSignature(false);
+      if (signatureInputRef.current) signatureInputRef.current.value = "";
+    }
+  };
+
   const submitVerification = async () => {
     setSubmittingVerification(true);
     try {
@@ -352,7 +409,7 @@ export default function ProfilePage() {
             name="phone"
             editing={editingProfile}
             onChange={updateProfile}
-            placeholder="+880 1XXXXXXXXX"
+                        placeholder="01XXXXXXXXX"
             error={profileErrors.phone}
           />
           <div>
@@ -461,10 +518,32 @@ export default function ProfilePage() {
               </div>
             )}
             {editingDoctor && (
-              <Button variant="outline" size="sm">
-                <Upload className="h-4 w-4 mr-1" />
-                Upload Signature
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => signatureInputRef.current?.click()}
+                  disabled={uploadingSignature}
+                >
+                  {uploadingSignature ? (
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4 mr-1" />
+                  )}
+                  {uploadingSignature
+                    ? "Uploading…"
+                    : doctor?.signatureUrl
+                      ? "Replace Signature"
+                      : "Upload Signature"}
+                </Button>
+                <input
+                  ref={signatureInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => handleSignatureUpload(e.target.files?.[0])}
+                />
+              </>
             )}
           </div>
         </div>
