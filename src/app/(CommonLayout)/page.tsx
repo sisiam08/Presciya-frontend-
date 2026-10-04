@@ -50,10 +50,10 @@ export default function LandingPage() {
   return (
     <div className="bg-background text-on-background transition-colors duration-300">
       {/* Hero Section */}
-      <section className="relative overflow-hidden hero-mesh min-h-[90vh] flex items-center py-20">
+      <section className="relative overflow-hidden hero-mesh flex items-center py-20 lg:py-28">
         <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop grid grid-cols-1 lg:grid-cols-2 gap-stack-lg items-center">
-          <div className="z-10 text-center lg:text-left space-y-stack-md reveal-section">
-            <div className="inline-flex items-center gap-2 bg-primary-fixed text-on-primary-fixed px-4 py-1.5 rounded-full text-label-sm font-label-sm mb-stack-sm">
+          <div className="z-10 text-center lg:text-left reveal-section">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary-fixed text-on-primary-fixed px-4 py-1.5 text-label-sm font-label-sm mb-6">
               <BadgeCheck size={16} className="text-primary" />
               <span>NEW: MULTI-CHAMBER CLOUD SYNC</span>
             </div>
@@ -61,10 +61,10 @@ export default function LandingPage() {
               Precision Medicine <br className="hidden lg:block" />{" "}
               <span className="text-primary text-glow">Starts Here</span>
             </h1>
-            <p className="font-body-lg text-body-lg text-on-surface-variant dark:text-surface-variant max-w-xl mx-auto lg:mx-0">
+            <p className="font-body-lg text-body-lg text-on-surface-variant max-w-xl mx-auto lg:mx-0 mt-6">
               The ultimate high-performance digital prescription suite for the modern Bangladeshi doctor. Multi-chamber support, AI-driven autocomplete, and instant professional PDF generation.
             </p>
-            <div className="flex flex-col sm:flex-row gap-stack-md pt-stack-sm justify-center lg:justify-start">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap items-center justify-center lg:justify-start gap-4 mt-8">
               <Link href="/signup">
                 <Button size="lg" className="h-14 px-8 rounded-xl text-base font-semibold shadow-md bg-primary text-on-primary hover:opacity-90 active:scale-[0.98] w-full sm:w-auto">
                   Start Free Trial
@@ -81,22 +81,22 @@ export default function LandingPage() {
                 </Button>
               </Link>
             </div>
-            <div className="flex items-center gap-stack-md pt-stack-md justify-center lg:justify-start">
-              <div className="flex -space-x-2">
+            <div className="flex items-center justify-center lg:justify-start gap-3 mt-10">
+              <div className="flex -space-x-3">
                 <img
-                  className="w-10 h-10 rounded-full border-2 border-surface shadow-sm"
+                  className="w-10 h-10 rounded-full ring-2 ring-background shadow-sm"
                   alt="Doctor 1"
                   src="https://lh3.googleusercontent.com/aida-public/AB6AXuDfT3GyKRR-BL1ueiDFVToF1gMB6vMkS3T5kJSGgHztUAX2eh0WLsU4J4TezK3JpC1xgPUvCpjh3loK4hMjTyVRsNf2mr7EneKWnYm5rkOufXeqP5QH3ho98yLescLOvbV8ddgvQEHX_6SGiS_1UhXRwCDPL62Qs9PHDPUcm6ehku-GnA2QHEzFzV5OnY-0w3tmWke-LAuadGMOhoUHKwlKvPeyoB67CtCsRPh_dSyQTMY03VJwo0pXJWv9wYWG3aZGw_W6EHTFlV-p"
-                />
+                  />
                 <img
-                  className="w-10 h-10 rounded-full border-2 border-surface shadow-sm"
+                  className="w-10 h-10 rounded-full ring-2 ring-background shadow-sm"
                   alt="Doctor 2"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuAZegUlAuxoYHVBYQK3C2xpwvkItUap_12tIrM0CzwXMXbArUVgVQt0C7IJUYwD9edtstRT1NMCL0_UpblPJ2vMPFg10mJ8GUIIwFZGDz2tQ7R1t0Lxgsm7ELNO6HhJSNQsvV5Sc4Gvtj0_taXicZJsh5zzTBW9O9uipTT7K-olsTX728-R9hl3k0eEKR-tS3NQ0CJt8AXdJD7FiciSDFAZlAhHpjohTL0MAD82Q209ddrZM_UvlH-eeXjQTTcJoHhBAOhwtAZ4Zumj"
-                />
-                <img
-                  className="w-10 h-10 rounded-full border-2 border-surface shadow-sm"
-                  alt="Doctor 3"
                   src="https://lh3.googleusercontent.com/aida-public/AB6AXuCOp_ootyzOuF4EUhb_2UKfrIF54DNw-RjFo29SfAuo8pF5p72opIFv71gGyWE3edTSHP8OKMbFhGjSSVWi3MYzJxeLR3c1pSN5XAlWvFCGIAJWCMnAt8dQJeHN_DGhSSZDqiF4DB7gpCRs1IFrEXBy4P9gpJzs4rVa1DvLDleFfs_cYgWCUJ_mlizEX63D4609RZo4eyXHJoDZKPsJcfkVANBUolS2DR_9y_4HCokOBge9lJzX2NVnoDri1XL0hPoa0gt67lP5Jscr"
+                  />
+                <img
+                  className="w-10 h-10 rounded-full ring-2 ring-background shadow-sm"
+                  alt="Doctor 3"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDfT3GyKRR-BL1ueiDFVToF1gMB6vMkS3T5kJSGgHztUAX2eh0WLsU4J4TezK3JpC1xgPUvCpjh3loK4hMjTyVRsNf2mr7EneKWnYm5rkOufXeqP5QH3ho98yLescLOvbV8ddgvQEHX_6SGiS_1UhXRwCDPL62Qs9PHDPUcm6ehku-GnA2QHEzFzV5OnY-0w3tmWke-LAuadGMOhoUHKwlKvPeyoB67CtCsRPh_dSyQTMY03VJwo0pXJWv9wYWG3aZGw_W6EHTFlV-p"
                 />
               </div>
               <p className="text-label-md font-label-md text-on-surface-variant">
@@ -329,7 +329,7 @@ export default function LandingPage() {
           <p className="font-body-lg text-body-lg text-on-surface-variant mb-stack-lg relative z-10">
             Join thousands of healthcare professionals who trust Presciya for clinical excellence.
           </p>
-          <div className="flex flex-col sm:flex-row gap-stack-md justify-center relative z-10 max-w-md mx-auto">
+          <div className="flex flex-col sm:flex-row gap-stack-md justify-center relative z-10 max-w-lg mx-auto">
             <Link href="/signup" className="flex-1">
               <Button size="lg" className="w-full h-14 bg-primary text-on-primary font-bold shadow-lg shadow-primary/20 rounded-full hover:opacity-90 transition-all">
                 Create Free Account

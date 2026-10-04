@@ -8,7 +8,7 @@ export default function CommonLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground transition-colors duration-300">
+    <div className="min-h-screen flex flex-col bg-background text-on-background transition-colors duration-300">
       <Navbar />
       <main className="flex-1 pt-20">{children}</main>
       <Footer />

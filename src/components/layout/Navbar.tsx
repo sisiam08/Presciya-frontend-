@@ -22,7 +22,7 @@ export default function Navbar() {
 
   return (
     <nav className="fixed top-0 w-full z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-gray-200 dark:border-slate-800 shadow-xs h-20 flex items-center transition-colors duration-300">
-      <div className="flex justify-between items-center w-full px-4 md:px-8 max-w-7xl mx-auto">
+      <div className="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
         {/* Logo */}
         <Link href="/" className="text-2xl font-black text-primary dark:text-blue-400 tracking-tighter hover:opacity-90 transition-opacity">
           Presciya

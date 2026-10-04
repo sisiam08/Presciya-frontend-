@@ -50,6 +50,23 @@
   
   /* `--font-inter` is provided by next/font in app/layout.tsx. */
   --font-sans: var(--font-inter), "system-ui", "sans-serif";
+
+  /* ── Shared page-container + vertical-rhythm scale ─────────────────────────
+   * Backs the `max-w-container-max`, `px-margin-*`, `*-stack-*` and
+   * `space-y-stack-*` utilities used by the public pages (landing, auth).
+   * The values intentionally match the Navbar/Footer container
+   * (`max-w-7xl mx-auto px-4 md:px-8`) so every page edge lines up.
+   * This is the single spacing convention for the app — see AI_CONTEXT §14. */
+  --spacing-margin-mobile: 1rem;  /* = px-4 */
+  --spacing-margin-desktop: 2rem; /* = px-8 */
+  --spacing-stack-sm: 0.5rem;
+  --spacing-stack-md: 1rem;
+  --spacing-stack-lg: 2rem;
+
+  /* Material-style fixed surface tones (badges / decorative accents). */
+  --color-primary-fixed: var(--primary-fixed);
+  --color-on-primary-fixed: var(--on-primary-fixed);
+  --color-secondary-fixed: var(--secondary-fixed);
 }
 
 :root {
@@ -92,6 +109,11 @@
   
   --outline: #717786;
   --outline-variant: #c1c6d7;
+
+  /* Fixed-tone accents — light mode */
+  --primary-fixed: #d8e2ff;
+  --on-primary-fixed: #001a41;
+  --secondary-fixed: #89f5e7;
 }
 
 .dark {
@@ -134,6 +156,11 @@
   
   --outline: #8b949e;
   --outline-variant: #30363d;
+
+  /* Fixed-tone accents — dark mode */
+  --primary-fixed: #004493;
+  --on-primary-fixed: #d8e2ff;
+  --secondary-fixed: #005049;
 }
 
 /* Interactive affordance — decided in ONE place.
@@ -163,46 +190,60 @@ body {
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* Custom design system typography */
-.text-display-lg {
+/* Shared page container width — matches the Navbar/Footer (`max-w-7xl`). */
+@utility max-w-container-max {
+  max-width: 80rem;
+}
+
+/* Custom design system typography — defined as `@utility` so responsive
+ * variants (`md:text-display-lg`, …) actually compile. A plain `.class` in
+ * globals.css is invisible to Tailwind's variant engine. */
+@utility text-display-lg {
   font-family: var(--font-sans);
   font-size: 48px;
   font-weight: 700;
   line-height: 56px;
   letter-spacing: -0.02em;
 }
-.text-headline-lg {
+@utility text-display-lg-mobile {
+  font-family: var(--font-sans);
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 40px;
+  letter-spacing: -0.02em;
+}
+@utility text-headline-lg {
   font-family: var(--font-sans);
   font-size: 32px;
   font-weight: 600;
   line-height: 40px;
   letter-spacing: -0.01em;
 }
-.text-headline-md {
+@utility text-headline-md {
   font-family: var(--font-sans);
   font-size: 24px;
   font-weight: 600;
   line-height: 32px;
 }
-.text-body-lg {
+@utility text-body-lg {
   font-family: var(--font-sans);
   font-size: 18px;
   font-weight: 400;
   line-height: 28px;
 }
-.text-body-md {
+@utility text-body-md {
   font-family: var(--font-sans);
   font-size: 16px;
   font-weight: 400;
   line-height: 24px;
 }
-.text-label-md {
+@utility text-label-md {
   font-family: var(--font-sans);
   font-size: 14px;
   font-weight: 500;
   line-height: 20px;
 }
-.text-label-sm {
+@utility text-label-sm {
   font-family: var(--font-sans);
   font-size: 12px;
   font-weight: 600;
