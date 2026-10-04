@@ -44,9 +44,9 @@ export default function PrescriptionsPage() {
   const { success, error: showError } = useNotification();
   const confirm = useConfirm();
 
-  // Dashboard → "New Prescription" carries ?new=1 so the builder opens on
-  // arrival. The intent is consumed once (and stripped from the URL) so a
-  // refresh does not reopen the form.
+  
+  
+  
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
@@ -57,17 +57,17 @@ export default function PrescriptionsPage() {
     }
   }, []);
 
-  // Load prescriptions from backend
+  
   const { data: prescriptionsData, loading, refetch } = useQuery<any>(
     API_ROUTES.PRESCRIPTIONS.LIST
   );
 
-  // Refetch when the operating chamber changes so the previous chamber's
-  // prescriptions are never shown.
+  
+  
   const activeChamberId = useActiveChamber();
   useEffect(() => {
     void refetch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [activeChamberId]);
 
   const rawPrescriptions: any[] = prescriptionsData?.data || prescriptionsData || [];
@@ -167,7 +167,7 @@ export default function PrescriptionsPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-12">
-      {/* Header */}
+      {}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-on-surface">Prescriptions</h1>
@@ -179,8 +179,7 @@ export default function PrescriptionsPage() {
           <Button variant="outline" size="sm" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4 mr-1" /> Refresh
           </Button>
-          {/* Saved (reusable) prescription templates — a different concept from
-              the built-in design templates in Settings. */}
+          {}
           <Link href="/dashboard/prescriptions/templates">
             <Button variant="outline" size="sm" className="flex items-center gap-1.5">
               <FileText size={14} /> Templates
@@ -192,7 +191,7 @@ export default function PrescriptionsPage() {
         </div>
       </div>
 
-      {/* KPI Overview Grid (Bento UI) */}
+      {}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map((kpi, idx) => {
           const Icon = kpi.icon;
@@ -222,7 +221,7 @@ export default function PrescriptionsPage() {
         })}
       </div>
 
-      {/* Search & Filter */}
+      {}
       <div className="bg-surface p-4 rounded-2xl border border-outline-variant flex flex-col md:flex-row gap-3 items-center justify-between">
         <div className="relative w-full md:flex-1">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant h-4 w-4" />
@@ -254,7 +253,7 @@ export default function PrescriptionsPage() {
         </div>
       </div>
 
-      {/* Prescription Cards Grid */}
+      {}
       {loading ? (
         <div className="flex justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -335,7 +334,7 @@ export default function PrescriptionsPage() {
         </div>
       )}
 
-      {/* Detail Modal */}
+      {}
       <AnimatePresence>
         {selectedPrescription && (
           <PrescriptionPreview
@@ -349,7 +348,7 @@ export default function PrescriptionsPage() {
         )}
       </AnimatePresence>
 
-      {/* Canonical A4 preview / print */}
+      {}
       <AnimatePresence>
         {printPrescription && (
           <PrescriptionPrintModal
@@ -360,7 +359,7 @@ export default function PrescriptionsPage() {
         )}
       </AnimatePresence>
 
-      {/* Builder Modal */}
+      {}
       <AnimatePresence>
         {isBuilderOpen && (
           <PrescriptionBuilder

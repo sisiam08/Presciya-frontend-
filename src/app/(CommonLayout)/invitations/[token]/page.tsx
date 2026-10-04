@@ -35,12 +35,7 @@ interface InvitationInfo {
   expiresAt?: string;
 }
 
-/**
- * Handles the workspace invitation link sent by email
- * (http://.../invitations/<token>). If the invitee is not signed in they are
- * asked to log in first (returning here afterwards); once signed in they can
- * accept or decline the invitation.
- */
+
 export default function AcceptInvitationPage() {
   const params = useParams<{ token: string }>();
   const router = useRouter();
@@ -57,7 +52,7 @@ export default function AcceptInvitationPage() {
   useEffect(() => {
     if (!token) return;
 
-    // A non-secret marker only — the API still decides what the user may do.
+    
     const isAuthed = hasSessionHint();
     if (!isAuthed) {
       setStatus("unauthenticated");

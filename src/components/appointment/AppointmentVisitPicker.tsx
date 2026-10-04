@@ -13,7 +13,7 @@ interface AppointmentVisitPickerProps {
   workspaceId: string;
   patientId: string;
   appointmentId: string;
-  /** When true, an eligible visit is required to prescribe. */
+  
   required?: boolean;
   onSelect: (payload: {
     patientId: string;
@@ -33,12 +33,7 @@ interface PatientRow {
 
 const eligibleStatuses = ["PAID", "FREE"];
 
-/**
- * Patient / visit finder for the prescription flow in CHAMBER and INSTITUTION
- * context. Shows today's appointments (serial / phone / name) and existing
- * patients, and lets the doctor create a follow-up visit when there is no
- * appointment today. Only PAID or FREE visits make a prescription eligible.
- */
+
 export default function AppointmentVisitPicker({
   workspaceId,
   patientId,
@@ -53,7 +48,7 @@ export default function AppointmentVisitPicker({
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
 
-  // Follow-up creation panel
+  
   const [followUpFor, setFollowUpFor] = useState<PatientRow | null>(null);
   const [creating, setCreating] = useState(false);
   const creatingRef = useRef(false);
@@ -82,7 +77,7 @@ export default function AppointmentVisitPicker({
     };
   }, [loadToday]);
 
-  // Patient search (existing patients).
+  
   useEffect(() => {
     if (!query.trim()) {
       setPatients([]);
@@ -169,7 +164,7 @@ export default function AppointmentVisitPicker({
         </div>
       </div>
 
-      {/* Selected visit */}
+      {}
       {appointmentId && selectedAppt && (
         <div
           className={`rounded-lg border px-3 py-2 text-xs ${
@@ -191,7 +186,7 @@ export default function AppointmentVisitPicker({
         </div>
       )}
 
-      {/* Today's appointments */}
+      {}
       <div>
         <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
           Today&apos;s Appointments
@@ -242,7 +237,7 @@ export default function AppointmentVisitPicker({
         )}
       </div>
 
-      {/* Existing patients (follow-up) */}
+      {}
       {query.trim() && (
         <div>
           <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">

@@ -4,11 +4,7 @@ import { useEffect } from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-/**
- * Error boundary for the dashboard route group. Scoped here (rather than only at
- * the root) so a failure inside one dashboard page can be retried without
- * tearing down the whole application shell.
- */
+
 export default function DashboardError({
   error,
   reset,

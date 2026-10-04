@@ -33,7 +33,7 @@ export default function AdminMedicinesPage() {
     setLoading(true);
     try {
       const params = new URLSearchParams({ page: page.toString(), limit: "25", ...(search && { q: search }) });
-      // Admin-scoped medicine catalog: { data: Medicine[], pagination: {...} }
+      
       const res = await apiClient.get<any>(`/admin/medicines?${params}`);
       const payload = res.data ?? {};
       const items = payload?.data ?? (Array.isArray(payload) ? payload : []);
@@ -87,7 +87,7 @@ export default function AdminMedicinesPage() {
         </div>
       </div>
 
-      {/* New Medicine Form */}
+      {}
       {showNew && (
         <div className="rounded-2xl border border-primary/30 bg-white dark:bg-slate-900 p-6 space-y-4">
           <div className="flex items-center justify-between">
@@ -132,13 +132,13 @@ export default function AdminMedicinesPage() {
         </div>
       )}
 
-      {/* Search */}
+      {}
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
         <Input className="pl-9" placeholder="Search by brand name or generic..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
       </div>
 
-      {/* Table */}
+      {}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
         {loading ? (
           <div className="p-6 space-y-2">
@@ -181,7 +181,7 @@ export default function AdminMedicinesPage() {
         )}
       </div>
 
-      {/* Pagination */}
+      {}
       {totalPages > 1 && (
         <div className="flex justify-between items-center">
           <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(p - 1, 1))} disabled={page === 1}>

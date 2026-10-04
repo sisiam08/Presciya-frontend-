@@ -46,8 +46,8 @@ export default function AdminVerificationsPage() {
 
   useEffect(() => { load(); }, []);
 
-  // Open the review panel and load the full request detail (which carries the
-  // doctor profile incl. BMDC number).
+  
+  
   const openReview = async (req: VerificationRequest) => {
     setSelectedReq(req);
     setDetail(null);
@@ -66,7 +66,7 @@ export default function AdminVerificationsPage() {
     setDetail(null);
   };
 
-  // BMDC registration number of the applicant (doctor profiles only).
+  
   const submittedData: any =
     detail?.submittedData ?? selectedReq?.submittedData ?? {};
   const bmdcNumber: string =
@@ -77,12 +77,12 @@ export default function AdminVerificationsPage() {
     "";
   const hasBmdc = Boolean(bmdcNumber);
 
-  // The BMDC portal's input only accepts the 6-digit registration number
-  // (without the letter prefix), so copy just the digits (last 6).
+  
+  
   const bmdcDigits = bmdcNumber.replace(/\D/g, "").slice(-6);
 
-  // Copy the BMDC digits to the clipboard and open the official BMDC
-  // verification portal in a new tab.
+  
+  
   const verifyBmdc = async () => {
     if (!bmdcNumber) return;
     const copyValue = bmdcDigits || bmdcNumber;
@@ -138,7 +138,7 @@ export default function AdminVerificationsPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-12">
-      {/* Header */}
+      {}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100">
@@ -153,7 +153,7 @@ export default function AdminVerificationsPage() {
         </Button>
       </div>
 
-      {/* Bento KPI Summary Row */}
+      {}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 flex items-center gap-4 shadow-xs">
           <div className="h-11 w-11 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400 flex items-center justify-center">
@@ -196,7 +196,7 @@ export default function AdminVerificationsPage() {
         </div>
       </div>
 
-      {/* Filter Tabs */}
+      {}
       <div className="flex gap-1 overflow-x-auto bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl">
         {TABS.map((t) => (
           <button
@@ -218,7 +218,7 @@ export default function AdminVerificationsPage() {
         ))}
       </div>
 
-      {/* Detail Review Modal Drawer */}
+      {}
       {selectedReq && (
         <div className="rounded-2xl border border-primary/30 bg-white dark:bg-slate-900 p-6 space-y-5 shadow-lg">
           <div className="flex items-start justify-between gap-4">
@@ -312,7 +312,7 @@ export default function AdminVerificationsPage() {
         </div>
       )}
 
-      {/* Table Card */}
+      {}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-xs">
         {loading ? (
           <div className="p-6 space-y-3">

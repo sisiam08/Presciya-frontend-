@@ -1,5 +1,5 @@
 "use client";
-// src/components/ui/use-toast.ts
+
 import { useState, useEffect } from "react";
 
 export interface ToastProps {

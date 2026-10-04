@@ -19,8 +19,8 @@ export default function ResetPasswordPage() {
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Read the token from the query string without useSearchParams (avoids the
-  // Suspense boundary requirement for a client page).
+  
+  
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setToken(params.get("token") || "");

@@ -57,8 +57,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
           <div
             role="alertdialog"
             aria-modal="true"
-            /* `max-h` + scroll so a long message can never push the dialog
-               beyond a short (landscape phone) viewport. */
+            
             className="relative z-10 max-h-[85vh] w-full max-w-md overflow-y-auto rounded-2xl border border-outline-variant bg-surface p-6 shadow-2xl"
           >
             <div className="flex items-start gap-4">

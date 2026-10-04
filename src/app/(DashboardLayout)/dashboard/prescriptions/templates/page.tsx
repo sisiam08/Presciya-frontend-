@@ -24,21 +24,7 @@ import FeatureGate from "@/components/ui/FeatureGate";
 import { useActiveChamber } from "@/hooks/useActiveChamber";
 import { formatDateTime } from "@/lib/utils";
 
-/**
- * Saved prescription templates.
- *
- * These are the doctor's reusable prescriptions (`PrescriptionTemplate`), a
- * different concept from the built-in DESIGN templates (Classic / Modern
- * Clinical / …) selected in Settings. The backend already owns this model and
- * scopes every request to the ACTIVE WORKSPACE (`where: { workspaceId }`), and
- * every route is gated by the `prescription_templates` entitlement — its OWN
- * entitlement, separate from the built-in DESIGN templates
- * (`prescription_design_templates`) and from the language
- * (`prescription_language`).
- *
- * The builder itself can apply a template to a new prescription and save the
- * current medicines as a new template.
- */
+
 export default function PrescriptionTemplatesPage() {
   return (
     <FeatureGate feature="prescription_templates" label="Prescription templates">
@@ -61,12 +47,12 @@ function TemplatesContent() {
   const { success, error: showError } = useNotification();
   const confirm = useConfirm();
   const activeChamberId = useActiveChamber();
-  // ROOT CAUSE of the duplicate toast: the FeatureGate renders its children
-  // (blurred) even when the plan lacks the feature, so this page's mount effect
-  // still fired the list request, the API answered 402, and the catch showed an
-  // "Error" toast on top of the restriction card. Skipping the request when the
-  // page is already known to be restricted removes the toast without weakening
-  // the entitlement (the backend still enforces it).
+  
+  
+  
+  
+  
+  
   const { isAllowed } = useEntitlements();
   const canUseTemplates = isAllowed("prescription_templates");
 
@@ -76,8 +62,8 @@ function TemplatesContent() {
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
-    // Restricted page: the restriction card already explains the state, so no
-    // request is made and no error toast is produced.
+    
+    
     if (!canUseTemplates) {
       setTemplates([]);
       setLoading(false);
@@ -93,11 +79,11 @@ function TemplatesContent() {
     } finally {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [canUseTemplates]);
 
-  // Templates are workspace-scoped on the backend, so a chamber change must
-  // refetch — otherwise the previous scope's templates would linger.
+  
+  
   useEffect(() => {
     void load();
   }, [load, activeChamberId]);
@@ -140,7 +126,7 @@ function TemplatesContent() {
       success("Template updated");
       setEditing(null);
     } catch (e: any) {
-      // Never silently create/replace: surface the failure.
+      
       showError(e?.response?.data?.message || "Failed to update template");
     } finally {
       setSaving(false);
@@ -170,8 +156,7 @@ function TemplatesContent() {
           <Button variant="outline" size="sm" onClick={load}>
             <RefreshCw className="mr-1 h-4 w-4" /> Refresh
           </Button>
-          {/* Creating a template needs medicines, so it happens in the builder
-              (where the medicine editor lives) rather than duplicating it here. */}
+          {}
           <Link
             href="/dashboard/prescriptions?new=1"
             className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-on-primary transition-colors hover:bg-primary-container hover:text-on-primary-container h-8"

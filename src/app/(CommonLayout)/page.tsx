@@ -1,4 +1,4 @@
-// src/app/(CommonLayout)/page.tsx
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -21,7 +21,7 @@ export default function LandingPage() {
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   useEffect(() => {
-    // Reveal animation intersection observer
+    
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -49,7 +49,7 @@ export default function LandingPage() {
 
   return (
     <div className="bg-background text-on-background transition-colors duration-300">
-      {/* Hero Section */}
+      {}
       <section className="relative overflow-hidden hero-mesh flex items-center py-20 lg:py-28">
         <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop grid grid-cols-1 lg:grid-cols-2 gap-stack-lg items-center">
           <div className="z-10 text-center lg:text-left reveal-section">
@@ -115,7 +115,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Trusted By Section */}
+      {}
       <section className="py-stack-lg bg-surface-container-low/50 border-y border-outline-variant/20">
         <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop text-center">
           <p className="text-label-sm font-label-sm text-outline uppercase tracking-widest mb-stack-md">
@@ -131,7 +131,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Feature Showcase (Bento Grid) */}
+      {}
       <section id="features" className="py-24 scroll-mt-24">
         <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop">
           <div className="text-center max-w-2xl mx-auto mb-16 reveal-section">
@@ -143,7 +143,7 @@ export default function LandingPage() {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-12 gap-stack-md">
-            {/* Analytics Card */}
+            {}
             <div className="md:col-span-8 glass-card p-8 rounded-2xl flex flex-col justify-between group overflow-hidden border border-outline-variant/30 reveal-section">
               <div>
                 <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary mb-stack-sm">
@@ -173,7 +173,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Autocomplete Card */}
+            {}
             <div className="md:col-span-4 bg-tertiary text-on-tertiary p-8 rounded-2xl flex flex-col justify-between hover:scale-[0.98] transition-transform reveal-section">
               <div>
                 <div className="w-12 h-12 bg-on-tertiary/20 rounded-xl flex items-center justify-center mb-stack-sm text-on-tertiary">
@@ -197,7 +197,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Multi-Chamber */}
+            {}
             <div className="md:col-span-4 glass-card p-8 rounded-2xl border-l-4 border-secondary border-y border-r border-outline-variant/30 reveal-section">
               <div className="w-12 h-12 bg-secondary/10 rounded-xl flex items-center justify-center text-secondary mb-4">
                 <Building2 size={24} />
@@ -208,7 +208,7 @@ export default function LandingPage() {
               </p>
             </div>
 
-            {/* PDF Generation */}
+            {}
             <div className="md:col-span-4 glass-card p-8 rounded-2xl border border-outline-variant/30 reveal-section">
               <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary mb-4">
                 <FileText size={24} />
@@ -219,7 +219,7 @@ export default function LandingPage() {
               </p>
             </div>
 
-            {/* Offline Mode */}
+            {}
             <div className="md:col-span-4 glass-card p-8 rounded-2xl border border-outline-variant/30 reveal-section">
               <div className="w-12 h-12 bg-error/10 rounded-xl flex items-center justify-center text-error mb-4">
                 <WifiOff size={24} />
@@ -233,7 +233,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Workflow Timeline */}
+      {}
       <section id="workflow" className="py-24 bg-surface-container-highest/20 overflow-hidden scroll-mt-24">
         <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop">
           <div className="text-center mb-16 reveal-section">
@@ -245,10 +245,10 @@ export default function LandingPage() {
             </p>
           </div>
           <div className="relative">
-            {/* Connecting Line */}
+            {}
             <div className="absolute left-4 md:left-1/2 top-0 bottom-0 w-1 timeline-gradient hidden md:block"></div>
             <div className="space-y-16">
-              {/* Step 1 */}
+              {}
               <div className="relative flex flex-col md:flex-row items-center justify-between reveal-section">
                 <div className="md:w-[45%] mb-stack-sm md:mb-0 text-left md:text-right md:pr-10">
                   <h4 className="font-headline-md text-headline-md text-on-surface">Patient Triage</h4>
@@ -270,7 +270,7 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Step 2 */}
+              {}
               <div className="relative flex flex-col md:flex-row-reverse items-center justify-between reveal-section">
                 <div className="md:w-[45%] mb-stack-sm md:mb-0 text-left md:pl-10">
                   <h4 className="font-headline-md text-headline-md text-on-surface">Consultation</h4>
@@ -292,7 +292,7 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Step 3 */}
+              {}
               <div className="relative flex flex-col md:flex-row items-center justify-between reveal-section">
                 <div className="md:w-[45%] mb-stack-sm md:mb-0 text-left md:text-right md:pr-10">
                   <h4 className="font-headline-md text-headline-md text-on-surface">Print &amp; Sync</h4>
@@ -318,7 +318,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Final CTA Section */}
+      {}
       <section id="pricing" className="py-24 px-margin-mobile scroll-mt-24">
         <div className="max-w-4xl mx-auto glass-card p-12 rounded-[2rem] text-center shadow-xl border-2 border-primary/10 relative overflow-hidden reveal-section">
           <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[80px] -mr-32 -mt-32"></div>

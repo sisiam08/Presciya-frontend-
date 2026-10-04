@@ -7,7 +7,7 @@ import { apiClient } from "@/lib/api-client";
 import { API_ROUTES } from "@/lib/constants";
 import { formatDateTime } from "@/lib/utils";
 
-// Chart.js imports
+
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -95,7 +95,7 @@ export default function AdminSubscriptionsPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-12">
-      {/* Header */}
+      {}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100">
@@ -110,7 +110,7 @@ export default function AdminSubscriptionsPage() {
         </Button>
       </div>
 
-      {/* Bento KPI Summary Row */}
+      {}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 flex items-center gap-4 shadow-xs">
           <div className="h-11 w-11 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-600 dark:text-purple-400 flex items-center justify-center">
@@ -155,7 +155,7 @@ export default function AdminSubscriptionsPage() {
         </div>
       </div>
 
-      {/* Revenue Trend Visual Diagram */}
+      {}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xs">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -174,7 +174,7 @@ export default function AdminSubscriptionsPage() {
         </div>
       </div>
 
-      {/* Recent Subscription Changes Audit Trail */}
+      {}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-xs">
         <div className="flex items-center justify-between gap-4 px-6 py-4 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-2">

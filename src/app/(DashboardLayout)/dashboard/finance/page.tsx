@@ -103,8 +103,8 @@ function FinanceDashboardContent() {
           withScope(`${API_ROUTES.FINANCE.REPORTS}?${periodQuery()}`),
         ),
         apiClient.get<any>(
-          // Recent transactions must honour the SAME scope + period as the
-          // statistics above, otherwise the list and the totals disagree.
+          
+          
           withScope(
             `${API_ROUTES.FINANCE.TRANSACTIONS}?limit=5&page=1&${periodQuery()}`,
           ),
@@ -119,7 +119,7 @@ function FinanceDashboardContent() {
     } finally {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [scope, scopeLoading, period, dateFrom, dateTo, withScope]);
 
   useEffect(() => setMounted(true), []);
@@ -224,7 +224,7 @@ function FinanceDashboardContent() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 pb-12">
-      {/* Header */}
+      {}
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-on-surface">Finance</h1>
@@ -239,7 +239,7 @@ function FinanceDashboardContent() {
         </div>
       </div>
 
-      {/* Quick links */}
+      {}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {[
           { href: "/dashboard/finance/transactions", label: "Transactions", icon: Receipt },
@@ -284,7 +284,7 @@ function FinanceDashboardContent() {
         </div>
       ) : (
         <>
-          {/* Summary cards */}
+          {}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {cards.map((c) => {
               const Icon = c.icon;
@@ -324,7 +324,7 @@ function FinanceDashboardContent() {
             </div>
           ) : (
             <>
-              {/* Income vs Expense over time */}
+              {}
               <div className="rounded-2xl border border-outline-variant bg-surface p-6">
                 <div className="mb-4 flex items-center justify-between">
                   <div>
@@ -357,7 +357,7 @@ function FinanceDashboardContent() {
                 </div>
               </div>
 
-              {/* Category breakdown */}
+              {}
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <div className="rounded-2xl border border-outline-variant bg-surface p-6">
                   <h3 className="mb-4 text-base font-bold text-on-surface">
@@ -399,7 +399,7 @@ function FinanceDashboardContent() {
                 </div>
               </div>
 
-              {/* Workspace summary (all workspaces) */}
+              {}
               {scope === "all" && (report?.workspaceSummary?.length || 0) > 0 && (
                 <div className="overflow-hidden rounded-2xl border border-outline-variant bg-surface">
                   <div className="border-b border-outline-variant px-6 py-4">
@@ -442,7 +442,7 @@ function FinanceDashboardContent() {
             </>
           )}
 
-          {/* Recent transactions */}
+          {}
           <div className="overflow-hidden rounded-2xl border border-outline-variant bg-surface">
             <div className="flex items-center justify-between border-b border-outline-variant px-6 py-4">
               <h3 className="text-base font-bold text-on-surface">

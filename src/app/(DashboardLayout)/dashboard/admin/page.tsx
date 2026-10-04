@@ -27,7 +27,7 @@ import { apiClient } from "@/lib/api-client";
 import { API_ROUTES } from "@/lib/constants";
 import { useAuth } from "@/hooks/useAuth";
 
-// Register ChartJS elements
+
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -96,7 +96,7 @@ export default function AdminDashboardPage() {
     loadData();
   }, []);
 
-  // ── Stat calculations & fallbacks ───────────────────────────────────────────
+  
   const totalUsersCount = stats?.users?.total || 14;
   const activeUsersCount = stats?.users?.active || 12;
   const totalDoctorsCount = stats?.doctors?.total || 10;
@@ -108,7 +108,7 @@ export default function AdminDashboardPage() {
   const totalPatientsCount = stats?.patients || 42;
   const totalPrescriptionsCount = stats?.prescriptions?.total || 58;
 
-  // 1. Consultation & Activity Growth Volume (Line Chart)
+  
   const lineLabels = Array.from({ length: 15 }).map((_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (14 - i));
@@ -131,7 +131,7 @@ export default function AdminDashboardPage() {
     ],
   };
 
-  // 2. Doctor Verification Demographics (Doughnut Chart)
+  
   const doctorsVerified = verifiedDoctorsCount;
   const doctorsPending = pendingVerificationsCount;
   const doctorsUnverified = Math.max(0, totalDoctorsCount - doctorsVerified - doctorsPending);
@@ -146,9 +146,9 @@ export default function AdminDashboardPage() {
       {
         data: [doctorsVerified, doctorsPending, doctorsUnverified],
         backgroundColor: [
-          "rgba(16, 185, 129, 0.85)", // Emerald
-          "rgba(217, 119, 6, 0.85)",  // Amber
-          "rgba(148, 163, 184, 0.8)", // Slate
+          "rgba(16, 185, 129, 0.85)", 
+          "rgba(217, 119, 6, 0.85)",  
+          "rgba(148, 163, 184, 0.8)", 
         ],
         borderWidth: 1,
         borderColor: "transparent",
@@ -156,7 +156,7 @@ export default function AdminDashboardPage() {
     ],
   };
 
-  // 3. System Resource Distribution (Bar Chart)
+  
   const barChartData = {
     labels: ["Users", "Doctors", "Workspaces", "Patients", "Prescriptions"],
     datasets: [
@@ -177,7 +177,7 @@ export default function AdminDashboardPage() {
     ],
   };
 
-  // Chart configuration options matching user dashboard
+  
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -232,7 +232,7 @@ export default function AdminDashboardPage() {
     cutout: "70%",
   };
 
-  // Bento KPI Cards Data
+  
   const bentoStats = [
     {
       title: "Total Registered Users",
@@ -276,7 +276,7 @@ export default function AdminDashboardPage() {
     },
   ];
 
-  // Quick Action Shortcuts Data
+  
   const quickActions = [
     {
       title: "Review Verifications",
@@ -334,7 +334,7 @@ export default function AdminDashboardPage() {
     },
   ];
 
-  // Subscription plan breakdown for progress bars
+  
   const planDisplayList = plans.length > 0
     ? plans.map((p) => ({
         name: p.variantName,
@@ -351,7 +351,7 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-12">
-      {/* Header matching User Dashboard */}
+      {}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-on-surface">
@@ -385,7 +385,7 @@ export default function AdminDashboardPage() {
         </div>
       ) : (
         <>
-          {/* Stats Overview Grid (Bento UI - Identical to User Dashboard) */}
+          {}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {bentoStats.map((s, idx) => {
               const Icon = s.icon;
@@ -414,9 +414,9 @@ export default function AdminDashboardPage() {
             })}
           </div>
 
-          {/* Interactive Chart Dashboard Grid Row 1 (Line Chart + Doughnut Chart) */}
+          {}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Activity Growth Volume Chart (Line Chart) */}
+            {}
             <div className="lg:col-span-2 bg-surface p-6 rounded-2xl border border-outline-variant flex flex-col hover:shadow-xs transition-all">
               <div className="mb-4">
                 <h3 className="font-bold text-on-surface text-base">Platform Activity Growth</h3>
@@ -431,7 +431,7 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* Doctor Verification Demographics (Doughnut Chart) */}
+            {}
             <div className="bg-surface p-6 rounded-2xl border border-outline-variant flex flex-col hover:shadow-xs transition-all">
               <div className="mb-4">
                 <h3 className="font-bold text-on-surface text-base">Doctor Verifications</h3>
@@ -461,9 +461,9 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* Interactive Chart Dashboard Grid Row 2 (Bar Chart + Top Plans Progress Bars) */}
+          {}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* System Resource Distribution (Bar Chart) */}
+            {}
             <div className="lg:col-span-2 bg-surface p-6 rounded-2xl border border-outline-variant flex flex-col hover:shadow-xs transition-all">
               <div className="mb-4">
                 <h3 className="font-bold text-on-surface text-base">Ecosystem Resource Volume</h3>
@@ -478,7 +478,7 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* Subscription Tier Distribution */}
+            {}
             <div className="bg-surface p-6 rounded-2xl border border-outline-variant flex flex-col justify-between hover:shadow-xs transition-all">
               <div>
                 <h3 className="font-bold text-on-surface text-base mb-1">Subscription Tiers</h3>
@@ -521,7 +521,7 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* Quick Actions Shortcuts Grid */}
+          {}
           <div>
             <div className="mb-3">
               <h3 className="font-bold text-on-surface text-base">Administrative Quick Actions</h3>

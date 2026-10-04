@@ -53,15 +53,15 @@ export default function TransactionDialog({
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
 
-  // Optional patient reference
+  
   const [patientId, setPatientId] = useState<string | null>(null);
   const [patientQuery, setPatientQuery] = useState("");
   const [patientResults, setPatientResults] = useState<any[]>([]);
   const [patientOpen, setPatientOpen] = useState(false);
   const [patientLabel, setPatientLabel] = useState("");
 
-  // Preload the row being edited when the dialog opens. The dialog is edit-only,
-  // so there is no "new transaction" state to reset to.
+  
+  
   useEffect(() => {
     if (!open) return;
     if (transaction) {
@@ -80,7 +80,7 @@ export default function TransactionDialog({
     setPatientResults([]);
   }, [open, transaction, defaultWorkspaceId]);
 
-  // Load categories for the selected type.
+  
   useEffect(() => {
     if (!open) return;
     let active = true;
@@ -91,7 +91,7 @@ export default function TransactionDialog({
         if (!active) return;
         const list: FinancialCategory[] = res.data?.data || res.data || [];
         setCategories(list);
-        // Keep the current category if it still matches, else pick the first.
+        
         setCategoryId((prev) =>
           list.some((c) => c.id === prev) ? prev : list[0]?.id || "",
         );
@@ -103,7 +103,7 @@ export default function TransactionDialog({
     };
   }, [open, type]);
 
-  // Patient search (debounced).
+  
   useEffect(() => {
     if (!patientOpen) return;
     const handle = setTimeout(() => {
@@ -133,14 +133,14 @@ export default function TransactionDialog({
       return showError("Select a workspace");
     }
 
-    // Guard against duplicate submissions before the saving state re-renders.
+    
     if (savingRef.current) return;
     savingRef.current = true;
 
     setSaving(true);
     try {
-      // Edit-only: finance rows are produced by the payment workflow, so this
-      // dialog can only correct an existing row — never create one.
+      
+      
       if (!transaction) {
         showError("No transaction selected");
         return;
@@ -186,7 +186,7 @@ export default function TransactionDialog({
         </div>
 
         <div className="space-y-4 overflow-y-auto p-6">
-          {/* Type toggle */}
+          {}
           <div className="grid grid-cols-2 gap-3">
             {[
               { value: FinancialTransactionType.INCOME, label: "Income", icon: TrendingUp },
@@ -213,7 +213,7 @@ export default function TransactionDialog({
             })}
           </div>
 
-          {/* Amount */}
+          {}
           <div>
             <label className="mb-1.5 block text-xs font-semibold text-on-surface-variant">
               Amount (৳) *
@@ -228,7 +228,7 @@ export default function TransactionDialog({
             />
           </div>
 
-          {/* Category + payment method */}
+          {}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-on-surface-variant">
@@ -269,7 +269,7 @@ export default function TransactionDialog({
             </div>
           </div>
 
-          {/* Date + workspace */}
+          {}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-on-surface-variant">
@@ -300,7 +300,7 @@ export default function TransactionDialog({
             </div>
           </div>
 
-          {/* Optional patient */}
+          {}
           <div className="relative">
             <label className="mb-1.5 block text-xs font-semibold text-on-surface-variant">
               Patient (optional)

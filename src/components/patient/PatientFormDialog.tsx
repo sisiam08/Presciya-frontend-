@@ -18,21 +18,14 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 
 interface PatientFormDialogProps {
-  /** Pass an existing patient to edit it; omit/null to create a new one. */
+  
   patient?: Patient | null;
   onClose: () => void;
-  /**
-   * Called with the saved patient (create or edit) so the caller can
-   * auto-select it and continue its own workflow.
-   */
+  
   onSuccess?: (patient: Patient | null) => void;
 }
 
-/**
- * The ONE full patient form, shared by the Patient page, the New Appointment
- * flow and the Personal prescription flow. Fields, validation and the
- * create/update API are identical everywhere — never fork this component.
- */
+
 export default function PatientFormDialog({
   patient,
   onClose,
@@ -58,21 +51,21 @@ export default function PatientFormDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Re-entrancy guard: never start a second create/update while one is in
-    // flight (Enter key + click, or a fast double submit).
+    
+    
     if (loading) return;
     const errs: Record<string, string> = {};
     if (!formData.name.trim()) errs.name = "Patient name is required";
     if (!formData.age || formData.age <= 0) errs.age = "Valid age is required";
-    // Optional field — but a provided value must be a Bangladesh mobile.
+    
     if (formData.phone?.trim() && !isValidBangladeshPhone(formData.phone)) {
       errs.phone = BD_PHONE_MESSAGE;
     }
 
     if (Object.keys(errs).length > 0) {
       setFieldErrors(errs);
-      // Field-level messages are shown inline; the toast names the problems
-      // instead of a generic "fix the form" message.
+      
+      
       return showError(Object.values(errs).filter(Boolean).join(" "));
     }
     setFieldErrors({});
@@ -82,14 +75,14 @@ export default function PatientFormDialog({
         ? API_ROUTES.PATIENTS.UPDATE(patient.id)
         : API_ROUTES.PATIENTS.CREATE;
 
-      // Send only fields the patient API accepts, and omit optional enum
-      // values when unset — an empty string is NOT a valid bloodGroup and made
-      // the backend reject the whole form.
+      
+      
+      
       const payload = {
         name: formData.name.trim(),
         age: formData.age,
         gender: formData.gender,
-        // Canonical domestic form (+8801712345678 -> 01712345678).
+        
         phone: formData.phone?.trim()
           ? normalizeBangladeshPhone(formData.phone)
           : undefined,
@@ -102,8 +95,8 @@ export default function PatientFormDialog({
       onSuccess?.(saved);
       onClose();
     } catch {
-      // The mutation's onError already surfaced the message; keep the form open
-      // with the entered values so the user can correct and retry.
+      
+      
     }
   };
 
@@ -130,7 +123,7 @@ export default function PatientFormDialog({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4 text-sm flex-1">
-          {/* Name */}
+          {}
           <div>
             <Label className="block text-xs font-semibold text-on-surface-variant mb-1.5">
               Name *
@@ -153,7 +146,7 @@ export default function PatientFormDialog({
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            {/* Age */}
+            {}
             <div>
               <Label className="block text-xs font-semibold text-on-surface-variant mb-1.5">
                 Age *
@@ -178,7 +171,7 @@ export default function PatientFormDialog({
               )}
             </div>
 
-            {/* Gender */}
+            {}
             <div>
               <Label className="block text-xs font-semibold text-on-surface-variant mb-1.5">
                 Gender *
@@ -197,7 +190,7 @@ export default function PatientFormDialog({
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            {/* Phone */}
+            {}
             <div>
               <Label className="block text-xs font-semibold text-on-surface-variant mb-1.5">
                 Phone
@@ -219,7 +212,7 @@ export default function PatientFormDialog({
               )}
             </div>
 
-            {/* Blood Group */}
+            {}
             <div>
               <Label className="block text-xs font-semibold text-on-surface-variant mb-1.5">
                 Blood Group
@@ -243,7 +236,7 @@ export default function PatientFormDialog({
             </div>
           </div>
 
-          {/* Email */}
+          {}
           <div>
             <Label className="block text-xs font-semibold text-on-surface-variant mb-1.5">
               Email
@@ -258,7 +251,7 @@ export default function PatientFormDialog({
             />
           </div>
 
-          {/* Actions */}
+          {}
           <div className="flex gap-3 mt-6 border-t border-outline-variant pt-4">
             <Button type="button" variant="ghost" onClick={onClose} className="flex-1">
               Cancel

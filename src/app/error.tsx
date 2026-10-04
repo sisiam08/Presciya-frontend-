@@ -11,7 +11,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Surface the error for debugging without hiding it.
+    
     console.error("Unhandled application error:", error);
   }, [error]);
 

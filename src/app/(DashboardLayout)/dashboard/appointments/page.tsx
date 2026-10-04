@@ -92,7 +92,7 @@ const DISCOUNT_ROLES = ["OWNER", "ADMIN", "DOCTOR", "MANAGER"];
 export default function AppointmentsPage() {
   return (
     <FeatureGate feature="appointments" label="Appointments">
-      {/* Appointments are chamber-scoped: Personal mode shows a notice instead. */}
+      {}
       <ChamberGate label="Appointments">
         <AppointmentsContent />
       </ChamberGate>
@@ -103,19 +103,19 @@ export default function AppointmentsPage() {
 function AppointmentsContent() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [chambers, setChambers] = useState<Chamber[]>([]);
-  // The chamber the doctor is operating in (chosen in the sidebar switcher).
+  
   const activeChamberId = useActiveChamber();
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
-  // The day the queue shows. Defaults to TODAY in Bangladesh time; the user
-  // can deliberately request another day.
+  
+  
   const [listDate, setListDate] = useState(() => bangladeshDateKey(new Date()));
   const isViewingToday = listDate === bangladeshDateKey(new Date());
   const [role, setRole] = useState<string>("");
   const [showNew, setShowNew] = useState(false);
   const [showNewPatient, setShowNewPatient] = useState(false);
-  // Name of a patient created through the full form, so the field can show it.
+  
   const [newPatientLabel, setNewPatientLabel] = useState("");
   const [doctorId, setDoctorId] = useState<string>("");
   const [myFee, setMyFee] = useState<{ visitingFee: number; followUpFee: number | null } | null>(null);
@@ -157,9 +157,9 @@ function AppointmentsContent() {
       const res = await apiClient.get<any>(API_ROUTES.CHAMBERS.LIST);
       const list: Chamber[] = res.data?.data || res.data || [];
       setChambers(list);
-      // The active chamber is chosen explicitly (sidebar switcher or the
-      // chamber prompt) — never auto-selected, otherwise the chamber gate
-      // could never show its notice.
+      
+      
+      
     } catch {}
   }, []);
 
@@ -170,8 +170,8 @@ function AppointmentsContent() {
     }
     setLoading(true);
     try {
-      // The queue is date-scoped on the SERVER: the default day is today and
-      // the user can request another day explicitly.
+      
+      
       const res = await apiClient.get<any>(
         `${API_ROUTES.APPOINTMENTS.LIST(workspaceId)}?date=${encodeURIComponent(listDate)}`,
       );
@@ -194,9 +194,9 @@ function AppointmentsContent() {
   useEffect(() => {
     loadChambers();
   }, []);
-  // Refetch when the OPERATING CHAMBER changes too - otherwise switching
-  // chambers inside one workspace would leave the previous chamber's rows on
-  // screen. The chamber travels on the x-chamber-id header.
+  
+  
+  
   useEffect(() => {
     if (workspaceId) loadAppointments();
   }, [workspaceId, activeChamberId, loadAppointments]);
@@ -231,8 +231,8 @@ function AppointmentsContent() {
       settle: "PENDING",
       paymentMethod: "CASH",
     });
-    // The fee shown must be the one configured for the chamber this
-    // appointment is being booked in.
+    
+    
     const targetChamberId = activeChamberId || chambers[0]?.id || "";
     try {
       const [dRes, fRes] = await Promise.allSettled([
@@ -252,7 +252,7 @@ function AppointmentsContent() {
         setMyFee(fPayload ? { visitingFee: fPayload.visitingFee, followUpFee: fPayload.followUpFee } : null);
       }
     } catch {
-      // non-fatal
+      
     }
   };
 
@@ -274,7 +274,7 @@ function AppointmentsContent() {
       toast({ title: "Missing fields", description: "Patient and date are required.", variant: "destructive" });
       return;
     }
-    // Guard against duplicate submissions before the saving state re-renders.
+    
     if (creatingRef.current) return;
     creatingRef.current = true;
     setSavingNew(true);
@@ -313,19 +313,19 @@ function AppointmentsContent() {
     );
   });
 
-  // "Today" is the Bangladesh calendar day, matching the backend's day window.
+  
   const today = filtered.filter((a) =>
     isTodayInBangladesh(a.scheduledDate || a.appointmentDate || ""),
   );
 
-  // Today's appointment count for the plan's daily-limit indicator. The list is
-  // already today-only by default; the authoritative limit is still enforced by
-  // the backend.
+  
+  
+  
   const todayTotal = isViewingToday ? appointments.length : 0;
 
-  // The stats describe the DAY BEING VIEWED (the loaded list is already
-  // date-scoped by the server), so they stay truthful when another date is
-  // selected instead of always reporting today.
+  
+  
+  
   const dayCollected = appointments
     .filter((a) => a.paymentStatus === "PAID")
     .reduce((sum, a) => sum + Number(a.paidAmount ?? 0), 0);
@@ -337,8 +337,8 @@ function AppointmentsContent() {
     { title: "Queue Patients", value: filtered.length, icon: Users, bgColor: "bg-purple-50 dark:bg-purple-950/30", iconColor: "text-purple-600" },
   ];
 
-  // The fee follows the VISIT TYPE: a follow-up is charged the follow-up fee
-  // (0 when none is configured) and a normal visit the visiting fee.
+  
+  
   const previewFee =
     newForm.visitType === "FOLLOW_UP"
       ? myFee?.followUpFee ?? 0
@@ -413,7 +413,7 @@ function AppointmentsContent() {
             className="h-10 pl-10 text-xs"
           />
         </div>
-        {/* The queue is a day at a time: today by default, any day on request. */}
+        {}
         <div className="flex items-center gap-2">
           <CalendarDays className="h-4 w-4 text-on-surface-variant" />
           <Input
@@ -533,7 +533,7 @@ function AppointmentsContent() {
         </div>
       </div>
 
-      {/* New Appointment Modal */}
+      {}
       {showNew && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setShowNew(false)} />
@@ -569,11 +569,11 @@ function AppointmentsContent() {
                 selectedLabel={newPatientLabel}
                 label="Patient *"
                 placeholder="Search patient by name or phone…"
-                // Opens the SAME full patient form used by the Patient page.
+                
                 onNewPatient={() => setShowNewPatient(true)}
               />
 
-              {/* Visit type (normal vs follow-up) */}
+              {}
               <div>
                 <label className="mb-1.5 block text-xs font-semibold text-on-surface-variant">
                   Visit Type
@@ -604,7 +604,7 @@ function AppointmentsContent() {
                 <Input type="date" value={newForm.date} onChange={(e) => setNewForm({ ...newForm, date: e.target.value })} />
               </div>
 
-              {/* Fee summary */}
+              {}
               <div className="rounded-xl bg-surface-container/50 p-3">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-on-surface-variant">
@@ -687,8 +687,7 @@ function AppointmentsContent() {
         </div>
       )}
 
-      {/* Full patient creation (shared with the Patient page & Personal
-          prescription) — the created patient is selected automatically. */}
+      {}
       {showNewPatient && (
         <PatientFormDialog
           onClose={() => setShowNewPatient(false)}
@@ -702,7 +701,7 @@ function AppointmentsContent() {
         />
       )}
 
-      {/* Appointment Details */}
+      {}
       {details && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
           <div

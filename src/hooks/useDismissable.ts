@@ -2,14 +2,7 @@
 
 import { useEffect, useRef, type RefObject } from "react";
 
-/**
- * Dismisses a popover/dropdown when the user clicks outside `ref` or presses
- * Escape. Shared by the patient search/select components so the behaviour is
- * consistent everywhere instead of re-implemented per screen.
- *
- * Uses pointerdown (not blur) so a click INSIDE the container — e.g. a patient
- * suggestion — is ignored here and still reaches its own click handler.
- */
+
 export function useDismissable(
   ref: RefObject<HTMLElement | null>,
   onDismiss: () => void,

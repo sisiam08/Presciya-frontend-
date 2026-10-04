@@ -10,15 +10,7 @@ import { apiClient } from "@/lib/api-client";
 import { API_ROUTES } from "@/lib/constants";
 import { useAvailability } from "@/hooks/useAvailability";
 
-/**
- * Guards the Institution admin panel. Only the institution OWNER/ADMIN may
- * view it — a DOCTOR/MANAGER/ASSISTANT member of a hospital workspace is
- * redirected to their dashboard. (The backend re-checks every mutation.)
- *
- * Institution management is not part of the current public release, so while
- * the admin-controlled availability flag is off the whole section renders a
- * "coming soon" surface. The underlying pages are kept intact for later.
- */
+
 export default function InstitutionLayout({
   children,
 }: {

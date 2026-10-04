@@ -24,7 +24,7 @@ import { useActiveChamber } from "@/hooks/useActiveChamber";
 import { isTodayInBangladesh } from "@/lib/datetime";
 import VerificationNotice from "@/components/verification/VerificationNotice";
 
-// Import and register Chart.js components
+
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -65,15 +65,15 @@ export default function DashboardPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
-  // The SAME active-context hook every other page uses. Chamber selection does
-  // NOT reload the page (only workspace switching does), so a page that ignores
-  // it keeps rendering the previous chamber's numbers — which is exactly the
-  // staleness this page had.
+  
+  
+  
+  
   const activeChamberId = useActiveChamber();
 
-  // Bumped on every request. A response whose id is no longer current is
-  // discarded, so a slow request for a previous scope can never overwrite the
-  // numbers of the scope the user has since selected (rapid A → B → A switching).
+  
+  
+  
   const requestSeq = useRef(0);
 
   const loadData = useCallback(async () => {
@@ -81,22 +81,22 @@ export default function DashboardPage() {
     setLoading(true);
     setLoadError(null);
 
-    // Drop the previous scope's data up front: while the new scope loads the
-    // dashboard must not present old numbers as if they were current.
+    
+    
     setAnalytics(null);
     setAppointments([]);
 
     try {
-      // Read the scope at REQUEST time (never from stale component state).
+      
       const activeWs =
         typeof window !== "undefined"
           ? localStorage.getItem("activeWorkspaceId")
           : null;
 
-      // The dashboard obeys the SAME data-scope rule as the rest of the app:
-      // "all" only from the personal context (no active chamber) and only when
-      // the user explicitly enabled it in Settings. The backend re-derives the
-      // authorized workspace set, so this is a request hint, never authority.
+      
+      
+      
+      
       const scopeAll =
         typeof window !== "undefined" &&
         localStorage.getItem("workspaceScope") === "all" &&
@@ -112,14 +112,14 @@ export default function DashboardPage() {
           : Promise.resolve({ data: { data: [] } }),
       ]);
 
-      // A newer scope was requested while this one was in flight — discard.
+      
       if (seq !== requestSeq.current) return;
 
       if (analyticsRes.status === "fulfilled") {
         const val = analyticsRes.value as any;
         setAnalytics(val.data?.data || val.data || null);
       } else {
-        // Never present a failure as "0" — that reads as real data.
+        
         setAnalytics(null);
         setLoadError(
           "Your dashboard summary could not be loaded. Pull to refresh to try again.",
@@ -127,7 +127,7 @@ export default function DashboardPage() {
       }
       if (apptsRes.status === "fulfilled") {
         const val = apptsRes.value as any;
-        // Appointment list returns { items, meta }; normalize to an array.
+        
         const payload = val.data?.data ?? val.data;
         const items = Array.isArray(payload) ? payload : payload?.items ?? [];
         setAppointments(
@@ -144,8 +144,8 @@ export default function DashboardPage() {
     }
   }, []);
 
-  // Refetch whenever the active scope changes. The workspace is included for
-  // correctness even though switching workspaces reloads the app by design.
+  
+  
   useEffect(() => {
     void loadData();
   }, [loadData, activeChamberId]);
@@ -154,19 +154,19 @@ export default function DashboardPage() {
     setMounted(true);
   }, []);
 
-  // "Today" is the Bangladesh business day, matching the backend's day windows
-  // (appointment list defaults to the BD today). Using the browser's local date
-  // could disagree with the server and silently zero this KPI.
+  
+  
+  
   const todayAppts = appointments.filter((a) =>
     isTodayInBangladesh(a.scheduledDate),
   );
 
-  // Real metrics only — never fabricate counts when the workspace is empty.
+  
   const totalPrescriptionsCount = analytics?.summary?.totalPrescriptions ?? 0;
   const totalPatientsCount = analytics?.summary?.totalPatients ?? 0;
   const activeChambersCount = analytics?.summary?.totalChambers ?? 0;
 
-  // 1. Weekly Prescriptions Trend Data (Bar Chart)
+  
   const rawTrend = analytics?.prescriptionsTrend || [];
   const trendLabels = rawTrend.length > 0 
     ? rawTrend.map((t: any) => new Date(t.date).toLocaleDateString("en-BD", { weekday: "short" }))
@@ -189,7 +189,7 @@ export default function DashboardPage() {
     ],
   };
 
-  // 2. 15-Day Consultation Volume Data (Line Chart)
+  
   const rawLineTrend = analytics?.lineTrend || [];
   const lineLabels = rawLineTrend.length > 0
     ? rawLineTrend.map((t: any) => new Date(t.date).toLocaleDateString("en-BD", { month: "short", day: "numeric" }))
@@ -218,7 +218,7 @@ export default function DashboardPage() {
     ],
   };
 
-  // 3. Patient Gender distribution (Doughnut Chart)
+  
   const malePatients = analytics?.demographics?.male ?? 0;
   const femalePatients = analytics?.demographics?.female ?? 0;
   const totalDemographics = malePatients + femalePatients;
@@ -240,7 +240,7 @@ export default function DashboardPage() {
     ],
   };
 
-  // 4. Top prescribed medicines list (real data only)
+  
   const topMeds = analytics?.topMedicines ?? [];
 
   const chartOptions = {
@@ -338,7 +338,7 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-12">
-      {/* Header */}
+      {}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-on-surface">
@@ -352,8 +352,7 @@ export default function DashboardPage() {
           <Button variant="outline" size="sm" onClick={() => loadData()}>
             <RefreshCw className="h-4 w-4 mr-1" /> Refresh
           </Button>
-          {/* Carries the "create" intent so the prescriptions page opens the
-              builder automatically (see handleNewIntent there). */}
+          {}
           <Link href="/dashboard/prescriptions?new=1">
             <Button className="flex items-center gap-2">
               <Plus size={16} /> New Prescription
@@ -392,7 +391,7 @@ export default function DashboardPage() {
         </div>
       ) : (
         <>
-          {/* Stats Overview Grid (Bento UI) */}
+          {}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {stats.map((s, idx) => {
               const Icon = s.icon;
@@ -422,9 +421,9 @@ export default function DashboardPage() {
             })}
           </div>
 
-          {/* Interactive Chart Dashboard Grid */}
+          {}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Consultation Growth Chart (Line Chart) */}
+            {}
             <div className="lg:col-span-2 bg-surface p-6 rounded-2xl border border-outline-variant flex flex-col hover:shadow-xs transition-all">
               <div className="mb-4">
                 <h3 className="font-bold text-on-surface text-base">Consultation Growth Volume</h3>
@@ -439,7 +438,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Patient Gender Distribution (Doughnut Chart) */}
+            {}
             <div className="bg-surface p-6 rounded-2xl border border-outline-variant flex flex-col hover:shadow-xs transition-all">
               <div className="mb-4">
                 <h3 className="font-bold text-on-surface text-base">Patient Demographics</h3>
@@ -466,7 +465,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Weekly Prescriptions Trend (Bar Chart) */}
+            {}
             <div className="lg:col-span-2 bg-surface p-6 rounded-2xl border border-outline-variant flex flex-col hover:shadow-xs transition-all">
               <div className="mb-4">
                 <h3 className="font-bold text-on-surface text-base">Weekly Prescription Issuance</h3>
@@ -481,7 +480,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Top Prescribed Medicines */}
+            {}
             <div className="bg-surface p-6 rounded-2xl border border-outline-variant flex flex-col justify-between hover:shadow-xs transition-all">
               <div>
                 <h3 className="font-bold text-on-surface text-base mb-1">Top Prescribed Medicines</h3>

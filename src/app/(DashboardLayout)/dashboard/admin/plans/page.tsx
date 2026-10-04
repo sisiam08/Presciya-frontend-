@@ -12,19 +12,12 @@ function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`animate-pulse rounded-xl bg-slate-200 dark:bg-slate-800 ${className}`} />;
 }
 
-/**
- * Feature labels come from the ONE canonical frontend registry
- * (`API_ROUTES.PLAN_FEATURE_INFO`), which the user-facing Subscription page
- * also renders from. This page previously kept its own hand-written map, which
- * is exactly how the Admin and User plan views drifted apart. There is now a
- * single definition; keys that are not in the registry fall back to a readable
- * form of their own key.
- */
+
 const featureLabel = (key: string): string => {
   const info = API_ROUTES.PLAN_FEATURE_INFO[key];
   const base = info?.label ?? key.replace(/_/g, " ");
-  // The admin must see the truth: this catalogue entry has no runtime
-  // implementation anywhere, so toggling it changes nothing.
+  
+  
   return info?.implemented === false ? `${base} (not implemented)` : base;
 };
 
@@ -39,7 +32,7 @@ export default function AdminPlansPage() {
     descriptionEn: "", descriptionBn: "",
   });
   const [saving, setSaving] = useState(false);
-  // Inline editor for a plan's name/price (admin-owned data, never hardcoded).
+  
   const [editingPlan, setEditingPlan] = useState<{
     id: string;
     variantName: string;
@@ -61,7 +54,7 @@ export default function AdminPlansPage() {
     setLoading(false);
   };
 
-  // Enable/disable a feature for a plan (presence = enabled) and set its limit.
+  
   const handleSetFeature = async (
     variantId: string,
     featureId: string,
@@ -112,8 +105,8 @@ export default function AdminPlansPage() {
     setSaving(false);
   };
 
-  // Activate / deactivate a plan. Inactive plans are hidden from the public
-  // plan list and cannot be purchased; existing records are untouched.
+  
+  
   const handleTogglePlan = async (plan: any) => {
     try {
       await apiClient.patch(API_ROUTES.ADMIN.PLAN_UPDATE(plan.id), { isActive: !plan.isActive });
@@ -124,8 +117,8 @@ export default function AdminPlansPage() {
     }
   };
 
-  // Save a plan's name/price. Historical subscriptions and payments keep the
-  // price they were sold at — this only affects future purchases.
+  
+  
   const handleSavePlanDetails = async () => {
     if (!editingPlan) return;
     if (!editingPlan.variantName.trim() || editingPlan.price === "") {
@@ -137,9 +130,9 @@ export default function AdminPlansPage() {
         variantName: editingPlan.variantName.trim(),
         price: parseFloat(editingPlan.price),
       });
-      // Refetch from the server rather than trusting an optimistic patch: the
-      // list must always reflect the true database state (a rename must update
-      // this row, never add another one).
+      
+      
+      
       await loadPlans();
       toast({ title: "Plan Updated", description: "Plan details saved.", variant: "success" });
     } catch (e: any) {
@@ -165,7 +158,7 @@ export default function AdminPlansPage() {
         </div>
       </div>
 
-      {/* New Plan Form */}
+      {}
       {showNewPlan && (
         <div className="rounded-2xl border border-primary/30 bg-white dark:bg-slate-900 p-6 space-y-4">
           <div className="flex items-center justify-between">
@@ -220,7 +213,7 @@ export default function AdminPlansPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {plans.map((plan) => (
             <div key={plan.id} className={`rounded-2xl border bg-white dark:bg-slate-900 overflow-hidden flex flex-col ${plan.isActive ? "border-slate-200 dark:border-slate-700" : "border-dashed border-slate-300 dark:border-slate-700 opacity-70"}`}>
-              {/* Plan header */}
+              {}
               <div className="p-5 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
@@ -308,7 +301,7 @@ export default function AdminPlansPage() {
                 </p>
               </div>
 
-              {/* Plan entitlements — the admin is the source of truth */}
+              {}
               <div className="p-5 flex-1">
                 <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">Plan Entitlements</p>
                 <div className="space-y-2.5">

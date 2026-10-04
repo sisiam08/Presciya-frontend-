@@ -67,7 +67,7 @@ function FinanceTransactionsContent() {
   const [editing, setEditing] = useState<FinancialTransaction | null>(null);
   const [details, setDetails] = useState<FinancialTransaction | null>(null);
 
-  // Categories for the filter dropdown.
+  
   useEffect(() => {
     apiClient
       .get<any>(API_ROUTES.FINANCE.CATEGORIES)
@@ -105,14 +105,14 @@ function FinanceTransactionsContent() {
     } finally {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [scope, scopeLoading, buildQuery, withScope]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  // Reset to page 1 when filters change.
+  
   useEffect(() => {
     setPage(1);
   }, [typeFilter, categoryFilter, methodFilter, search, period, dateFrom, dateTo]);
@@ -144,7 +144,7 @@ function FinanceTransactionsContent() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 pb-12">
-      {/* Header */}
+      {}
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <Link
@@ -177,7 +177,7 @@ function FinanceTransactionsContent() {
         onDateToChange={setDateTo}
       />
 
-      {/* Filters */}
+      {}
       <div className="flex flex-col gap-3 rounded-2xl border border-outline-variant bg-surface p-4 lg:flex-row lg:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
@@ -223,7 +223,7 @@ function FinanceTransactionsContent() {
         </select>
       </div>
 
-      {/* Table */}
+      {}
       <div className="overflow-hidden rounded-2xl border border-outline-variant bg-surface">
         {loading ? (
           <div className="flex items-center justify-center py-20 text-on-surface-variant">
@@ -340,7 +340,7 @@ function FinanceTransactionsContent() {
           </div>
         )}
 
-        {/* Pagination */}
+        {}
         {!loading && meta.total > 0 && (
           <div className="flex items-center justify-between border-t border-outline-variant px-6 py-3 text-xs text-on-surface-variant">
             <span>
@@ -369,7 +369,7 @@ function FinanceTransactionsContent() {
         )}
       </div>
 
-      {/* Details modal */}
+      {}
       {details && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
           <div

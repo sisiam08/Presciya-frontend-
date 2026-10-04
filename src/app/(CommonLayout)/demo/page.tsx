@@ -1,11 +1,11 @@
-// src/app/demo/page.tsx
+
 "use client";
 
 import React, { useState } from "react";
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-// Textarea import is correct
+
 import { Label } from "@/components/ui/label"
 import {
   Card,
@@ -46,14 +46,14 @@ interface PrescriptionMedicine {
   brandName: string;
   genericName: string;
   strength: string;
-  dosage: string; // e.g. 1+0+1
-  duration: string; // e.g. 7 days
-  instruction: string; // e.g. After meal
+  dosage: string; 
+  duration: string; 
+  instruction: string; 
 }
 
 export default function DemoPage() {
   const { toast } = useToast();
-  // Form state
+  
   const [patientName, setPatientName] = useState("Rahim Uddin");
   const [patientAge, setPatientAge] = useState("45");
   const [patientGender, setPatientGender] = useState("Male");
@@ -65,7 +65,7 @@ export default function DemoPage() {
   );
   const [diagnosis, setDiagnosis] = useState("Viral Fever");
 
-  // Medicine selector state
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMedicines, setSelectedMedicines] = useState<
     PrescriptionMedicine[]
@@ -94,7 +94,7 @@ export default function DemoPage() {
   const [duration, setDuration] = useState("5 days");
   const [instruction, setInstruction] = useState("After meal");
 
-  // Autocomplete suggestion click
+  
   const handleAddMedicine = (med: MockMedicine) => {
     const newMed: PrescriptionMedicine = {
       id: Math.random().toString(),
@@ -118,8 +118,8 @@ export default function DemoPage() {
     setSelectedMedicines(selectedMedicines.filter((m) => m.id !== id));
   };
 
-  // Section 24.6: the public demo is interactive but must never allow real
-  // printing or downloading. Explain instead of rendering an output.
+  
+  
   const handlePrint = () => {
     toast({
       title: "Printing disabled in the demo",
@@ -158,7 +158,7 @@ export default function DemoPage() {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-8 items-start">
-        {/* Left Side: Interactive Editor */}
+        {}
         <div className="space-y-6">
           <Card>
             <CardHeader>
@@ -325,14 +325,14 @@ export default function DemoPage() {
           </Card>
         </div>
 
-        {/* Right Side: Rx Live Preview Sheet */}
+        {}
         <div className="sticky top-20 print:relative print:top-0">
           <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl shadow-xl p-8 min-h-175 flex flex-col justify-between text-gray-900 dark:text-gray-100 print:border-none print:shadow-none print:p-0">
             <div>
               <span className="mb-4 inline-block rounded-full bg-amber-100 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
                 Demo · Fictional data · Not a real prescription
               </span>
-              {/* Header */}
+              {}
               <div className="flex justify-between items-start border-b border-primary/20 pb-4">
                 <div>
                   <h2 className="text-xl font-bold text-primary">
@@ -355,7 +355,7 @@ export default function DemoPage() {
                 </div>
               </div>
 
-              {/* Patient Info Row */}
+              {}
               <div className="grid grid-cols-4 gap-4 py-3 bg-primary/5 dark:bg-primary/10 px-4 rounded-lg my-4 text-xs">
                 <div>
                   <span className="text-gray-500 dark:text-gray-400">
@@ -385,9 +385,9 @@ export default function DemoPage() {
                 </div>
               </div>
 
-              {/* Prescription Body split */}
+              {}
               <div className="grid grid-cols-3 gap-6 pt-2">
-                {/* Left col: Complaints & Notes */}
+                {}
                 <div className="col-span-1 border-r border-gray-100 dark:border-gray-800 pr-4 text-xs space-y-4">
                   <div>
                     <h4 className="font-bold text-primary mb-1">
@@ -405,7 +405,7 @@ export default function DemoPage() {
                   </div>
                 </div>
 
-                {/* Right col: Rx Medications */}
+                {}
                 <div className="col-span-2 space-y-4">
                   <div className="flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 pb-1">
                     <span className="text-xl font-serif text-primary font-bold">
@@ -462,7 +462,7 @@ export default function DemoPage() {
               </div>
             </div>
 
-            {/* Footer */}
+            {}
             <div className="border-t border-gray-100 dark:border-gray-800 pt-4 mt-8 flex justify-between items-end text-[10px] text-gray-400">
               <div>
                 <p>Prescribed using Presciya SaaS</p>

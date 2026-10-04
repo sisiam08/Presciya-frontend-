@@ -23,12 +23,12 @@ export default function Navbar() {
   return (
     <nav className="fixed top-0 w-full z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-gray-200 dark:border-slate-800 shadow-xs h-20 flex items-center transition-colors duration-300">
       <div className="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
-        {/* Logo */}
+        {}
         <Link href="/" className="text-2xl font-black text-primary dark:text-blue-400 tracking-tighter hover:opacity-90 transition-opacity">
           Presciya
         </Link>
 
-        {/* Center Links */}
+        {}
         <div className="hidden md:flex items-center gap-8">
           <Link href="/#features" className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-blue-400 transition-colors">
             Features
@@ -44,9 +44,9 @@ export default function Navbar() {
           </Link>
         </div>
 
-        {/* Right Controls */}
+        {}
         <div className="flex items-center gap-3">
-          {/* Contrast toggle */}
+          {}
           {mounted && (
             <button
               onClick={toggleTheme}
@@ -61,9 +61,7 @@ export default function Navbar() {
             </button>
           )}
 
-          {/* Only signed-out visitors see the auth actions. Signed-in users do
-              not get Dashboard/Logout here — those live in the dashboard
-              sidebar, and signed-in users cannot reach the public pages. */}
+          {}
           {mounted && !user && (
             <div className="flex items-center gap-3">
               <Link href="/login">
@@ -72,9 +70,7 @@ export default function Navbar() {
                 </Button>
               </Link>
               <Link href="/signup">
-                {/* No `text-white` here: in dark mode `primary` is a light blue,
-                    so white would be unreadable. The variant supplies
-                    `text-on-primary`, which is correct in both themes. */}
+                {}
                 <Button className="bg-primary hover:bg-primary/90 px-5 py-2 rounded-full text-sm font-bold shadow-sm h-10">
                   Get Started
                 </Button>

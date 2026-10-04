@@ -13,24 +13,13 @@ interface PatientComboboxProps {
   onChange: (id: string, name: string) => void;
   label?: string;
   placeholder?: string;
-  /**
-   * Opens the caller's FULL "New Patient" form (the shared
-   * PatientFormDialog). There is deliberately no name-only quick-add — a
-   * patient must be created with the complete profile.
-   */
+  
   onNewPatient?: () => void;
-  /**
-   * Name to show for a patient selected OUTSIDE the dropdown (e.g. just created
-   * through the full patient form), so the field never shows a blank selection.
-   */
+  
   selectedLabel?: string;
 }
 
-/**
- * Searchable patient picker used by the appointment and prescription flows.
- * Search by name or phone and pick an existing patient; creating a new one
- * opens the caller's full PatientFormDialog via `onNewPatient`.
- */
+
 export default function PatientCombobox({
   value,
   onChange,
@@ -48,12 +37,12 @@ export default function PatientCombobox({
   const abortRef = useRef<AbortController | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // Close the suggestions on outside click or Escape (shared behaviour).
+  
   useDismissable(containerRef, () => setOpen(false), open);
 
-  // A patient selected OUTSIDE the dropdown (e.g. just created through the
-  // shared full patient form) must populate the visible name field and replace
-  // any stale internal selection, so the user never has to search again.
+  
+  
+  
   useEffect(() => {
     if (!value || !selectedLabel) return;
     setSelectedName((prev) => (prev === selectedLabel ? prev : selectedLabel));
@@ -160,8 +149,7 @@ export default function PatientCombobox({
         </div>
       )}
 
-      {/* Full patient creation lives in the shared form — never a name-only
-          shortcut, so records are always complete. */}
+      {}
       {onNewPatient && (
         <button
           type="button"

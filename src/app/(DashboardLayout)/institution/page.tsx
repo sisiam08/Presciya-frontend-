@@ -85,7 +85,7 @@ export default function InstitutionOverviewPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      {/* Header */}
+      {}
       <div className="flex items-start gap-5 flex-wrap">
         {profile?.logoUrl ? (
           <img src={profile.logoUrl} alt="Logo" className="h-16 w-16 rounded-2xl object-cover border border-outline-variant" />
@@ -105,7 +105,7 @@ export default function InstitutionOverviewPage() {
         </div>
       </div>
 
-      {/* Stats */}
+      {}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Total Doctors" value={doctors.length} icon={Users} color="bg-primary/10 text-primary" />
         <StatCard label="Departments" value={departments.length} icon={Layers} color="bg-blue-100 text-blue-600" />
@@ -113,7 +113,7 @@ export default function InstitutionOverviewPage() {
         <StatCard label="Today" value="—" icon={CalendarDays} color="bg-amber-100 text-amber-600" />
       </div>
 
-      {/* Recent doctors */}
+      {}
       <div className="rounded-2xl border border-outline-variant bg-surface overflow-hidden">
         <div className="flex items-center gap-3 px-6 py-4 border-b border-outline-variant">
           <Users className="h-5 w-5 text-primary" />

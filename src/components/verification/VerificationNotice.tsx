@@ -33,13 +33,10 @@ const CONFIG: Record<
   },
 };
 
-/**
- * Clearly surfaces the professional verification state instead of silently
- * disabling features (Section 7.4).
- */
+
 export default function VerificationNotice() {
-  // Shared single-flight `/auth/me` — this component and the chambers page both
-  // need `profile.verificationStatus`, and previously each fetched it itself.
+  
+  
   const { profile } = useMe();
   const status = (profile?.verificationStatus as Status | undefined) ?? null;
 

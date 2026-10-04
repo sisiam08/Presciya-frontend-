@@ -13,16 +13,12 @@ import {
 } from "@/hooks/useActiveChamber";
 
 interface ChamberGateProps {
-  /** Feature name used in the notice, e.g. "Appointments". */
+  
   label: string;
   children: React.ReactNode;
 }
 
-/**
- * Chamber-dependent features are only usable while the doctor is operating in a
- * chamber. In Personal mode (no chamber selected) the page is blurred behind a
- * notice with a one-click chamber picker.
- */
+
 export default function ChamberGate({ label, children }: ChamberGateProps) {
   const activeChamberId = useActiveChamber();
   const [chambers, setChambers] = useState<Chamber[] | null>(null);
@@ -63,9 +59,7 @@ export default function ChamberGate({ label, children }: ChamberGateProps) {
       >
         {children}
       </div>
-      {/* The scrim stays scoped to the gated content, but the card itself is
-          fixed so it sits in the middle of the VIEWPORT (not the page), no
-          matter how tall the page is. */}
+      {}
       <div className="absolute inset-0 z-10">
         <div className="fixed left-1/2 top-1/2 z-20 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-outline-variant bg-surface/95 p-6 text-center shadow-2xl backdrop-blur-sm">
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">

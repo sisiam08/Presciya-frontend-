@@ -91,7 +91,7 @@ export default function InstitutionDoctorsPage() {
         </div>
       </div>
 
-      {/* Assign modal */}
+      {}
       {showAssign && (
         <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5">
           <h3 className="text-sm font-semibold text-on-surface mb-3 flex items-center gap-2">
@@ -115,13 +115,13 @@ export default function InstitutionDoctorsPage() {
         </div>
       )}
 
-      {/* Search */}
+      {}
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-on-surface-variant" />
         <Input className="pl-9" placeholder="Search doctors..." value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
 
-      {/* Table */}
+      {}
       <div className="rounded-2xl border border-outline-variant bg-surface overflow-hidden">
         {loading ? (
           <div className="p-6 space-y-3">

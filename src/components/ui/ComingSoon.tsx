@@ -6,16 +6,13 @@ import { Construction } from "lucide-react";
 interface ComingSoonProps {
   title: string;
   description: string;
-  /** Small pill label. Defaults to "Coming Soon". */
+  
   badge?: string;
-  /** Rendered inside the card, e.g. a "Back to dashboard" action. */
+  
   action?: React.ReactNode;
 }
 
-/**
- * Consistent "under development" surface for features that ship in the codebase
- * but are not yet part of the public release (e.g. institution management).
- */
+
 export default function ComingSoon({
   title,
   description,

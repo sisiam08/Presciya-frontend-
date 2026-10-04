@@ -1,4 +1,4 @@
-// src/components/layout/Footer.tsx
+
 import Link from "next/link";
 import { Stethoscope, Globe, MessageCircle, X } from "lucide-react";
 

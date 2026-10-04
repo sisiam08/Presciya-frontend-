@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Enable class-based dark mode manual toggling */
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
@@ -48,29 +48,24 @@
   --radius-lg: 1rem;
   --radius-xl: 1.5rem;
   
-  /* `--font-inter` is provided by next/font in app/layout.tsx. */
+  
   --font-sans: var(--font-inter), "system-ui", "sans-serif";
 
-  /* ── Shared page-container + vertical-rhythm scale ─────────────────────────
-   * Backs the `max-w-container-max`, `px-margin-*`, `*-stack-*` and
-   * `space-y-stack-*` utilities used by the public pages (landing, auth).
-   * The values intentionally match the Navbar/Footer container
-   * (`max-w-7xl mx-auto px-4 md:px-8`) so every page edge lines up.
-   * This is the single spacing convention for the app — see AI_CONTEXT §14. */
-  --spacing-margin-mobile: 1rem;  /* = px-4 */
-  --spacing-margin-desktop: 2rem; /* = px-8 */
+  
+  --spacing-margin-mobile: 1rem;  
+  --spacing-margin-desktop: 2rem; 
   --spacing-stack-sm: 0.5rem;
   --spacing-stack-md: 1rem;
   --spacing-stack-lg: 2rem;
 
-  /* Material-style fixed surface tones (badges / decorative accents). */
+  
   --color-primary-fixed: var(--primary-fixed);
   --color-on-primary-fixed: var(--on-primary-fixed);
   --color-secondary-fixed: var(--secondary-fixed);
 }
 
 :root {
-  /* Light Mode Palette */
+  
   --primary: #0058bc;
   --on-primary: #ffffff;
   --primary-container: #0070eb;
@@ -110,14 +105,14 @@
   --outline: #717786;
   --outline-variant: #c1c6d7;
 
-  /* Fixed-tone accents — light mode */
+  
   --primary-fixed: #d8e2ff;
   --on-primary-fixed: #001a41;
   --secondary-fixed: #89f5e7;
 }
 
 .dark {
-  /* Premium Dark Mode Palette */
+  
   --primary: #adc6ff;
   --on-primary: #002e69;
   --primary-container: #004493;
@@ -138,7 +133,7 @@
   --error-container: #93000a;
   --on-error-container: #ffdad6;
   
-  --background: #0b1326; /* Design system dark surface */
+  --background: #0b1326; 
   --on-background: #e2e8f0;
   
   --surface: #0f172a;
@@ -157,18 +152,13 @@
   --outline: #8b949e;
   --outline-variant: #30363d;
 
-  /* Fixed-tone accents — dark mode */
+  
   --primary-fixed: #004493;
   --on-primary-fixed: #d8e2ff;
   --secondary-fixed: #005049;
 }
 
-/* Interactive affordance — decided in ONE place.
- *
- * Browsers give <button> a `default` cursor, not a pointer, so clickability
- * depended on whether each component happened to add `cursor-pointer`. This
- * makes every enabled control show the pointer, and every genuinely disabled
- * control show the correct disabled cursor, without touching every component. */
+
 @layer base {
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -190,14 +180,12 @@ body {
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* Shared page container width — matches the Navbar/Footer (`max-w-7xl`). */
+
 @utility max-w-container-max {
   max-width: 80rem;
 }
 
-/* Custom design system typography — defined as `@utility` so responsive
- * variants (`md:text-display-lg`, …) actually compile. A plain `.class` in
- * globals.css is invisible to Tailwind's variant engine. */
+
 @utility text-display-lg {
   font-family: var(--font-sans);
   font-size: 48px;
@@ -251,7 +239,7 @@ body {
   letter-spacing: 0.05em;
 }
 
-/* Scrollbar styling */
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -267,7 +255,7 @@ body {
   background: var(--outline);
 }
 
-/* Custom Stitch Utility Classes */
+
 .glass-card {
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(12px);

@@ -59,7 +59,7 @@ export default function AdminAuditLogsPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-12">
-      {/* Header */}
+      {}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100">
@@ -74,7 +74,7 @@ export default function AdminAuditLogsPage() {
         </Button>
       </div>
 
-      {/* Filter Toolbar */}
+      {}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 space-y-3 shadow-xs">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -110,7 +110,7 @@ export default function AdminAuditLogsPage() {
         </div>
       </div>
 
-      {/* Logs Table Card */}
+      {}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-xs">
         {loading ? (
           <div className="p-6 space-y-3">
@@ -184,7 +184,7 @@ export default function AdminAuditLogsPage() {
         )}
       </div>
 
-      {/* Pagination */}
+      {}
       {totalPages > 1 && (
         <div className="flex justify-between items-center">
           <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(p - 1, 1))} disabled={page === 1}>

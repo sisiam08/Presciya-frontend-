@@ -14,8 +14,8 @@ import { Mail, Lock, User, Sparkles, Zap, KeyRound, Building2, Stethoscope, Arro
 export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
-  // Institution / hospital / clinic accounts are not publicly available yet.
-  // The state is admin-controlled (FeatureFlag) — not hardcoded here.
+  
+  
   const { isEnabled } = useAvailability();
   const institutionAvailable = isEnabled("institution");
 
@@ -27,7 +27,7 @@ export default function SignupPage() {
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Step 1: Request OTP
+  
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return toast({ title: "Name is required", variant: "destructive" });
@@ -54,7 +54,7 @@ export default function SignupPage() {
     }
   };
 
-  // Step 2: Submit Signup with OTP
+  
   const handleCompleteSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!otp.trim() || otp.length !== 6) {
@@ -89,7 +89,7 @@ export default function SignupPage() {
 
   return (
     <main className="flex min-h-screen bg-surface transition-colors duration-300">
-      {/* Left Column: Brand Illustration */}
+      {}
       <section className="hidden lg:flex lg:w-1/2 clinical-gradient relative items-center justify-center p-12 overflow-hidden text-on-primary select-none">
         <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
           <div className="absolute top-[-10%] right-[-10%] w-125 h-125 rounded-full bg-white blur-[120px]"></div>
@@ -138,10 +138,10 @@ export default function SignupPage() {
         </div>
       </section>
 
-      {/* Right Column: Signup Form */}
+      {}
       <section className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-surface dark:bg-slate-950">
         <div className="w-full max-w-md space-y-6">
-          {/* Mobile Logo */}
+          {}
           <div className="lg:hidden text-center mb-4">
             <span className="text-2xl font-black text-primary tracking-tighter">
               Presciya
@@ -167,10 +167,10 @@ export default function SignupPage() {
             </p>
           </div>
 
-          {/* STEP 1: Basic Info Form */}
+          {}
           {step === 1 && (
             <form onSubmit={handleSendOTP} className="space-y-4">
-              {/* Account Type Selection */}
+              {}
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-on-surface-variant">Account Type</Label>
                 <div className="grid grid-cols-2 gap-3">
@@ -222,7 +222,7 @@ export default function SignupPage() {
                 )}
               </div>
 
-              {/* Full Name */}
+              {}
               <div className="space-y-1.5">
                 <Label htmlFor="name" className="text-xs font-semibold text-on-surface-variant">Full Name *</Label>
                 <div className="relative">
@@ -239,7 +239,7 @@ export default function SignupPage() {
                 </div>
               </div>
 
-              {/* Email */}
+              {}
               <div className="space-y-1.5">
                 <Label htmlFor="email" className="text-xs font-semibold text-on-surface-variant">Professional Email *</Label>
                 <div className="relative">
@@ -256,7 +256,7 @@ export default function SignupPage() {
                 </div>
               </div>
 
-              {/* Password */}
+              {}
               <div className="space-y-1.5">
                 <Label htmlFor="password" className="text-xs font-semibold text-on-surface-variant">Security Password (min 8 chars) *</Label>
                 <div className="relative">
@@ -285,7 +285,7 @@ export default function SignupPage() {
             </form>
           )}
 
-          {/* STEP 2: OTP Verification Form */}
+          {}
           {step === 2 && (
             <form onSubmit={handleCompleteSignup} className="space-y-5">
               <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 space-y-1">

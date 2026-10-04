@@ -4,12 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
-/**
- * Deprecated. Workspace selection is no longer a separate step: login resolves
- * the active workspace (restoring the last used one) and the dashboard sidebar
- * owns switching. This route is kept only as a compatibility redirect so old
- * bookmarks and links do not 404.
- */
+
 export default function SelectWorkspacePage() {
   const router = useRouter();
 

@@ -21,15 +21,15 @@ export default function AdminFeaturesPage() {
   const loadFeatures = async () => {
     setLoading(true);
     try {
-      // The full feature catalog (not just those attached to a plan) so that
-      // features which ship disabled — e.g. "institution" — can be enabled here.
+      
+      
       const res = await apiClient.get<any>(API_ROUTES.ADMIN.FEATURES);
       const list = res.data?.data || res.data || [];
 
       setFeatures(
         list.map((f: any) => ({
           ...f,
-          // A missing flag row means the feature is globally enabled.
+          
           isEnabledGlobally: f.featureFlags?.[0]?.isEnabledGlobally ?? true,
         })),
       );
@@ -75,7 +75,7 @@ export default function AdminFeaturesPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-12">
-      {/* Header */}
+      {}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100">
@@ -90,7 +90,7 @@ export default function AdminFeaturesPage() {
         </Button>
       </div>
 
-      {/* Bento Stats Row */}
+      {}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 flex items-center gap-4 shadow-xs">
           <div className="h-11 w-11 rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-600 dark:text-teal-400 flex items-center justify-center">
@@ -123,7 +123,7 @@ export default function AdminFeaturesPage() {
         </div>
       </div>
 
-      {/* Search Bar */}
+      {}
       <div className="relative max-w-sm">
         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
         <Input
@@ -134,7 +134,7 @@ export default function AdminFeaturesPage() {
         />
       </div>
 
-      {/* Feature Cards Grid */}
+      {}
       {loading ? (
         <div className="space-y-4">
           {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20" />)}

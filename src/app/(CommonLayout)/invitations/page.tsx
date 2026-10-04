@@ -25,11 +25,7 @@ interface PendingInvitation {
   expiresAt?: string;
 }
 
-/**
- * Lists the signed-in user's pending workspace invitations. Shown after login
- * for users whose only memberships are pending (they have no active workspace
- * yet) so they can accept and get access.
- */
+
 export default function PendingInvitationsPage() {
   const router = useRouter();
   const { success, error: showError } = useNotification();
@@ -39,7 +35,7 @@ export default function PendingInvitationsPage() {
   const [working, setWorking] = useState<string | null>(null);
 
   useEffect(() => {
-    // A non-secret marker only — the API still decides what the user may do.
+    
     const isAuthed = hasSessionHint();
     if (!isAuthed) {
       setUnauthenticated(true);
@@ -56,7 +52,7 @@ export default function PendingInvitationsPage() {
         ),
       )
       .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, []);
 
   const accept = async (inv: PendingInvitation) => {

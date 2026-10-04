@@ -47,7 +47,7 @@ export default function SubscriptionPage() {
         apiClient.get<any>(API_ROUTES.SUBSCRIPTION.PLANS).catch(() => ({ data: [] })),
         apiClient.get<any>(API_ROUTES.SUBSCRIPTION.BILLING_HISTORY).catch(() => ({ data: [] })),
       ]);
-      // /subscription/my-subscription returns { subscription, usage }.
+      
       const subPayload = subRes.data?.data ?? subRes.data;
       setSubscription(
         subPayload?.subscription
@@ -66,8 +66,8 @@ export default function SubscriptionPage() {
 
   useEffect(() => { loadAll(); }, []);
 
-  // Daily usage is day-scoped: re-fetch when the user returns to the tab so a
-  // new calendar day shows 0 / limit without a manual reload.
+  
+  
   useRefreshOnFocus(loadAll);
 
   const validateVoucher = async () => {
@@ -104,7 +104,7 @@ export default function SubscriptionPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      {/* Header */}
+      {}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-on-surface">Subscription & Billing</h1>
@@ -115,7 +115,7 @@ export default function SubscriptionPage() {
         </Button>
       </div>
 
-      {/* Expiry warning (3 days before + at/after expiry) */}
+      {}
       {!loading && subscription?.expiryDate && (() => {
         const expiry = new Date(subscription.expiryDate);
         const daysLeft = Math.ceil(
@@ -163,7 +163,7 @@ export default function SubscriptionPage() {
         </div>
       ) : (
         <>
-          {/* Current Plan Banner */}
+          {}
           {subscription ? (
             <div className={`rounded-2xl p-6 border ${isExpired ? "bg-red-50 border-red-200" : "bg-primary/5 border-primary/20"}`}>
               <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -196,7 +196,7 @@ export default function SubscriptionPage() {
                 </div>
               </div>
 
-              {/* Usage progress */}
+              {}
               <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
                 {subscription.dailyUsed != null && subscription.dailyLimit != null && (
                   <div>
@@ -222,7 +222,7 @@ export default function SubscriptionPage() {
             </div>
           )}
 
-          {/* Voucher */}
+          {}
           <div className="rounded-2xl border border-outline-variant bg-surface p-5">
             <h2 className="text-sm font-semibold text-on-surface mb-3 flex items-center gap-2">
               <Tag className="h-4 w-4 text-primary" /> Apply Voucher Code
@@ -245,16 +245,16 @@ export default function SubscriptionPage() {
             )}
           </div>
 
-          {/* Plan cards */}
+          {}
           {plans.length > 0 && (
             <div>
               <h2 className="text-base font-semibold text-on-surface mb-4">Available Plans</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {plans.map((plan: any) => {
                   const isCurrent = plan.id === currentVariantId;
-                  // Admin-deactivated plan. Shown for information only: the price
-                  // is never exposed and it cannot enter the checkout flow (the
-                  // backend rejects inactive variants too).
+                  
+                  
+                  
                   const isComingSoon = plan.isActive === false;
                   return (
                     <div
@@ -285,8 +285,8 @@ export default function SubscriptionPage() {
                         ) : null}
                         <div className="flex items-baseline gap-1 mt-2">
                           {isComingSoon ? (
-                            // Price deliberately hidden — a plan that cannot be
-                            // bought must not advertise its price.
+                            
+                            
                             <span className="text-3xl font-extrabold text-on-surface-variant">
                               ---
                             </span>
@@ -304,14 +304,9 @@ export default function SubscriptionPage() {
                         )}
                       </div>
 
-                      {/* Real entitlements: exactly what this plan unlocks,
-                          taken from the same plan-feature rows the backend
-                          gates on — including numeric limits. */}
+                      {}
                       <ul className="space-y-2 flex-1 mb-6">
-                        {/* Only features that actually exist at runtime are
-                            advertised. Entries flagged `implemented: false` are
-                            configured in the catalogue but control nothing, so
-                            listing them would be a false promise. */}
+                        {}
                         {Object.entries(API_ROUTES.PLAN_FEATURE_INFO)
                           .filter(([, info]) => info.implemented !== false)
                           .map(
@@ -376,7 +371,7 @@ export default function SubscriptionPage() {
             </div>
           )}
 
-          {/* Billing History */}
+          {}
           {billingHistory.length > 0 && (
             <div className="rounded-2xl border border-outline-variant bg-surface overflow-hidden">
               <div className="flex items-center gap-3 px-6 py-4 border-b border-outline-variant">

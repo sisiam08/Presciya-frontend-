@@ -23,7 +23,7 @@ import { API_ROUTES } from "@/lib/constants";
 import { Notification, NotificationType } from "@/types";
 import { formatDateTime } from "@/lib/utils";
 
-// ─── Icon map by type ─────────────────────────────────────────────────────────
+
 const TYPE_CONFIG: Record<
   NotificationType,
   { icon: React.ElementType; color: string; bg: string }
@@ -38,7 +38,7 @@ const TYPE_CONFIG: Record<
   USER_ACTION: { icon: Info, color: "text-blue-600", bg: "bg-blue-50" },
 };
 
-// ─── Single notification card ─────────────────────────────────────────────────
+
 function NotificationCard({
   notification,
   onMarkRead,
@@ -102,7 +102,7 @@ function NotificationCard({
   );
 }
 
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
+
 function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`animate-pulse rounded-xl bg-outline-variant/30 ${className}`} />;
 }
@@ -134,7 +134,7 @@ export default function NotificationsPage() {
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
       );
-      // Keep the sidebar badge in step with this page immediately.
+      
       await refreshUnreadCount();
     } catch {}
   };
@@ -160,7 +160,7 @@ export default function NotificationsPage() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      {/* Header */}
+      {}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <div className="flex items-center gap-3">
@@ -189,7 +189,7 @@ export default function NotificationsPage() {
         </div>
       </div>
 
-      {/* Filter tabs */}
+      {}
       <div className="flex gap-1 border-b border-outline-variant">
         {(["all", "unread"] as const).map((f) => (
           <button
@@ -211,7 +211,7 @@ export default function NotificationsPage() {
         ))}
       </div>
 
-      {/* List */}
+      {}
       {loading ? (
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (

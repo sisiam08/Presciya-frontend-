@@ -1,4 +1,4 @@
-// src/app/(DashboardLayout)/dashboard/patients/page.tsx
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -36,19 +36,19 @@ export default function PatientsPage() {
   const { success, error: showError } = useNotification();
   const confirm = useConfirm();
 
-  // Fetch patients. The API returns { success, data: Patient[], meta }.
+  
   const {
     data: patientsResponse,
     loading,
     refetch,
   } = useQuery<any>(API_ROUTES.PATIENTS.LIST);
 
-  // The operating chamber is part of the data scope: refetch when it changes
-  // so the previous chamber's patients never stay on screen.
+  
+  
   const activeChamberId = useActiveChamber();
   useEffect(() => {
     void refetch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [activeChamberId]);
 
   const patients: Patient[] = Array.isArray(patientsResponse)
@@ -57,7 +57,7 @@ export default function PatientsPage() {
   const totalPatients = patientsResponse?.meta?.total ?? patients.length;
   const totalPages = patientsResponse?.meta?.totalPages ?? 1;
 
-  // Delete mutation
+  
   const { mutate: deletePatient } = useMutation("delete", {
     onSuccess: () => {
       success("Patient deleted successfully");
@@ -66,7 +66,7 @@ export default function PatientsPage() {
     onError: () => showError("Failed to delete patient"),
   });
 
-  // Filter patients based on search and other selectors
+  
   const filteredPatients = (patients || []).filter((patient) => {
     const matchSearch =
       patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -145,7 +145,7 @@ export default function PatientsPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-12">
-      {/* Page Header */}
+      {}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-on-surface">Patient Directory</h1>
@@ -157,8 +157,7 @@ export default function PatientsPage() {
           <Button variant="outline" size="sm" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4 mr-1" /> Refresh
           </Button>
-          {/* Same full patient form as the Appointment and Personal
-              prescription flows (one shared component). */}
+          {}
           <Button
             onClick={() => {
               setEditingPatient(null);
@@ -171,7 +170,7 @@ export default function PatientsPage() {
         </div>
       </div>
 
-      {/* KPI Overview Grid */}
+      {}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map((kpi, idx) => {
           const Icon = kpi.icon;
@@ -201,7 +200,7 @@ export default function PatientsPage() {
         })}
       </div>
 
-      {/* Filters and Search Area */}
+      {}
       <div className="bg-surface p-4 rounded-2xl border border-outline-variant flex flex-col md:flex-row gap-3 items-center justify-between">
         <div className="relative w-full md:flex-1">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant h-4 w-4" />
@@ -213,11 +212,10 @@ export default function PatientsPage() {
             className="pl-10 h-10 text-xs"
           />
         </div>
-        {/* The chamber context is chosen in the workspace switcher, so no
-            per-page chamber filter is offered here. */}
+        {}
       </div>
 
-      {/* Patient Table */}
+      {}
       <div className="bg-surface rounded-2xl border border-outline-variant overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -336,7 +334,7 @@ export default function PatientsPage() {
           </table>
         </div>
 
-        {/* Table Footer / Pagination */}
+        {}
         <div className="bg-surface-container/30 px-6 py-3.5 flex items-center justify-between border-t border-outline-variant">
           <p className="text-xs font-semibold text-on-surface-variant">
             Showing {filteredPatients.length === 0 ? 0 : 1} to{" "}
@@ -367,7 +365,7 @@ export default function PatientsPage() {
         </div>
       </div>
 
-      {/* Patient Form Modal */}
+      {}
       <AnimatePresence>
         {isModalOpen && (
           <PatientFormDialog

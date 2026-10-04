@@ -127,7 +127,7 @@ export default function InstitutionInvitationsPage() {
         </div>
       )}
 
-      {/* Tabs */}
+      {}
       <div className="border-b border-outline-variant flex gap-1">
         {(["sent", "received"] as const).map((t) => (
           <button key={t} onClick={() => setTab(t)}

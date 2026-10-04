@@ -42,7 +42,7 @@ function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`animate-pulse rounded-xl bg-outline-variant/30 ${className}`} />;
 }
 
-// ─── Medicine Row ─────────────────────────────────────────────────────────────
+
 function MedicineRow({ med, idx }: { med: any; idx: number }) {
   const schedule = () => {
     if (
@@ -105,8 +105,8 @@ export default function PrescriptionDetailPage() {
     if (!prescription || prescription.status !== PrescriptionStatus.DRAFT) return;
     setFinalizing(true);
     try {
-      // Finalization must go through the dedicated endpoint so the verification
-      // gate, serial number and verification code are applied.
+      
+      
       const res = await apiClient.post<any>(
         API_ROUTES.PRESCRIPTIONS.FINALIZE(prescription.id),
       );
@@ -146,7 +146,7 @@ export default function PrescriptionDetailPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      {/* Nav bar */}
+      {}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <Button variant="ghost" size="sm" onClick={() => router.push("/dashboard/prescriptions")}>
           <ArrowLeft className="h-4 w-4 mr-1" /> Prescriptions
@@ -181,7 +181,7 @@ export default function PrescriptionDetailPage() {
         </div>
       ) : prescription ? (
         <>
-          {/* Header card */}
+          {}
           <div className="rounded-2xl border border-outline-variant bg-surface p-6">
             <div className="flex items-start gap-4 flex-wrap justify-between">
               <div className="flex items-center gap-4">
@@ -226,7 +226,7 @@ export default function PrescriptionDetailPage() {
             </div>
           </div>
 
-          {/* Medicines */}
+          {}
           <div className="rounded-2xl border border-outline-variant bg-surface overflow-hidden">
             <div className="flex items-center gap-3 px-6 py-4 border-b border-outline-variant">
               <Pill className="h-5 w-5 text-primary" />
@@ -265,7 +265,7 @@ export default function PrescriptionDetailPage() {
             )}
           </div>
 
-          {/* Advice / Notes */}
+          {}
           {(prescription.advises || prescription.clinicalNotes) && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {prescription.advises && (

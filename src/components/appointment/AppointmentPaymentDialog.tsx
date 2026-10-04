@@ -16,7 +16,7 @@ interface PaymentDialogProps {
   onSaved: () => void;
   workspaceId: string;
   appointment: Appointment | null;
-  /** Whether the caller may apply discounts / free consultations. */
+  
   canDiscount: boolean;
 }
 

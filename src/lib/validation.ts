@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Auth schemas
+
 export const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -11,7 +11,7 @@ export const signupSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
-// Patient schemas
+
 export const patientSchema = z.object({
   name: z.string().min(2, "Name is required"),
   age: z.number().min(0).max(150, "Invalid age"),
@@ -26,7 +26,7 @@ export const patientSearchSchema = z.object({
   limit: z.number().default(10),
 });
 
-// Prescription schemas
+
 export const prescriptionMedicineSchema = z.object({
   medicineId: z.string().optional(),
   brandName: z.string().min(1, "Brand name is required"),
@@ -59,7 +59,7 @@ export const prescriptionSchema = z.object({
   status: z.enum(["DRAFT", "FINALIZED", "CANCELLED"]).default("DRAFT"),
 });
 
-// Chamber schemas
+
 export const chamberSchema = z.object({
   name: z.string().min(2, "Chamber name is required"),
   address: z.string().min(5, "Address is required"),
@@ -68,13 +68,13 @@ export const chamberSchema = z.object({
   visitingHours: z.string().optional(),
 });
 
-// Medicine search schema
+
 export const medicineSearchSchema = z.object({
   query: z.string().min(1, "Search query is required"),
   limit: z.number().default(10),
 });
 
-// Profile schemas
+
 export const profileUpdateSchema = z.object({
   name: z.string().min(2).optional(),
   image: z.string().url().optional(),
@@ -91,7 +91,7 @@ export const passwordChangeSchema = z
     path: ["confirmPassword"],
   });
 
-// Type exports
+
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type SignupFormData = z.infer<typeof signupSchema>;
 export type PatientFormData = z.infer<typeof patientSchema>;

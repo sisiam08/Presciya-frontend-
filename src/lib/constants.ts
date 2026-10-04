@@ -1,7 +1,7 @@
-// ─── API Route Constants ──────────────────────────────────────────────────────
+
 
 export const API_ROUTES = {
-  // ── Auth ──────────────────────────────────────────────────────────────────
+  
   AUTH: {
     LOGIN: "/auth/login",
     SIGNUP: "/auth/signup",
@@ -14,7 +14,7 @@ export const API_ROUTES = {
     RESET_PASSWORD: "/auth/reset-password",
   },
 
-  // ── Workspace ─────────────────────────────────────────────────────────────
+  
   WORKSPACES: {
     LIST: "/workspaces",
     CREATE: "/workspaces",
@@ -35,7 +35,7 @@ export const API_ROUTES = {
     VERIFY_INVITATION: (token: string) => `/workspaces/invitations/${token}`,
   },
 
-  // ── Doctor Profile ────────────────────────────────────────────────────────
+  
   DOCTOR: {
     PROFILE: "/doctor/profile",
     UPDATE_PROFILE: "/doctor/profile",
@@ -43,7 +43,7 @@ export const API_ROUTES = {
     GET: (id: string) => `/doctor/${id}`,
   },
 
-  // ── Institution ───────────────────────────────────────────────────────────
+  
   INSTITUTION: {
     PROFILE: "/institution/profile",
     UPDATE_PROFILE: "/institution/profile",
@@ -55,10 +55,10 @@ export const API_ROUTES = {
     DOCTORS: "/institution/doctors",
   },
 
-  // ── Patients ──────────────────────────────────────────────────────────────
+  
   PATIENTS: {
-    // The backend exposes patient listing through the search endpoint (empty q
-    // returns all patients in the active workspace).
+    
+    
     LIST: "/patient/search",
     CREATE: "/patient",
     SEARCH: "/patient/search",
@@ -68,7 +68,7 @@ export const API_ROUTES = {
     TIMELINE: (id: string) => `/patient/${id}/timeline`,
   },
 
-  // ── Prescriptions ─────────────────────────────────────────────────────────
+  
   PRESCRIPTIONS: {
     LIST: "/prescription/my-prescriptions",
     CREATE: "/prescription",
@@ -86,7 +86,7 @@ export const API_ROUTES = {
       }`,
   },
 
-  // ── Finance (internal business finance) ───────────────────────────────────
+  
   FINANCE: {
     TRANSACTIONS: "/finance/transactions",
     TRANSACTION: (id: string) => `/finance/transactions/${id}`,
@@ -96,7 +96,7 @@ export const API_ROUTES = {
     CATEGORY: (id: string) => `/finance/categories/${id}`,
   },
 
-  // ── Prescription templates ────────────────────────────────────────────────
+  
   TEMPLATES: {
     LIST: "/prescription-templates",
     CREATE: "/prescription-templates",
@@ -104,7 +104,7 @@ export const API_ROUTES = {
     DELETE: (id: string) => `/prescription-templates/${id}`,
   },
 
-  // ── Medicines ─────────────────────────────────────────────────────────────
+  
   MEDICINES: {
     SEARCH: "/medicine/search",
     FAVORITES: "/medicine/favorites",
@@ -112,7 +112,7 @@ export const API_ROUTES = {
     REMOVE_FAVORITE: (id: string) => `/medicine/favorites/${id}`,
   },
 
-  // ── Chambers ──────────────────────────────────────────────────────────────
+  
   CHAMBERS: {
     LIST: "/chamber/my-chambers",
     CREATE: "/chamber",
@@ -124,7 +124,7 @@ export const API_ROUTES = {
     APPOINTMENTS: (id: string) => `/chamber/${id}/appointments`,
   },
 
-  // ── Appointments ──────────────────────────────────────────────────────────
+  
   APPOINTMENTS: {
     LIST: (workspaceId: string) => `/appointment/${workspaceId}`,
     CREATE: (workspaceId: string) => `/appointment/${workspaceId}`,
@@ -138,13 +138,13 @@ export const API_ROUTES = {
       `/appointment/${workspaceId}/${id}/payment`,
   },
 
-  // ── Visiting fees (doctor-owned, per workspace) ───────────────────────────
+  
   VISITING_FEE: {
     MY: "/visiting-fee/me",
     DOCTOR: (doctorId: string) => `/visiting-fee/doctor/${doctorId}`,
   },
 
-  // ── Revenue share (institution default + per-doctor overrides) ────────────
+  
   REVENUE_SHARE: {
     GET: "/revenue-share",
     SET_DEFAULT: "/revenue-share",
@@ -152,15 +152,15 @@ export const API_ROUTES = {
     REMOVE_OVERRIDE: (doctorId: string) => `/revenue-share/doctor/${doctorId}`,
   },
 
-  // ── Analytics ─────────────────────────────────────────────────────────────
+  
   ANALYTICS: {
     DASHBOARD: "/analytics/dashboard",
   },
 
-  // ── Plan entitlements ──────────────────────────────────────────────────────
-  // Mirrors the backend feature catalog (Feature.key). Used to describe what a
-  // plan actually unlocks, so the UI never invents or vaguely summarises
-  // capabilities. `limitSuffix` renders a plan's numeric limit in plain words.
+  
+  
+  
+  
   PLAN_FEATURE_INFO: {
     create_prescription: {
       label: "Create prescriptions",
@@ -175,27 +175,27 @@ export const API_ROUTES = {
       limitSuffix: (n: number) => `up to ${n}`,
     },
     medicine_favorites: { label: "Frequently used medicine favourites" },
-    // ── Configured entitlements with NO runtime implementation ───────────────
-    // These exist in the feature catalogue and are admin-toggleable, but nothing
-    // in the backend or UI reads them, so they must NOT be advertised to users as
-    // something a plan unlocks. `implemented: false` keeps them visible to the
-    // Admin panel (so the truth is auditable) and hides them from the
-    // user-facing plan list.
-    //
-    // advanced_pdf: the built-in design templates (Classic / Modern Clinical /
-    // …) are gated by `prescription_design_templates`; no separate "advanced
-    // PDF" capability exists.
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     advanced_pdf: { label: "Advanced PDF templates", implemented: false },
     qr_verification: { label: "Public QR prescription verification" },
     analytics: { label: "Analytics dashboard" },
     custom_branding: { label: "Custom branding" },
     watermark: { label: "Prescription watermark" },
-    // export: there is no export endpoint anywhere in the backend (no CSV/JSON/
-    // PDF export, no download route). Configured only — do not advertise it.
+    
+    
     export: { label: "Export prescriptions and records", implemented: false },
     finance: { label: "Business finance and accounting" },
     visiting_fees: { label: "Visiting and follow-up fees" },
-    // Three INDEPENDENT prescription features — never merge these labels.
+    
     prescription_language: { label: "Prescription language" },
     prescription_design_templates: {
       label: "Prescription design templates",
@@ -207,12 +207,12 @@ export const API_ROUTES = {
     {
       label: string;
       limitSuffix?: (n: number) => string;
-      /** false = configured in the catalogue but has no runtime implementation. */
+      
       implemented?: boolean;
     }
   >,
 
-  // ── Verification ──────────────────────────────────────────────────────────
+  
   VERIFICATION: {
     SUBMIT: "/verification/submit",
     PENDING: "/verification/pending",
@@ -222,7 +222,7 @@ export const API_ROUTES = {
     REJECT: (id: string) => `/verification/${id}/reject`,
   },
 
-  // ── Subscription ──────────────────────────────────────────────────────────
+  
   SUBSCRIPTION: {
     PLANS: "/subscription/plans",
     MY_SUBSCRIPTION: "/subscription/my-subscription",
@@ -233,21 +233,21 @@ export const API_ROUTES = {
     CANCEL: "/subscription/cancel",
   },
 
-  // ── System / feature availability ─────────────────────────────────────────
-  // Public (no auth) — drives "coming soon" / disabled states in the client.
+  
+  
   SYSTEM: {
     AVAILABILITY: "/system/availability",
   },
 
-  // ── Uploads ───────────────────────────────────────────────────────────────
-  // Generic configuration-image upload backed by the existing Cloudinary
-  // infrastructure. Returns { url, publicId, ... } to store in the caller's own
-  // configuration.
+  
+  
+  
+  
   UPLOADS: {
     IMAGE: "/uploads/image",
   },
 
-  // ── Notifications ─────────────────────────────────────────────────────────
+  
   NOTIFICATIONS: {
     LIST: "/notifications",
     UNREAD_COUNT: "/notifications/unread-count",
@@ -256,7 +256,7 @@ export const API_ROUTES = {
     DELETE: (id: string) => `/notifications/${id}`,
   },
 
-  // ── Admin ─────────────────────────────────────────────────────────────────
+  
   ADMIN: {
     STATS: "/admin/stats",
     USERS: "/admin/users",
@@ -277,13 +277,13 @@ export const API_ROUTES = {
     VERIFICATIONS: "/verification/pending",
   },
 
-  // ── Departments (institution-level) ───────────────────────────────────────
+  
   DEPARTMENTS: {
     LIST: (workspaceId: string) => `/departments/${workspaceId}`,
   },
 } as const;
 
-// ─── Sidebar Navigation ───────────────────────────────────────────────────────
+
 
 export const SIDEBAR_ITEMS = [
   {
@@ -448,7 +448,7 @@ export const ADMIN_SIDEBAR_ITEMS = [
   },
 ] as const;
 
-// ─── Medicine / Prescription Constants ────────────────────────────────────────
+
 
 export const MEDICINE_TYPES = [
   { value: "TABLET", label: "Tablet" },
@@ -465,7 +465,7 @@ export const MEDICINE_TYPES = [
   { value: "SUPPOSITORY", label: "Suppository" },
 ] as const;
 
-// ─── Finance constants ────────────────────────────────────────────────────────
+
 
 export const PAYMENT_METHODS = [
   { value: "CASH", label: "Cash" },
@@ -492,7 +492,7 @@ export const MEAL_TIMINGS = [
   { value: "EMPTY_STOMACH", label: "Empty Stomach" },
 ] as const;
 
-// ─── Prescription rendering settings (Settings → Prescription) ────────────────
+
 
 export const PRESCRIPTION_LANGUAGES = [
   { value: "ENGLISH", label: "English", sample: "After Meal" },
@@ -545,7 +545,7 @@ export const DAYS_OF_WEEK = [
   { value: 6, label: "Saturday" },
 ] as const;
 
-// ─── Patient Constants ────────────────────────────────────────────────────────
+
 
 export const GENDER_OPTIONS = [
   { value: "MALE", label: "Male" },
@@ -554,7 +554,7 @@ export const GENDER_OPTIONS = [
 
 export const BLOOD_GROUPS = ["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"] as const;
 
-// ─── UI Config ────────────────────────────────────────────────────────────────
+
 
 export const UI_CONFIG = {
   SIDEBAR_WIDTH: 260,
@@ -596,7 +596,7 @@ export const APPOINTMENT_PAYMENT_STATUS_CONFIG = {
   REFUNDED: { label: "Refunded", color: "text-purple-700 bg-purple-50 dark:bg-purple-950/30" },
 } as const;
 
-// Prescription eligibility: PAID and FREE visits allow a prescription.
+
 export const isAppointmentEligibleForPrescription = (
   status?: string | null,
 ): boolean => status === "PAID" || status === "FREE";

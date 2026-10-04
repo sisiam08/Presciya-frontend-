@@ -63,8 +63,8 @@ function FinanceReportsContent() {
   const summary = report?.summary;
   const hasData = (summary?.transactionCount ?? 0) > 0;
 
-  // Human-readable period for the printed document (the on-screen header is
-  // hidden while printing, so the report must identify itself).
+  
+  
   const periodLabel = (() => {
     const p = report?.period;
     if (!p) return "";
@@ -83,8 +83,7 @@ function FinanceReportsContent() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 pb-12 print:max-w-none print:pb-0">
-      {/* Print-only document header. Everything else on the page (sidebar,
-          navigation, buttons, filters) is excluded from the print output. */}
+      {}
       <div className="hidden print:mb-4 print:block">
         <h1 className="text-xl font-bold text-black">
           Presciya — Finance Report
@@ -149,7 +148,7 @@ function FinanceReportsContent() {
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Summary cards */}
+          {}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {cards.map((c) => {
               const Icon = c.icon;
@@ -172,7 +171,7 @@ function FinanceReportsContent() {
             })}
           </div>
 
-          {/* Category breakdown */}
+          {}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {[
               { title: "Income by Category", items: report?.incomeByCategory, color: "text-emerald-600" },
@@ -192,9 +191,7 @@ function FinanceReportsContent() {
                     No data for this period.
                   </p>
                 ) : (
-                  /* Scrollable on narrow screens: the card clips its corners
-                     with `overflow-hidden`, so without this wrapper a long
-                     category name would be CUT OFF instead of scrollable. */
+                  
                   <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <tbody>
@@ -222,7 +219,7 @@ function FinanceReportsContent() {
              ))}
            </div>
 
-          {/* Time series */}
+          {}
           <div className="overflow-hidden rounded-2xl border border-outline-variant bg-surface print:break-inside-avoid print:shadow-none">
             <div className="border-b border-outline-variant px-6 py-4">
               <h3 className="text-base font-bold text-on-surface">
@@ -261,7 +258,7 @@ function FinanceReportsContent() {
             </div>
           </div>
 
-          {/* Workspace summary */}
+          {}
           {scope === "all" && (report?.workspaceSummary?.length || 0) > 0 && (
             <div className="overflow-hidden rounded-2xl border border-outline-variant bg-surface print:break-inside-avoid print:shadow-none">
               <div className="border-b border-outline-variant px-6 py-4">

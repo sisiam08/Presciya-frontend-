@@ -53,7 +53,7 @@ import {
   useActiveChamber,
 } from "@/hooks/useActiveChamber";
 
-// ─── Nav Item Component ────────────────────────────────────────────────────────
+
 function NavItem({
   href,
   label,
@@ -69,7 +69,7 @@ function NavItem({
   active: boolean;
   badge?: number;
   highlight?: boolean;
-  /** Marks a section that ships in the app but is not publicly available yet. */
+  
   soon?: boolean;
 }) {
   return (
@@ -109,7 +109,7 @@ function NavItem({
   );
 }
 
-// ─── Section Label ────────────────────────────────────────────────────────────
+
 function SectionLabel({ label }: { label: string }) {
   return (
     <p className="px-3 mb-1 mt-4 text-[10px] font-semibold uppercase tracking-widest text-on-surface-variant/60">
@@ -130,8 +130,8 @@ const ADMIN_NAV = [
   { href: "/dashboard/admin/audit-logs", label: "Audit Logs", icon: ScrollText },
 ];
 
-// Workspace groups. A "group" is simply the existing WorkspaceType — no
-// duplicate workspaceGroup/workspaceMode concept is introduced.
+
+
 const WORKSPACE_GROUPS: WorkspaceType[] = [
   WorkspaceType.PERSONAL,
   WorkspaceType.CHAMBER,
@@ -151,32 +151,32 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { resolvedTheme, setTheme } = useTheme();
   const { user, logout: authLogout } = useAuth();
-  // Institution / hospital / clinic surfaces are not part of the public release
-  // yet. Admin-controlled (FeatureFlag) — never hardcoded here.
+  
+  
   const { isEnabled } = useAvailability();
   const institutionAvailable = isEnabled("institution");
   const [mounted, setMounted] = useState(false);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
-  // Chambers live INSIDE a workspace (there are no CHAMBER-type workspaces), so
-  // the "Chambers" group lists the active workspace's chambers and the selected
-  // one becomes the operating chamber for new prescriptions/appointments.
+  
+  
+  
   const [chambers, setChambers] = useState<Chamber[]>([]);
   const activeChamberId = useActiveChamber();
   const [wsMenuOpen, setWsMenuOpen] = useState(false);
   const wsMenuRef = useRef<HTMLDivElement | null>(null);
 
-  // Close the workspace menu on outside click or Escape.
+  
   useDismissable(wsMenuRef, () => setWsMenuOpen(false), wsMenuOpen);
-  // Shared with the notifications page so the badge never goes stale.
+  
   const unreadCount = useUnreadCount();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isInstitution, setIsInstitution] = useState(false);
 
   const isInAdminPanel = pathname.startsWith("/dashboard/admin");
 
-  // The Institution admin panel is only for the institution OWNER/ADMIN — a
-  // DOCTOR/MANAGER/ASSISTANT who is merely a member must never see it.
+  
+  
   const isInstitutionManager = (ws?: Workspace | null) =>
     ws?.type === "INSTITUTION" &&
     (ws?.role === WorkspaceRole.OWNER || ws?.role === WorkspaceRole.ADMIN);
@@ -193,12 +193,12 @@ export default function Sidebar() {
           const active = wsData.find((w) => w.id === savedWsId) || wsData[0];
           setActiveWorkspace(active);
           setIsInstitution(isInstitutionManager(active));
-          // Persist the resolved workspace so URL-scoped pages can use it.
+          
           if (active?.id) localStorage.setItem("activeWorkspaceId", active.id);
         }
 
-        // Chambers of the active workspace (may be none, or the call is not
-        // permitted for this workspace type — treat both as "no chambers").
+        
+        
         const chamberRes = await apiClient
           .get<any>(API_ROUTES.CHAMBERS.LIST)
           .catch(() => ({ data: [] }));
@@ -206,7 +206,7 @@ export default function Sidebar() {
           chamberRes.data?.data || chamberRes.data || [];
         setChambers(Array.isArray(chamberData) ? chamberData : []);
 
-        // Drop a stored chamber that no longer exists in this workspace.
+        
         const savedChamberId = readActiveChamberId();
         if (
           savedChamberId &&
@@ -221,7 +221,7 @@ export default function Sidebar() {
           setIsAdmin(true);
         }
       } catch {
-        // silent fail
+        
       }
     };
     if (user) loadData();
@@ -241,20 +241,20 @@ export default function Sidebar() {
       return;
     }
     try {
-      // Identity comes from the session cookie server-side; only workspaceId is sent.
+      
       const res = await apiClient.post<any>("/auth/switch-workspace", {
         workspaceId: ws.id,
       });
-      // The backend already re-issued the session cookies on this response;
-      // only record the non-secret session marker.
+      
+      
       markSessionPresent();
       setActiveWorkspace(ws);
       localStorage.setItem("activeWorkspaceId", ws.id);
-      // Leaving the personal workspace always drops back to the current-scope
-      // default — All Workspaces must be re-enabled explicitly from Settings.
+      
+      
       localStorage.setItem("workspaceScope", "current");
-      // Chambers belong to a workspace, so a fresh workspace starts with no
-      // chamber selected.
+      
+      
       persistActiveChamber("");
       setIsInstitution(isInstitutionManager(ws));
       setWsMenuOpen(false);
@@ -273,11 +273,11 @@ export default function Sidebar() {
     localStorage.removeItem("activeWorkspaceId");
   };
 
-  // ── Workspace groups ───────────────────────────────────────────────────────
-  // A group is the existing WorkspaceType. The database has no CHAMBER-type
-  // workspaces — chambers are entities INSIDE a workspace — so the Chambers
-  // group lists the active workspace's chambers and choosing one sets the
-  // operating chamber instead of switching workspace.
+  
+  
+  
+  
+  
   const activeType = activeWorkspace?.type;
   const activeChamber = chambers.find((c) => c.id === activeChamberId) ?? null;
 
@@ -302,7 +302,7 @@ export default function Sidebar() {
     persistActiveChamber("");
   };
 
-  // Only groups the user can actually operate in, in a stable order.
+  
   const availableGroups = WORKSPACE_GROUPS.filter((type) => {
     if (type === WorkspaceType.CHAMBER) return chambers.length > 0;
     return workspaces.some((w) => w.type === type);
@@ -323,7 +323,7 @@ export default function Sidebar() {
       return;
     }
 
-    // Moving to a workspace group drops the chamber context.
+    
     clearChamber();
 
     if (type === WorkspaceType.INSTITUTION && !institutionAvailable) {
@@ -345,20 +345,20 @@ export default function Sidebar() {
     }
 
     if (target.id === activeWorkspace?.id) {
-      // Same workspace — we only needed to leave chamber mode.
+      
       setWsMenuOpen(false);
       return;
     }
 
-    // Reuses the existing switch flow; the backend re-validates access.
+    
     switchWorkspace(target);
   };
 
-  // ─── ADMIN PANEL SIDEBAR (SOFT COLOR PALETTE) ──────────────────────────────
+  
   if (isInAdminPanel) {
     return (
       <aside className="w-64 shrink-0 flex flex-col h-screen sticky top-0 bg-surface-container-lowest dark:bg-surface-container-low border-r border-outline-variant overflow-hidden print:hidden">
-        {/* Admin Soft Brand */}
+        {}
         <div className="flex items-center gap-3 px-4 py-4 border-b border-outline-variant flex-shrink-0">
           <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
             <ShieldCheck className="h-5 w-5" />
@@ -369,14 +369,9 @@ export default function Sidebar() {
           </div>
         </div>
 
-        {/* The former "Switch to Doctor Portal" shortcut was removed entirely.
-            It was an admin-only convenience link into /dashboard — there was no
-            impersonation, session-switching or backend logic behind it, and the
-            Doctor Portal itself (including super-admin-less doctors) is
-            unaffected. The Admin Panel is reachable from the same sidebar it
-            always was. */}
+        {}
 
-        {/* Admin Navigation */}
+        {}
         <nav className="flex-1 px-3 py-3 overflow-y-auto space-y-0.5">
           <SectionLabel label="Administration" />
           {ADMIN_NAV.map(({ href, label, icon: Icon, exact }) => {
@@ -393,7 +388,7 @@ export default function Sidebar() {
           })}
         </nav>
 
-        {/* Footer */}
+        {}
         <div className="px-3 py-3 border-t border-outline-variant flex-shrink-0 space-y-2">
           <div className="flex items-center gap-2.5 px-2 py-1">
             <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
@@ -433,10 +428,10 @@ export default function Sidebar() {
     );
   }
 
-  // ─── REGULAR USER / DOCTOR SIDEBAR ─────────────────────────────────────────
+  
   return (
     <aside className="w-64 shrink-0 flex flex-col h-screen sticky top-0 bg-surface-container-lowest dark:bg-surface-container-low border-r border-outline-variant overflow-hidden print:hidden">
-      {/* Brand */}
+      {}
       <div className="flex items-center gap-2 px-4 py-4 border-b border-outline-variant flex-shrink-0">
         <div className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center">
           <Stethoscope className="h-4 w-4 text-on-primary" />
@@ -444,7 +439,7 @@ export default function Sidebar() {
         <span className="font-bold text-base text-on-surface">Presciya</span>
       </div>
 
-      {/* Workspace Switcher */}
+      {}
       {workspaces.length > 0 && (
         <div className="px-3 pt-3 flex-shrink-0" ref={wsMenuRef}>
           <button
@@ -465,7 +460,7 @@ export default function Sidebar() {
           </button>
           {wsMenuOpen && (
             <div className="mt-1 rounded-lg border border-outline-variant bg-surface dark:bg-surface-container overflow-hidden shadow-md z-50">
-              {/* Step 1 — workspace group (only groups the user belongs to). */}
+              {}
               {availableGroups.length > 1 && (
                 <div className="px-2 pt-2 pb-1.5 border-b border-outline-variant/40">
                   <p className="px-1 mb-1.5 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60">
@@ -503,7 +498,7 @@ export default function Sidebar() {
                 </div>
               )}
 
-              {/* Step 2 — the entries of the active group. */}
+              {}
               <p className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60 border-b border-outline-variant/40">
                 {contextLabel}
               </p>
@@ -579,7 +574,7 @@ export default function Sidebar() {
         </div>
       )}
 
-      {/* Nav */}
+      {}
       <nav className="flex-1 px-3 py-2 overflow-y-auto space-y-0.5">
         <SectionLabel label="Main" />
         <NavItem href="/dashboard" label="Dashboard" icon={LayoutDashboard} active={isActive("/dashboard", true)} />
@@ -618,7 +613,7 @@ export default function Sidebar() {
         <NavItem href="/dashboard/settings" label="Settings" icon={Settings} active={isActive("/dashboard/settings")} />
       </nav>
 
-      {/* Footer */}
+      {}
       <div className="px-3 py-3 border-t border-outline-variant flex-shrink-0">
         <div className="flex items-center justify-between gap-2">
           <button

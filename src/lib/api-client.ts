@@ -10,9 +10,9 @@ import { isAuthEndpoint, refreshSession } from "@/lib/auth-session";
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
-// Extended Axios config type
+
 interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
-  /** Set once a request has been retried after a token refresh. */
+  
   _retry?: boolean;
 }
 
@@ -23,18 +23,18 @@ class ApiClient {
     this.client = axios.create({
       baseURL: API_BASE_URL,
       timeout: 10000,
-      withCredentials: true, // send the session cookies automatically
+      withCredentials: true, 
       headers: {
         "Content-Type": "application/json",
       },
     });
 
-    // Request interceptor
+    
     this.client.interceptors.request.use(
       (config: ExtendedAxiosRequestConfig) => {
-        // The backend authenticates from the session cookies only
-        // (`req.cookies.accessToken`), so no token is attached and none is kept
-        // in localStorage/sessionStorage.
+        
+        
+        
         const activeWorkspaceId =
           typeof window !== "undefined"
             ? localStorage.getItem("activeWorkspaceId")
@@ -42,9 +42,9 @@ class ApiClient {
         if (activeWorkspaceId) {
           config.headers["x-workspace-id"] = activeWorkspaceId;
         }
-        // The chamber the user is currently working in. The backend validates
-        // it against the workspace, so it can never reach another workspace's
-        // chamber data. Absent => the personal (chamber-less) scope.
+        
+        
+        
         const activeChamberId =
           typeof window !== "undefined"
             ? localStorage.getItem("activeChamberId")
@@ -52,9 +52,9 @@ class ApiClient {
         if (activeChamberId) {
           config.headers["x-chamber-id"] = activeChamberId;
         }
-        // Data scope. Absent => "current" (the safe default); the backend only
-        // widens to all authorized workspaces on an explicit "all", and only
-        // from the personal context — a chamber always scopes to that chamber.
+        
+        
+        
         const workspaceScope =
           typeof window !== "undefined"
             ? localStorage.getItem("workspaceScope")
@@ -62,14 +62,14 @@ class ApiClient {
         if (workspaceScope === "all" && !activeChamberId) {
           config.headers["x-workspace-scope"] = "all";
         }
-        // Multipart uploads must let the browser set the Content-Type so it can
-        // include the multipart boundary — the JSON default would break them.
+        
+        
         if (
           typeof FormData !== "undefined" &&
           config.data instanceof FormData
         ) {
-          // `config.headers` is always an AxiosHeaders instance here, so this
-          // uses its typed `delete` rather than an untyped index removal.
+          
+          
           config.headers.delete("Content-Type");
         }
         return config;
@@ -77,18 +77,18 @@ class ApiClient {
       (error) => Promise.reject(error),
     );
 
-    // Response interceptor
+    
     this.client.interceptors.response.use(
       (response) => response,
       async (error: AxiosError) => {
         const originalRequest = error.config as ExtendedAxiosRequestConfig;
 
-        // Expired access token but a usable refresh token -> refresh and retry.
-        // `refreshSession` is single-flight, so simultaneous 401s await the SAME
-        // rotation (a second concurrent rotation would revoke the session).
-        // Auth endpoints are excluded and _retry allows a single attempt per
-        // request, so neither a wrong password nor a still-failing request can
-        // start a refresh loop.
+        
+        
+        
+        
+        
+        
         if (
           error.response?.status === 401 &&
           originalRequest &&
@@ -100,8 +100,8 @@ class ApiClient {
             await refreshSession();
             return this.client(originalRequest);
           } catch (refreshError) {
-            // refreshSession has already ended the session and redirected once;
-            // the queued/in-flight requests simply fail.
+            
+            
             return Promise.reject(refreshError);
           }
         }
@@ -135,11 +135,7 @@ class ApiClient {
     return this.client.delete<T>(url, config);
   }
 
-  /**
-   * Multipart upload. Uses the existing axios instance (so workspace headers
-   * and the refresh/retry interceptor still apply) with a longer timeout than
-   * the default JSON requests.
-   */
+  
   public async upload<T>(url: string, formData: FormData, config = {}) {
     return this.client.post<T>(url, formData, {
       ...config,

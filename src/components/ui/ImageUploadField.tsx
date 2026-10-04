@@ -7,11 +7,11 @@ import { apiClient } from "@/lib/api-client";
 import { API_ROUTES } from "@/lib/constants";
 import { useNotification } from "@/hooks/useNotification";
 
-/** Mirrors the backend `uploadImage` multer filter + size cap. */
+
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_BYTES = 5 * 1024 * 1024;
 
-/** Shape returned by POST /uploads/image. */
+
 interface UploadedImage {
   url: string;
   publicId: string;
@@ -22,23 +22,16 @@ interface UploadedImage {
 }
 
 interface ImageUploadFieldProps {
-  /** Current image URL (empty string when none). */
+  
   value: string;
-  /** Called with the uploaded URL, or "" when the image is removed. */
+  
   onChange: (url: string) => void;
   label?: string;
   hint?: string;
   disabled?: boolean;
 }
 
-/**
- * Direct image upload for configuration images (logo, watermark, signature).
- *
- * Reuses the existing Cloudinary upload endpoint — no image is stored in the
- * database and no second storage system is introduced: the file is uploaded,
- * the returned URL is handed back through `onChange`, and the caller persists it
- * in its own configuration (exactly as it did with a pasted URL before).
- */
+
 export default function ImageUploadField({
   value,
   onChange,
@@ -79,7 +72,7 @@ export default function ImageUploadField({
       showError(message || "Failed to upload image");
     } finally {
       setUploading(false);
-      // Allow re-selecting the same file after a replace.
+      
       if (inputRef.current) inputRef.current.value = "";
     }
   };
@@ -94,7 +87,7 @@ export default function ImageUploadField({
       <div className="flex items-center gap-3">
         <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg border border-outline-variant bg-surface-container">
           {value ? (
-            // eslint-disable-next-line @next/next/no-img-element
+            
             <img src={value} alt="" className="h-full w-full object-contain" />
           ) : (
             <Upload className="h-5 w-5 text-on-surface-variant" />

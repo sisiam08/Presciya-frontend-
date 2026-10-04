@@ -1,4 +1,4 @@
-// src/lib/roles.ts
+
 export type Role = "MANAGER" | "INSTITUTION" | "ADMIN";
 
 export const permissions = {
@@ -15,7 +15,7 @@ export const permissions = {
     "patient:manage",
     "doctor:manage",
     "institution:settings",
-    // Institutional doctors cannot create/switch chambers via this role
+    
   ],
-  ADMIN: ["*"], // full access
+  ADMIN: ["*"], 
 } as const;

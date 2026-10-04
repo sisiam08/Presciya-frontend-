@@ -18,7 +18,7 @@ interface PrescriptionBuilderProps {
   prescription?: Prescription | null;
   onClose: () => void;
   onSaved?: () => void;
-  /** Called after a prescription is finalized so the caller can open the preview/print view. */
+  
   onFinalized?: (prescription: { id: string; status: string } & Record<string, any>) => void;
 }
 
@@ -26,14 +26,14 @@ interface MedRow extends PrescriptionMedicine {
   _id: number;
 }
 
-/** One investigation row. Only the test name is required. */
+
 interface InvestigationRow {
   _id: number;
   testName: string;
   note: string;
 }
 
-/** On Examination fields, in display order. Labels are medical shorthand. */
+
 const EXAM_FIELDS: Array<{ key: string; label: string }> = [
   { key: "examRespiratoryRate", label: "R/R" },
   { key: "examLungs", label: "Lungs" },
@@ -45,12 +45,7 @@ const EXAM_FIELDS: Array<{ key: string; label: string }> = [
   { key: "examOthers", label: "Others" },
 ];
 
-/**
- * Predefined "Special Instruction" options for a medicine line, plus a free-text
- * Custom… entry. Mirrors the backend list in
- * `backend/src/utils/prescription/language.ts` — keep both in sync so the
- * predefined values localise correctly on a Bangla prescription.
- */
+
 const SPECIAL_INSTRUCTION_OPTIONS: string[] = [
   "Take with plenty of water",
   "Take on an empty stomach",
@@ -66,7 +61,7 @@ const SPECIAL_INSTRUCTION_OPTIONS: string[] = [
   "Keep out of reach of children",
 ];
 
-/** Sentinel value for the "Custom…" option in the Special Instruction picker. */
+
 const CUSTOM_INSTRUCTION = "__custom__";
 
 const emptyExam = () => ({
@@ -94,7 +89,7 @@ const emptyMed = (id: number): MedRow => ({
 });
 
 
-// ── ChamberSelect ─────────────────────────────────────────────────────────────
+
 
 function ChamberSelect({
   value,
@@ -133,7 +128,7 @@ function ChamberSelect({
   );
 }
 
-// ── DosageCheckboxPicker ─────────────────────────────────────────────────────
+
 
 function DosageCheckboxPicker({
   value,
@@ -215,7 +210,7 @@ function DosageCheckboxPicker({
   );
 }
 
-// ── DurationPicker ────────────────────────────────────────────────────────────
+
 
 function DurationPicker({
   value,
@@ -282,7 +277,7 @@ function DurationPicker({
   );
 }
 
-// ── MedicineRow ───────────────────────────────────────────────────────────────
+
 
 function MedicineRow({
   med,
@@ -294,7 +289,7 @@ function MedicineRow({
 }: {
   med: MedRow;
   index: number;
-  /** Only one medicine card is open at a time. */
+  
   expanded: boolean;
   onToggle: () => void;
   onChange: (i: number, f: keyof MedRow, v: string) => void;
@@ -305,15 +300,15 @@ function MedicineRow({
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const usageType = (med.usageType || "DAILY") as string;
-  // An existing note that is not one of the predefined options is doctor text —
-  // show it in the Custom input instead of the picker.
+  
+  
   const [customInstruction, setCustomInstruction] = useState(
     Boolean(med.notes && !SPECIAL_INSTRUCTION_OPTIONS.includes(med.notes)),
   );
 
   const searchMed = async (q: string) => {
-    // Abort any in-flight request so a slow earlier response cannot overwrite
-    // the results for the latest keystroke.
+    
+    
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -338,7 +333,7 @@ function MedicineRow({
     setShowSug(true);
   };
 
-  // Empty-state: surface the doctor's frequently used medicines before typing.
+  
   const handleBrandFocus = () => {
     setShowSug(true);
     if (!med.brandName?.trim()) {
@@ -516,9 +511,7 @@ function MedicineRow({
         </div>
       )}
 
-      {/* Special Instruction — a predefined picker plus a free-text "Custom…"
-          entry. Persisted on the medicine's `notes` column and printed under the
-          medicine line. */}
+      {}
       <div>
         <label className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wide">Special Instruction</label>
         <select
@@ -558,7 +551,7 @@ function MedicineRow({
   );
 }
 
-// ── Main PrescriptionBuilder Component ─────────────────────────────────────────
+
 
 export default function PrescriptionBuilder({
   prescription,
@@ -569,39 +562,39 @@ export default function PrescriptionBuilder({
   const { success, error: showError } = useNotification();
   const [patientId, setPatientId] = useState(prescription?.patientId || "");
   const [chamberId, setChamberId] = useState(
-    // New prescriptions default to the chamber chosen in the sidebar switcher;
-    // editing keeps the chamber the prescription was created with.
+    
+    
     prescription?.chamberId ||
       (typeof window !== "undefined"
         ? localStorage.getItem("activeChamberId") || ""
         : ""),
   );
-  // Visit eligibility — only relevant in CHAMBER/INSTITUTION context.
+  
   const [workspaceId, setWorkspaceId] = useState("");
   const [workspaceType, setWorkspaceType] = useState("PERSONAL");
   const [appointmentId, setAppointmentId] = useState("");
   const [visitEligible, setVisitEligible] = useState(true);
-  // Personal workspaces have no appointments, so the patient is either picked
-  // from the search or created through the shared full patient form.
+  
+  
   const [showNewPatient, setShowNewPatient] = useState(false);
-  // Name of a patient created through the full form, so the field can show it.
+  
   const [patientLabel, setPatientLabel] = useState("");
   const [complaints, setComplaints] = useState(prescription?.complaints || "");
   const [diagnosis, setDiagnosis] = useState(prescription?.diagnosis || "");
-  // "Instructions" — the form's single free-text instruction field. It reuses
-  // the existing `clinicalNotes` column, which the PDF already prints under the
-  // "Instructions" heading (see the prescription templates).
+  
+  
+  
   const [instructions, setInstructions] = useState(
     prescription?.clinicalNotes || "",
   );
-  // Normalize the stored ISO date to the YYYY-MM-DD the date input expects.
+  
   const [nextVisit, setNextVisit] = useState(() => {
     const value = (prescription as any)?.nextVisitDate;
     if (!value) return "";
     const d = new Date(value);
     return isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
   });
-  // Pre-populate vitals from the latest clinical observation when editing.
+  
   const [vitals, setVitals] = useState(() => {
     const obs = (prescription as any)?.clinicalObservations?.[0];
     return {
@@ -612,7 +605,7 @@ export default function PrescriptionBuilder({
       height: obs?.height ?? "",
     };
   });
-  // On Examination (O/E) findings — free text, all optional.
+  
   const [exam, setExam] = useState<Record<string, string>>(() => ({
     ...emptyExam(),
     ...Object.fromEntries(
@@ -621,7 +614,7 @@ export default function PrescriptionBuilder({
       ),
     ),
   }));
-  // Relevant past medical history (separate from chief complaints).
+  
   const [history, setHistory] = useState(prescription?.history || "");
   const [investigations, setInvestigations] = useState<InvestigationRow[]>(() =>
     (prescription?.investigations || []).map((inv, i) => ({
@@ -639,7 +632,7 @@ export default function PrescriptionBuilder({
   const [saving, setSaving] = useState(false);
   const medCounter = useRef(meds.length);
   const submittingRef = useRef(false);
-  // Only one medicine card is expanded at a time — the one being filled in.
+  
   const [expandedMedId, setExpandedMedId] = useState<number | null>(
     meds[0]?._id ?? null,
   );
@@ -648,7 +641,7 @@ export default function PrescriptionBuilder({
     medCounter.current += 1;
     const row = emptyMed(medCounter.current);
     setMeds((prev) => [...prev, row]);
-    // Collapse the previously open card and open the newly added one.
+    
     setExpandedMedId(row._id);
   };
 
@@ -663,8 +656,8 @@ export default function PrescriptionBuilder({
 
   const changeMed = (i: number, f: keyof MedRow, v: string) => {
     setMeds((prev) => prev.map((m, idx) => (idx === i ? { ...m, [f]: v } : m)));
-    // Clear a stale "medicine required" error as soon as a medicine is filled
-    // in, instead of leaving it visible until the next submit.
+    
+    
     if (f === "brandName" && v.trim()) {
       setFieldErrors((errs) =>
         errs.medicines ? { ...errs, medicines: "" } : errs,
@@ -701,10 +694,10 @@ export default function PrescriptionBuilder({
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [exitSaving, setExitSaving] = useState(false);
 
-  // Build the API payload. Autosave always targets DRAFT (Section 13.5); the
-  // manual submit saves a DRAFT then finalizes it through the finalize endpoint.
-  // `patientIdOverride` is used when a Personal-workspace patient is created
-  // from the typed name during submit.
+  
+  
+  
+  
   const buildPayload = (
     targetStatus: "DRAFT" | "FINALIZED",
     patientIdOverride?: string,
@@ -740,8 +733,8 @@ export default function PrescriptionBuilder({
               ? (m.mealTiming as any)
               : undefined,
           instruction,
-          // Per-medicine note shown on the "Special Instruction" input and
-          // printed under the medicine line.
+          
+          
           notes: m.notes?.trim() || undefined,
           dose: m.dose?.trim() || undefined,
           intervalDays: usageType === "WEEKLY" ? intervalDays : undefined,
@@ -761,10 +754,10 @@ export default function PrescriptionBuilder({
       chamberId: chamberId && chamberId.trim() !== "" ? chamberId.trim() : undefined,
       complaints: complaints.trim() || undefined,
       diagnosis: diagnosis.trim(),
-      // Instructions — stored on the existing `clinicalNotes` column.
+      
       clinicalNotes: instructions.trim() || undefined,
       nextVisitDate: nextVisit || undefined,
-      // Optional clinical additions — all free text, all optional.
+      
       history: history.trim() || undefined,
       examRespiratoryRate: exam.examRespiratoryRate?.trim() || undefined,
       examLungs: exam.examLungs?.trim() || undefined,
@@ -792,7 +785,7 @@ export default function PrescriptionBuilder({
     };
   };
 
-  // Snapshot of all editable fields, used to detect dirty state.
+  
   const formSnapshot = JSON.stringify({
     patientId,
     chamberId,
@@ -807,9 +800,9 @@ export default function PrescriptionBuilder({
     meds: meds.map(({ _id, ...m }) => m),
   });
 
-  // Debounced autosave for existing drafts. Never autosaves a finalized
-  // prescription (locked) or a brand-new one (no id yet). On failure the
-  // local form state is preserved and an "unsaved" state is shown.
+  
+  
+  
   useEffect(() => {
     if (lastSavedRef.current === null) {
       lastSavedRef.current = formSnapshot;
@@ -841,16 +834,16 @@ export default function PrescriptionBuilder({
     return () => {
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [formSnapshot]);
 
-  // ── Exit handling (save as draft / discard) ─────────────────────────────────
-  // Closing the builder should never silently discard work. If there are
-  // unsaved changes we ask whether to keep a draft or discard it.
+  
+  
+  
   const requestClose = () => {
     if (saving || exitSaving) return;
-    // Compare against the last persisted snapshot. Read in the handler (not
-    // during render) to avoid touching a ref while rendering.
+    
+    
     const isDirty = formSnapshot !== lastSavedRef.current;
     if (!isDirty) {
       onClose();
@@ -859,23 +852,23 @@ export default function PrescriptionBuilder({
     setShowExitDialog(true);
   };
 
-  // The patient must be chosen explicitly: either an existing patient from the
-  // search, or one created through the shared FULL patient form. There is no
-  // name-only fallback — that produced incomplete patient records.
+  
+  
+  
   const resolvePatientId = async (): Promise<string | null> => patientId || null;
 
   const saveDraftAndExit = async () => {
     if (submittingRef.current || exitSaving) return;
 
-    // A chamber is only required outside a Personal workspace.
+    
     if (workspaceType !== "PERSONAL" && !chamberId) {
       return showError("Select a chamber before saving a draft");
     }
     if (!meds.some((m) => m.brandName.trim())) {
       return showError("Add at least one medicine before saving a draft");
     }
-    // A new prescription in chamber/institution context still needs an
-    // eligible visit even when saved as a draft (backend enforces this too).
+    
+    
     if (!prescription?.id && workspaceType !== "PERSONAL" && !appointmentId) {
       return showError("Select a paid or free appointment before saving a draft");
     }
@@ -920,8 +913,8 @@ export default function PrescriptionBuilder({
     onClose();
   };
 
-  // Resolve the active workspace + its type. In CHAMBER/INSTITUTION context a
-  // paid or free visit is required before a prescription can be created.
+  
+  
   useEffect(() => {
     const wsId =
       typeof window !== "undefined"
@@ -939,17 +932,17 @@ export default function PrescriptionBuilder({
       .catch(() => {});
   }, []);
 
-  // ── Templates (Section 13.6) ───────────────────────────────────────────────
+  
   const [templates, setTemplates] = useState<any[]>([]);
-  // SAVED (reusable) templates have their OWN entitlement — independent of the
-  // built-in DESIGN templates and of the prescription language.
+  
+  
   const { isAllowed } = useEntitlements();
   const canUseSavedTemplates = isAllowed("prescription_templates");
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
 
   useEffect(() => {
-    // Don't even ask when the plan does not include saved templates (the API
-    // would reject it as well).
+    
+    
     if (!canUseSavedTemplates) {
       setTemplates([]);
       return;
@@ -966,8 +959,8 @@ export default function PrescriptionBuilder({
     };
   }, [canUseSavedTemplates]);
 
-  // Copy a template into the current prescription. The stored template is never
-  // mutated by later edits to the prescription.
+  
+  
   const applyTemplate = () => {
     const tpl = templates.find((t) => t.id === selectedTemplateId);
     if (!tpl) return;
@@ -998,8 +991,8 @@ export default function PrescriptionBuilder({
 
     setMeds((prev) => [...prev.filter((m) => m.brandName.trim()), ...rows]);
     if (!complaints.trim() && tpl.complaints) setComplaints(tpl.complaints);
-    // Stored templates may still carry `advises` (kept in the DB for historical
-    // records) but the form no longer collects an Advice field.
+    
+    
     success(`Template "${tpl.name}" applied`);
   };
 
@@ -1036,12 +1029,12 @@ export default function PrescriptionBuilder({
           : "Select a paid or free appointment for this patient";
     }
 
-    // A chamber is only required outside a Personal workspace.
+    
     if (workspaceType !== "PERSONAL" && (!chamberId || chamberId.trim() === "")) {
       errs.chamberId = "Please select a chamber for this prescription";
     }
 
-    // Chamber / institution context requires an eligible (paid or free) visit.
+    
     if (workspaceType !== "PERSONAL") {
       if (!appointmentId) {
         errs.appointmentId =
@@ -1057,35 +1050,35 @@ export default function PrescriptionBuilder({
     const firstEmptyMed = meds.find((m) => !m.brandName.trim());
     if (meds.length === 0 || firstEmptyMed) {
       errs.medicines = "At least one medicine with a brand name is required";
-      // Open the offending card so it can be fixed immediately.
+      
       if (firstEmptyMed) setExpandedMedId(firstEmptyMed._id);
     }
     if (Object.keys(errs).length > 0) {
       setFieldErrors(errs);
-      // Name the actual problems instead of a generic "fix the form" message.
-      // Each message is also shown next to its field.
+      
+      
       return showError(Object.values(errs).filter(Boolean).join(" "));
     }
     setFieldErrors({});
 
-    // Guard against duplicate submissions (double click / Enter + click) that
-    // would otherwise create two prescriptions before `saving` re-renders.
+    
+    
     if (submittingRef.current) return;
     submittingRef.current = true;
 
     setSaving(true);
 
     try {
-      // Personal workspaces resolve the typed patient name into a real Patient
-      // record before the prescription is created.
+      
+      
       const rxPatientId = await resolvePatientId();
       if (!rxPatientId) {
         return showError("Enter the patient's name");
       }
 
-      // Save as DRAFT, then finalize through the dedicated endpoint so the
-      // verification gate, serial and code are applied. Generating a
-      // prescription always finalizes — there is no status choice in the form.
+      
+      
+      
       const payload = buildPayload("DRAFT", rxPatientId);
       let rxId = prescription?.id;
       if (rxId) {
@@ -1103,7 +1096,7 @@ export default function PrescriptionBuilder({
         API_ROUTES.PRESCRIPTIONS.FINALIZE(rxId),
       );
       const finalized = fin.data?.data || fin.data;
-      // Surface the finalized record so the caller can open the preview/print.
+      
       onFinalized?.({ ...(finalized || {}), id: rxId, status: "FINALIZED" });
 
       lastSavedRef.current = formSnapshot;
@@ -1157,8 +1150,7 @@ export default function PrescriptionBuilder({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Personal workspaces have no appointments/chambers: the patient is
-              typed by name. Chamber/institution keeps the appointment flow. */}
+          {}
           <div
             className={`grid gap-4 ${
               workspaceType === "PERSONAL"
@@ -1193,8 +1185,8 @@ export default function PrescriptionBuilder({
                     setFieldErrors((e) => ({ ...e, patientId: "" }));
                   }}
                   selectedLabel={patientLabel}
-                  // Opens the SAME full patient form used by the Patient page
-                  // and the Appointment flow.
+                  
+                  
                   onNewPatient={() => setShowNewPatient(true)}
                 />
               )}
@@ -1221,13 +1213,11 @@ export default function PrescriptionBuilder({
             )}
           </div>
 
-          {/* On Examination (O/E) — one optional section holding BOTH the vital
-              signs and the examination findings. Free text on purpose: doctors
-              write varied shorthand ("Nil", "+", "Mild"). */}
+          {}
           <div className="rounded-xl border border-outline-variant p-4 bg-surface-container/30">
             <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-3">On Examination (O/E) (optional)</h3>
 
-            {/* Vital signs (values unchanged — only the section grouping moved). */}
+            {}
             <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
               {(["bloodPressure", "pulse", "temperature", "weight", "height"] as const).map((f) => (
                 <div key={f}>
@@ -1258,7 +1248,7 @@ export default function PrescriptionBuilder({
               ))}
             </div>
 
-            {/* Others is a multi-line catch-all for custom findings. */}
+            {}
             <div className="mt-3">
               <label className="text-[10px] font-semibold uppercase tracking-wide text-on-surface-variant">Others</label>
               <Textarea
@@ -1299,8 +1289,7 @@ export default function PrescriptionBuilder({
               )}
             </div>
 
-            {/* Investigation — repeatable list; only the test name is required
-                and an empty list is fine. */}
+            {}
             <div>
               <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Investigation</label>
               {investigations.length > 0 && (
@@ -1342,8 +1331,7 @@ export default function PrescriptionBuilder({
               </Button>
             </div>
 
-            {/* Instructions — replaces the separate Clinical Notes + Advice
-                inputs. Saved on the existing `clinicalNotes` column. */}
+            {}
             <div>
               <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Instructions</label>
               <Textarea
@@ -1353,8 +1341,7 @@ export default function PrescriptionBuilder({
                 onChange={(e) => setInstructions(e.target.value)}
               />
             </div>
-            {/* Status selection removed: generating always finalizes the
-                prescription (the draft/discard flow lives in the exit dialog). */}
+            {}
             <div>
               <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Next Visit Date</label>
               <Input type="date" value={nextVisit} onChange={(e) => setNextVisit(e.target.value)} />
@@ -1365,8 +1352,7 @@ export default function PrescriptionBuilder({
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <h3 className="text-sm font-bold text-on-surface">Medicines *</h3>
               <div className="flex flex-wrap items-center gap-2">
-                {/* The whole saved-template surface (load + save-as-template) is
-                    gated by `prescription_templates` only. */}
+                {}
                 {canUseSavedTemplates && templates.length > 0 && (
                   <>
                     <select
@@ -1416,7 +1402,7 @@ export default function PrescriptionBuilder({
                   med={m}
                   index={i}
                   expanded={expandedMedId === m._id}
-                  // Header button toggles: clicking an open card collapses it.
+                  
                   onToggle={() =>
                     setExpandedMedId((current) =>
                       current === m._id ? null : m._id,
@@ -1428,7 +1414,7 @@ export default function PrescriptionBuilder({
               ))}
             </div>
 
-            {/* Sits directly below the medicine cards, per the form layout. */}
+            {}
             <Button
               type="button"
               variant="outline"
@@ -1500,8 +1486,7 @@ export default function PrescriptionBuilder({
         </div>
       )}
 
-      {/* Full patient creation (shared with the Patient page & Appointments).
-          The created patient is selected automatically. */}
+      {}
       {showNewPatient && (
         <PatientFormDialog
           onClose={() => setShowNewPatient(false)}

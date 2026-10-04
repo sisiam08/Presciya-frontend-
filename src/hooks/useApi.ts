@@ -92,7 +92,7 @@ export function useApi<T = any>(options: UseApiOptions = {}) {
   };
 }
 
-// Query hook for data fetching
+
 export function useQuery<T = any>(
   url: string | null,
   options: UseApiOptions = {},
@@ -122,7 +122,7 @@ export function useQuery<T = any>(
     }
   }, [url, options]);
 
-  // Auto-fetch when URL changes
+  
   useEffect(() => {
     refetch();
   }, [url]);
@@ -130,7 +130,7 @@ export function useQuery<T = any>(
   return { data, loading, error, refetch };
 }
 
-// Mutation hook for POST/PUT/PATCH/DELETE
+
 export function useMutation<T = any>(
   method: "post" | "put" | "patch" | "delete",
   options: UseApiOptions = {},

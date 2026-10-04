@@ -13,7 +13,7 @@ function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`animate-pulse rounded-xl bg-outline-variant/30 ${className}`} />;
 }
 
-// ─── Revenue share ────────────────────────────────────────────────────────────
+
 
 function RevenueShareSection() {
   const [loading, setLoading] = useState(true);
@@ -32,7 +32,7 @@ function RevenueShareSection() {
       setDefaultPct(String(d?.defaultPercentage ?? 0));
       setOverrides(d?.overrides ?? []);
     } catch {
-      // not an institution workspace or no access
+      
     }
     try {
       const dRes = await apiClient.get<any>(API_ROUTES.DOCTOR.MY_DOCTORS);
@@ -281,7 +281,7 @@ export default function InstitutionSettingsPage() {
         <p className="text-sm text-on-surface-variant">Manage your institution profile and branding</p>
       </div>
 
-      {/* Profile */}
+      {}
       <div className="rounded-2xl border border-outline-variant bg-surface overflow-hidden">
         <div className="flex items-center gap-3 px-6 py-4 border-b border-outline-variant bg-surface-container/50">
           <Building className="h-5 w-5 text-primary" />
@@ -317,7 +317,7 @@ export default function InstitutionSettingsPage() {
         </div>
       </div>
 
-      {/* Branding */}
+      {}
       <div className="rounded-2xl border border-outline-variant bg-surface overflow-hidden">
         <div className="flex items-center gap-3 px-6 py-4 border-b border-outline-variant bg-surface-container/50">
           <Palette className="h-5 w-5 text-primary" />
@@ -349,7 +349,7 @@ export default function InstitutionSettingsPage() {
         </div>
       </div>
 
-      {/* Revenue Sharing */}
+      {}
       <RevenueShareSection />
     </div>
   );

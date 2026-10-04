@@ -4,25 +4,14 @@ import { useEffect, useState } from "react";
 import { apiClient } from "@/lib/api-client";
 import { API_ROUTES } from "@/lib/constants";
 
-/** The part of the `/auth/me` payload these surfaces consume. */
+
 export interface MePayload {
   user?: Record<string, unknown> | null;
   profile?: Record<string, unknown> | null;
   workspaces?: unknown[];
 }
 
-/**
- * Shared, single-flight `/auth/me` reader.
- *
- * Several independent surfaces (the verification notice, the chambers page, the
- * profile page) need the same payload. With per-component fetching, a single
- * dashboard load issued two or three identical `/auth/me` requests. This keeps
- * it to ONE per app load, regardless of how many consumers subscribe.
- *
- * The cache is process-wide but short-lived: the workspace switcher performs a
- * full page reload (`window.location.reload()`), so it can never outlive the
- * session or workspace it was fetched for.
- */
+
 let cached: MePayload | null = null;
 let loaded = false;
 let inFlight: Promise<MePayload | null> | null = null;
@@ -50,7 +39,7 @@ export const fetchMe = (): Promise<MePayload | null> => {
   return inFlight;
 };
 
-/** Drops the cache and refetches (e.g. after a profile mutation). */
+
 export const refreshMe = (): Promise<MePayload | null> => {
   loaded = false;
   return fetchMe();
@@ -66,8 +55,8 @@ export function useMe() {
       setLoading(false);
     };
     subscribers.add(sync);
-    // State is already seeded from the cache by the useState initialiser, so
-    // there is no synchronous setState here — only the first fetch.
+    
+    
     if (!loaded) void fetchMe();
     return () => {
       subscribers.delete(sync);

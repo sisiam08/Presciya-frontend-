@@ -1,4 +1,4 @@
-// src/app/(CommonLayout)/login/page.tsx
+
 "use client";
 
 import Link from "next/link";
@@ -23,12 +23,12 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     try {
-      // Support a deep-link return target (e.g. an invitation accept page).
+      
       const redirect =
         new URLSearchParams(window.location.search).get("redirect") ||
         undefined;
       await login(email, password, redirect);
-      // Otherwise redirect is handled inside useAuth.login() based on systemRole
+      
     } catch (err: any) {
       setError(err?.response?.data?.message || "Login failed. Please check credentials.");
     }
@@ -36,9 +36,9 @@ export default function LoginPage() {
 
   return (
     <main className="flex min-h-screen bg-surface transition-colors duration-300">
-      {/* Left Column: Brand Illustration Section */}
+      {}
       <section className="hidden lg:flex lg:w-1/2 clinical-gradient relative items-center justify-center p-8 overflow-hidden text-on-primary select-none">
-        {/* Decorative atmospheric elements */}
+        {}
         <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
           <div className="absolute top-[-10%] right-[-10%] w-125 h-125 rounded-full bg-white blur-[120px]"></div>
           <div className="absolute bottom-[-10%] left-[-10%] w-125 h-125 rounded-full bg-secondary-fixed blur-[100px]"></div>
@@ -61,7 +61,7 @@ export default function LoginPage() {
               className="size-110 rounded-xl soft-elevation border border-white/20 shadow-2xl"
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuC3C7dpifIXXHT4u_Oj5hk8LOGsgt-IfCxM2yKM_pYU5Ei7oLXmx3NhPZcRDeYu7tOGDblpTeoGpXIYVpuuB04mVlRsIFDY9U9X-JsW23uQpxwoPh_NFNlmCFjVn8VcjQQ6B_XHK94dlH51TDevODGonncxV765CTOa_LPUy7uvpps5cGMd677bvihB3a2ZhY9NcWcEFj37c9M-ansPdirfeYtUfJi5vyf1chyDxwqbiIxt2GvrKFxk0fhoUQhN9Qd90Xj__CE9FErJ"
             />
-            {/* Floating Stat Chip */}
+            {}
             <div className="absolute -bottom-6 -right-6 bg-surface-container-lowest p-stack-md rounded-xl shadow-xl flex items-center gap-3 border border-outline-variant text-on-surface">
               <div className="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container">
                 <Zap size={20} className="fill-current" />
@@ -79,10 +79,10 @@ export default function LoginPage() {
         </div>
       </section>
 
-      {/* Right Column: Login Form Section */}
+      {}
       <section className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-surface dark:bg-slate-950">
         <div className="w-full max-w-md space-y-8">
-          {/* Mobile Logo */}
+          {}
           <div className="lg:hidden mb-stack-lg text-center">
             <span className="font-headline-md text-headline-md font-black text-primary tracking-tighter">
               Presciya
@@ -105,7 +105,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Standard Login Form */}
+          {}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="email" className="font-label-md text-label-md text-on-surface-variant ml-1">
@@ -148,11 +148,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-          {/* The former "Stay logged in for N hours" checkbox was removed: it had
-              no state and no handler, so it controlled nothing. Session length is
-              governed entirely by the server (short-lived access token renewed by
-              the rotating refresh-token cookie), and the UI must not advertise a
-              duration that does not match that behaviour. */}
+          {}
 
             <Button
               type="submit"

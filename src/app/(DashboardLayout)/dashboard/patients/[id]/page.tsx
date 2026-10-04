@@ -25,7 +25,7 @@ import { normalizePrescriptions } from "@/lib/prescriptions";
 import PrescriptionPrintModal from "@/components/prescription/PrescriptionPrintModal";
 import { formatDate, formatDateTime } from "@/lib/utils";
 
-// ─── Status badge ─────────────────────────────────────────────────────────────
+
 function StatusBadge({ status }: { status: PrescriptionStatus }) {
   const styles: Record<string, string> = {
     DRAFT: "bg-yellow-50 text-yellow-700 border-yellow-200",
@@ -41,7 +41,7 @@ function StatusBadge({ status }: { status: PrescriptionStatus }) {
   );
 }
 
-// ─── Info row ─────────────────────────────────────────────────────────────────
+
 function InfoRow({
   icon: Icon,
   label,
@@ -63,22 +63,22 @@ function InfoRow({
   );
 }
 
-// ─── Timeline Event ───────────────────────────────────────────────────────────
-// The timeline endpoint returns { type, id, date, ...typeSpecificFields }.
+
+
 type TimelineEventRaw = {
   type: string;
   id: string;
   date: string;
-  // appointment
+  
   chamberName?: string | null;
   doctorName?: string | null;
   status?: string | null;
   serialNo?: number | null;
   notes?: string | null;
-  // prescription
+  
   diagnosis?: string | null;
   complaints?: string | null;
-  // audit
+  
   actionType?: string | null;
 };
 
@@ -148,12 +148,12 @@ function TimelineEvent({ event }: { event: TimelineEventRaw }) {
   );
 }
 
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
+
 function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`animate-pulse rounded bg-outline-variant/40 ${className}`} />;
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+
 export default function PatientDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -161,7 +161,7 @@ export default function PatientDetailPage() {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [timeline, setTimeline] = useState<TimelineEventRaw[]>([]);
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
-  // The canonical prescription viewer, shared with the Prescriptions page.
+  
   const [viewingPrescription, setViewingPrescription] = useState<Prescription | null>(
     null,
   );
@@ -180,8 +180,8 @@ export default function PatientDetailPage() {
         const [patientRes, timelineRes, rxRes] = await Promise.all([
           apiClient.get<any>(API_ROUTES.PATIENTS.GET(params.id)),
           apiClient.get<any>(API_ROUTES.PATIENTS.TIMELINE(params.id)),
-          // The prescriptions list has no by-patient filter, so read the
-          // workspace list (bounded) and keep only THIS patient's records.
+          
+          
           apiClient.get<any>(`${API_ROUTES.PRESCRIPTIONS.LIST}?limit=100`),
         ]);
 
@@ -195,8 +195,8 @@ export default function PatientDetailPage() {
         const rxList = Array.isArray(rxPayload)
           ? rxPayload
           : rxPayload?.prescriptions ?? [];
-        // Only THIS patient's records, normalised the same way as the
-        // prescriptions list/detail pages (snapshot* -> medicines shape).
+        
+        
         setPrescriptions(
           normalizePrescriptions(
             rxList.filter((rx: any) => rx.patientId === params.id),
@@ -228,7 +228,7 @@ export default function PatientDetailPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header */}
+      {}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="sm" onClick={() => router.push("/dashboard/patients")}>
           <ArrowLeft className="h-4 w-4 mr-1" />
@@ -243,7 +243,7 @@ export default function PatientDetailPage() {
         </div>
       ) : patient ? (
         <>
-          {/* Patient Card */}
+          {}
           <div className="rounded-2xl border border-outline-variant bg-surface p-6">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div className="flex items-center gap-4">
@@ -305,7 +305,7 @@ export default function PatientDetailPage() {
             )}
           </div>
 
-          {/* Tabs */}
+          {}
           <div className="border-b border-outline-variant">
             <div className="flex gap-1">
               {TABS.map((tab) => (
@@ -334,7 +334,7 @@ export default function PatientDetailPage() {
             </div>
           </div>
 
-          {/* Tab Content */}
+          {}
           {activeTab === "overview" && (
             <div className="rounded-2xl border border-outline-variant bg-surface p-6">
               <h2 className="text-base font-semibold text-on-surface mb-4">Medical Notes</h2>
@@ -402,9 +402,7 @@ export default function PatientDetailPage() {
         </>
       ) : null}
 
-      {/* Canonical prescription view — the SAME component the Prescriptions
-          page uses, so the template, medicines, dosage and PDF behaviour are
-          identical wherever a prescription is opened. */}
+      {}
       {viewingPrescription && (
         <PrescriptionPrintModal
           prescriptionId={viewingPrescription.id}

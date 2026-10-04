@@ -14,11 +14,7 @@ interface PrescriptionPrintModalProps {
   onClose: () => void;
 }
 
-/**
- * Renders the backend's canonical A4 layout in an iframe so browser preview and
- * print share a single renderer (Section 14.4). Draft prescriptions can be
- * previewed but not printed/downloaded (Section 13.3).
- */
+
 export default function PrescriptionPrintModal({
   prescriptionId,
   status,

@@ -1,11 +1,4 @@
-/**
- * Route-level loading UI for the dashboard shell.
- *
- * Without this, navigating to a data-driven page shows a blank main area until
- * the page's client component mounts and its first request resolves. The
- * skeleton mirrors the shared page rhythm (title block → stat cards → content)
- * so the transition does not jump.
- */
+
 export default function DashboardLoading() {
   return (
     <div className="mx-auto max-w-6xl space-y-6 pb-12">

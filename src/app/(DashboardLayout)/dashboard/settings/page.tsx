@@ -37,24 +37,24 @@ import {
 
 type TabId = "prescription" | "fees" | "branding" | "security";
 
-// NOTE: no "Profile" tab here — the dedicated /dashboard/profile section in the
-// sidebar owns profile editing.
+
+
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "prescription", label: "Prescription", icon: FileText },
   { id: "fees", label: "Visiting Fee", icon: Wallet },
-  // Personal prescription settings only — chamber branding lives in
-  // Chambers → Manage Chamber.
+  
+  
   { id: "branding", label: "Personal Prescription", icon: Palette },
   { id: "security", label: "Security", icon: Shield },
 ];
 
-// ─── Prescription Tab ─────────────────────────────────────────────────────────
+
 
 function PrescriptionTab() {
   const { success, error: showError } = useNotification();
-  // Three INDEPENDENT entitlements. Each section below is gated by its own, and
-  // the save only submits the fields the plan actually lets the doctor change —
-  // so holding one entitlement never unlocks (or blocks) another.
+  
+  
+  
   const { isAllowed } = useEntitlements();
   const canLanguage = isAllowed("prescription_language");
   const canDesign = isAllowed("prescription_design_templates");
@@ -81,9 +81,9 @@ function PrescriptionTab() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Preview uses the SAME backend renderer as the real prescription/PDF.
-  // It renders a DESIGN sample, so it is only requested when the plan includes
-  // the design-template entitlement (the endpoint enforces the same rule).
+  
+  
+  
   useEffect(() => {
     if (!canDesign) {
       setPreviewHtml(null);
@@ -109,14 +109,14 @@ function PrescriptionTab() {
     return () => {
       active = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [template, language, canDesign]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Send ONLY what the plan entitles: sending a restricted field would make
-      // the backend reject the whole save and block the allowed one.
+      
+      
       const payload: Record<string, unknown> = {};
       if (canLanguage) payload.prescriptionLanguage = language;
       if (canDesign) payload.prescriptionTemplate = template;
@@ -146,7 +146,7 @@ function PrescriptionTab() {
 
   return (
     <div className="space-y-5">
-      {/* Language — gated by its OWN entitlement. */}
+      {}
       <FeatureGate feature="prescription_language" label="Prescription language" variant="inline">
       <div className="bg-surface rounded-2xl border border-outline-variant p-6">
         <h3 className="text-base font-bold text-on-surface mb-1">
@@ -196,8 +196,7 @@ function PrescriptionTab() {
       </div>
       </FeatureGate>
 
-      {/* Built-in DESIGN templates — a DIFFERENT feature from the language above
-          and from the doctor's saved (reusable) templates. */}
+      {}
       <FeatureGate feature="prescription_design_templates" label="Prescription design templates" variant="inline">
       <div className="bg-surface rounded-2xl border border-outline-variant p-6">
         <h3 className="text-base font-bold text-on-surface mb-1">
@@ -242,8 +241,7 @@ function PrescriptionTab() {
       </div>
       </FeatureGate>
 
-      {/* Save stays OUTSIDE the gates so it is always reachable; it submits only
-          the fields this plan entitles. */}
+      {}
       {(canLanguage || canDesign) && (
         <div className="flex justify-end">
           <Button onClick={handleSave} disabled={saving} className="min-w-[160px]">
@@ -257,7 +255,7 @@ function PrescriptionTab() {
         </div>
       )}
 
-      {/* Live preview (same renderer as PDF/print) — it previews a DESIGN. */}
+      {}
       <FeatureGate feature="prescription_design_templates" label="Prescription design templates" variant="inline">
       <div className="bg-surface rounded-2xl border border-outline-variant p-6">
         <div className="flex items-center justify-between mb-3">
@@ -280,7 +278,7 @@ function PrescriptionTab() {
   );
 }
 
-// ─── Visiting Fee Tab ─────────────────────────────────────────────────────────
+
 
 function FeesTab() {
   const { success, error: showError } = useNotification();
@@ -288,8 +286,8 @@ function FeesTab() {
   const [saving, setSaving] = useState(false);
   const [chamberName, setChamberName] = useState("");
   const [fee, setFee] = useState({ visitingFee: "", followUpFee: "" });
-  // The fee belongs to the CHAMBER the doctor is currently working in, so each
-  // chamber keeps its own value and switching chambers shows that chamber's fee.
+  
+  
   const activeChamberId = useActiveChamber();
 
   useEffect(() => {
@@ -416,34 +414,14 @@ function FeesTab() {
   );
 }
 
-// ─── Branding Tab ─────────────────────────────────────────────────────────────
 
-/**
- * Prescription branding is WORKSPACE-AWARE:
- *  - PERSONAL    → a personal prescription is issued in the doctor's own name, so
- *                  it uses the Doctor Profile identity. No clinic/chamber fields.
- *  - CHAMBER     → doctor identity (automatic) + chamber-specific branding.
- *  - INSTITUTION → not part of the current public release.
- *
- * Prescription colours are deliberately NOT configurable — each template owns
- * its own design (the old Primary/Secondary colour pickers are gone).
- */
-/**
- * Personal Prescription settings — ONLY for prescriptions created in the
- * PERSONAL workspace.
- *
- * Doctor identity is resolved automatically from the Doctor Profile and is
- * never re-entered here. The footer + watermark are the doctor's PERSONAL
- * prescription customization and are subscription-controlled through the
- * existing `custom_branding` entitlement — the existing FeatureGate renders the
- * locked state, so no new restriction UI is introduced.
- *
- * Chamber prescription branding lives in Chambers → Manage Chamber.
- */
+
+
+
 function BrandingTab() {
   const { success, error: showError } = useNotification();
-  // The watermark is its own plan entitlement (`watermark`), separate from the
-  // branding entitlement that gates this tab. Both use the shared FeatureGate.
+  
+  
   const { isAllowed } = useEntitlements();
   const canBranding = isAllowed("custom_branding");
   const canWatermark = isAllowed("watermark");
@@ -481,7 +459,7 @@ function BrandingTab() {
         setWorkspaceId(active?.id || "");
 
         const cfg = (active?.templateConfig || {}) as any;
-        // Keep the rest of the config so saving never drops unrelated keys.
+        
         setBaseConfig(cfg);
         setFooterText(cfg.footerText || "");
         setWatermarkEnabled(Boolean(cfg.watermarkEnabled));
@@ -512,9 +490,9 @@ function BrandingTab() {
         templateConfig: {
           ...baseConfig,
           footerText: footerText.trim() || "",
-          // Only send watermark fields when the plan includes the entitlement —
-          // otherwise the backend would reject the save (and the UI would have
-          // hidden the control anyway).
+          
+          
+          
           ...(canWatermark
             ? {
                 watermarkEnabled,
@@ -542,12 +520,12 @@ function BrandingTab() {
     );
   }
 
-  // The WHOLE tab is the premium "Personal prescription" surface, so the gate
-  // wraps everything — the doctor identity block included.
+  
+  
   return (
     <FeatureGate feature="custom_branding" label="Personal prescription">
     <div className="space-y-5">
-      {/* Doctor identity — automatic, resolved from the profile. */}
+      {}
       <div className="bg-surface rounded-2xl border border-outline-variant p-6">
         <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
           <div>
@@ -580,7 +558,7 @@ function BrandingTab() {
         </div>
       </div>
 
-      {/* Personal prescription customization — part of the gated tab above. */}
+      {}
       <div className="bg-surface rounded-2xl border border-outline-variant p-6">
           <h3 className="text-base font-bold text-on-surface mb-1">
             Personal Prescription
@@ -606,8 +584,7 @@ function BrandingTab() {
               </p>
             </div>
 
-            {/* Only rendered when the branding entitlement is present, so the
-                outer gate never stacks a second lock card on top of this one. */}
+            {}
             {canBranding && (
             <FeatureGate feature="watermark" label="Prescription watermark" variant="inline">
             <div className="rounded-xl border border-outline-variant p-4">
@@ -661,7 +638,7 @@ function BrandingTab() {
   );
 }
 
-// ─── Security Tab ─────────────────────────────────────────────────────────────
+
 
 function SecurityTab() {
   const { success, error: showError } = useNotification();
@@ -742,7 +719,7 @@ function SecurityTab() {
         </form>
       </div>
 
-      {/* Session info (read-only) */}
+      {}
       <div className="bg-surface rounded-2xl border border-outline-variant p-6">
         <h3 className="text-base font-bold text-on-surface mb-4">Session Security</h3>
         <div className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
@@ -757,30 +734,30 @@ function SecurityTab() {
   );
 }
 
-// ─── Main Page ─────────────────────────────────────────────────────────────────
+
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabId>("prescription");
 
-  // The active operating context — a selected chamber vs the personal
-  // workspace. Same source the sidebar uses.
+  
+  
   const activeChamberId = useActiveChamber();
   const isChamberContext = Boolean(activeChamberId);
 
-  // Visiting Fee belongs to a chamber, Personal Prescription belongs to the
-  // personal workspace. Each tab is only rendered in its own context.
+  
+  
   const isTabApplicable = (id: TabId) =>
     id === "fees" ? isChamberContext : id === "branding" ? !isChamberContext : true;
   const visibleTabs = TABS.filter((tab) => isTabApplicable(tab.id));
 
-  // Never leave the user on a tab that no longer applies after a switch.
+  
   useEffect(() => {
     if (!isTabApplicable(activeTab)) setActiveTab("prescription");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [isChamberContext, activeTab]);
 
-  // Data scope — only meaningful from the personal workspace. Persisted, and
-  // always explicit: the default is the current workspace.
+  
+  
   const [dataScope, setDataScope] = useState<"current" | "all">("current");
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -792,7 +769,7 @@ export default function SettingsPage() {
     if (value === dataScope) return;
     setDataScope(value);
     localStorage.setItem("workspaceScope", value);
-    // Reload so every page refetches under the new scope.
+    
     window.location.reload();
   };
 
@@ -805,8 +782,7 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      {/* Data scope — hidden entirely while working inside a chamber, because
-          a chamber always operates on its own data only. */}
+      {}
       {!isChamberContext && (
         <div className="rounded-2xl border border-outline-variant bg-surface p-5">
           <h2 className="text-base font-bold text-on-surface">Data Scope</h2>
@@ -864,7 +840,7 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* Tabs */}
+      {}
       <div className="flex border-b border-outline-variant overflow-x-auto">
         {visibleTabs.map((tab) => {
           const Icon = tab.icon;
@@ -885,11 +861,9 @@ export default function SettingsPage() {
         })}
       </div>
 
-      {/* Tab Content */}
+      {}
       <div>
-        {/* NOT gated at tab level: this tab holds three INDEPENDENT entitlements
-            (language, design templates, and the saved templates live elsewhere),
-            so each section is gated individually inside the tab. */}
+        {}
         {activeTab === "prescription" && <PrescriptionTab />}
         {activeTab === "fees" && (
           <FeatureGate feature="visiting_fees" label="Visiting fees">

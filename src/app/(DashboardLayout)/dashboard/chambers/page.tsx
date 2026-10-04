@@ -140,15 +140,15 @@ function ChamberModal({
   onSaved: () => void;
 }) {
   const { success, error: showError } = useNotification();
-  // Prescription branding is plan-controlled. The UI must not offer controls
-  // the active plan does not include — otherwise the user only discovers the
-  // restriction after submitting. `FeatureGate` below renders the existing
-  // restricted-feature view when a key is missing.
+  
+  
+  
+  
   const { isAllowed } = useEntitlements();
   const canBranding = isAllowed("custom_branding");
   const canWatermark = isAllowed("watermark");
-  // Existing templateConfig (theme keys etc.) is preserved on save so the
-  // watermark fields never wipe unrelated chamber branding settings.
+  
+  
   const baseTemplateConfig: Record<string, unknown> =
     chamber?.templateConfig || {};
   const [form, setForm] = useState({
@@ -157,7 +157,7 @@ function ChamberModal({
     phone: chamber?.phone || (chamber?.phones && chamber?.phones[0]) || "",
     email: chamber?.chamberEmail || chamber?.email || "",
     footerText: chamber?.footerText || "",
-    // Chamber-specific prescription branding.
+    
     logo: chamber?.logo || "",
     watermarkEnabled: Boolean((chamber as any)?.templateConfig?.watermarkEnabled),
     watermarkText: (chamber as any)?.templateConfig?.watermarkText || "",
@@ -181,7 +181,7 @@ function ChamberModal({
     if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
       errs.email = "Please enter a valid email address";
     }
-    // Optional — but a provided value must be a Bangladesh mobile.
+    
     if (form.phone.trim() && !isValidBangladeshPhone(form.phone)) {
       errs.phone = BD_PHONE_MESSAGE;
     }
@@ -200,22 +200,22 @@ function ChamberModal({
       address: addressText,
       chamberEmail: form.email.trim() || undefined,
       email: form.email.trim() || undefined,
-      // Canonical domestic form (+8801712345678 -> 01712345678).
+      
       phones: form.phone.trim()
         ? [normalizeBangladeshPhone(form.phone)]
         : undefined,
       phone: form.phone.trim()
         ? normalizeBangladeshPhone(form.phone)
         : undefined,
-      // Branding fields are only sent when the plan actually includes the
-      // entitlement (the backend enforces the same thing, but sending values
-      // the plan excludes would produce a late, confusing error).
+      
+      
+      
       chamberSlogan: canBranding ? form.footerText.trim() || undefined : undefined,
       footerText: canBranding ? form.footerText.trim() || undefined : undefined,
       logo: canBranding ? form.logo.trim() || undefined : undefined,
-      // Watermark lives on the chamber's templateConfig. It is omitted entirely
-      // when the plan has no watermark entitlement so chamber creation keeps its
-      // default template settings.
+      
+      
+      
       templateConfig: canWatermark
         ? {
             ...baseTemplateConfig,
@@ -279,13 +279,8 @@ function ChamberModal({
               )}
             </div>
           ))}
-          {/* Prescription Settings — what this chamber prints on its
-              prescriptions. Doctor identity is automatic (from the profile).
-              Footer/logo require `custom_branding`; the watermark additionally
-              requires `watermark`. Both reuse the shared FeatureGate so the
-              restricted-feature view is identical to the rest of the app. */}
-          {/* Section-level gate: only this block is restricted — the chamber's
-              name/address/phone/email fields above stay fully usable. */}
+          {}
+          {}
           <FeatureGate feature="custom_branding" label="Prescription branding" variant="inline">
           <div className="rounded-xl border border-outline-variant p-4 space-y-4">
             <div>
@@ -313,8 +308,7 @@ function ChamberModal({
               </div>
             </div>
 
-            {/* Only rendered when the branding entitlement is present, so the
-                outer gate never stacks a second lock card on top of this one. */}
+            {}
             {canBranding && (
             <FeatureGate feature="watermark" label="Prescription watermark" variant="inline">
             <div>
@@ -374,15 +368,15 @@ export default function ChambersPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingChamber, setEditingChamber] = useState<Chamber | null>(null);
   const { entitlements } = useEntitlements();
-  // Admin-configurable chamber limit for the current plan; null = unlimited.
+  
   const chamberLimit = entitlements?.features?.max_chambers?.limit ?? null;
   const limitReached = chamberLimit !== null && chambers.length >= chamberLimit;
-  // Writes are rejected server-side until the doctor/institution profile is
-  // APPROVED (see checkUserVerification), so mirror that here instead of
-  // letting the user submit a form the API will refuse. Unknown status is not
-  // treated as blocked — only a known non-APPROVED status is.
-  // Shared single-flight `/auth/me` (also used by VerificationNotice, so the two
-  // no longer issue separate identical requests).
+  
+  
+  
+  
+  
+  
   const { profile } = useMe();
   const verificationStatus =
     (profile?.verificationStatus as string | undefined) ?? null;
@@ -429,7 +423,7 @@ export default function ChambersPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      {/* Header */}
+      {}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-on-surface">Chambers</h1>
@@ -458,11 +452,10 @@ export default function ChambersPage() {
         </div>
       </div>
 
-      {/* Explains why chamber writes are unavailable (renders nothing once
-          the profile is APPROVED). */}
+      {}
       <VerificationNotice />
 
-      {/* Chamber limit notice */}
+      {}
       {chamberLimit !== null && (
         <div
           className={`flex items-center gap-3 rounded-2xl border p-4 text-sm ${
@@ -491,7 +484,7 @@ export default function ChambersPage() {
         </div>
       )}
 
-      {/* Chamber Grid */}
+      {}
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-80" />)}
@@ -508,7 +501,7 @@ export default function ChambersPage() {
             />
           ))}
 
-          {/* Add card */}
+          {}
           <button
             onClick={() => {
               if (addBlocked) return;
@@ -552,7 +545,7 @@ export default function ChambersPage() {
         </div>
       )}
 
-      {/* Modal */}
+      {}
       {modalOpen && (
         <ChamberModal
           chamber={editingChamber}

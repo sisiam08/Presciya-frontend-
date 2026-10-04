@@ -1,4 +1,4 @@
-// ─── System / Auth Enums ─────────────────────────────────────────────────────
+
 
 export enum SystemRole {
   USER = "USER",
@@ -33,7 +33,7 @@ export enum VerificationStatus {
   REJECTED = "REJECTED",
 }
 
-// ─── User ────────────────────────────────────────────────────────────────────
+
 
 export interface User {
   id: string;
@@ -47,7 +47,7 @@ export interface User {
   updatedAt: string;
 }
 
-// ─── Doctor Profile ──────────────────────────────────────────────────────────
+
 
 export interface DoctorProfile {
   id: string;
@@ -59,7 +59,7 @@ export interface DoctorProfile {
   signatureUrl?: string;
   verificationStatus: VerificationStatus;
   bio?: string;
-  // Prescription rendering defaults (Settings → Prescription).
+  
   prescriptionLanguage?: PrescriptionLanguage;
   prescriptionTemplate?: PrescriptionDesignTemplate;
   user?: User;
@@ -67,7 +67,7 @@ export interface DoctorProfile {
   updatedAt: string;
 }
 
-// ─── Workspace ───────────────────────────────────────────────────────────────
+
 
 export interface Workspace {
   id: string;
@@ -76,7 +76,7 @@ export interface Workspace {
   type: WorkspaceType;
   ownerId: string;
   isActive: boolean;
-  /** The current user's role in this workspace (from GET /workspaces). */
+  
   role?: WorkspaceRole;
   createdAt: string;
   updatedAt: string;
@@ -104,7 +104,7 @@ export interface Invitation {
   expiresAt?: string;
 }
 
-// ─── Patient ─────────────────────────────────────────────────────────────────
+
 
 export interface Patient {
   id: string;
@@ -118,14 +118,14 @@ export interface Patient {
   weight?: number;
   address?: string;
   allergies?: string;
-  /** Backend field name. */
+  
   chronicDiseases?: string;
-  /** Backwards-compatible alias kept for older call sites. */
+  
   chronicConditions?: string;
   emergencyContact?: string;
-  /** Backend field name. */
+  
   patientNotes?: string;
-  /** Backwards-compatible alias kept for older call sites. */
+  
   medicalNotes?: string;
   patientId?: string;
   workspaceId?: string;
@@ -143,7 +143,7 @@ export interface PatientTimeline {
   createdAt: string;
 }
 
-// ─── Chamber ─────────────────────────────────────────────────────────────────
+
 
 export interface Chamber {
   id: string;
@@ -171,7 +171,7 @@ export interface ChamberSchedule {
   maxPatients?: number;
 }
 
-// ─── Prescription ─────────────────────────────────────────────────────────────
+
 
 export enum PrescriptionStatus {
   DRAFT = "DRAFT",
@@ -179,14 +179,14 @@ export enum PrescriptionStatus {
   CANCELLED = "CANCELLED",
 }
 
-// Prescription rendering language. Only the doctor's instructions, advice,
-// next-visit label and medicine meal-timing labels are translated.
+
+
 export enum PrescriptionLanguage {
   ENGLISH = "ENGLISH",
   BANGLA = "BANGLA",
 }
 
-// Visual layout of a prescription. All templates share the same data.
+
 export enum PrescriptionDesignTemplate {
   DEFAULT = "DEFAULT",
   MODERN_CLINICAL = "MODERN_CLINICAL",
@@ -245,9 +245,9 @@ export interface Prescription {
   clinicalNotes?: string;
   advises?: string;
   nextVisitDate?: string;
-  /** Relevant past medical history (separate from chief complaints). */
+  
   history?: string;
-  /** On Examination findings — free text shorthand ("Nil", "+", "Mild"). */
+  
   examRespiratoryRate?: string;
   examLungs?: string;
   examHeart?: string;
@@ -269,7 +269,7 @@ export interface Prescription {
   updatedAt: string;
 }
 
-// ─── Finance (internal business finance — Phase 3) ────────────────────────────
+
 
 export enum FinancialTransactionType {
   INCOME = "INCOME",
@@ -367,7 +367,7 @@ export interface FinanceReport {
   };
 }
 
-// ─── Medicine ────────────────────────────────────────────────────────────────
+
 
 export interface Medicine {
   id: string;
@@ -379,9 +379,9 @@ export interface Medicine {
   isFavorite?: boolean;
 }
 
-// ─── Appointment ─────────────────────────────────────────────────────────────
 
-// Matches the backend AppointmentStatus enum.
+
+
 export enum AppointmentStatus {
   PENDING = "PENDING",
   CONFIRMED = "CONFIRMED",
@@ -453,7 +453,7 @@ export interface RevenueShareConfig {
   overrides: RevenueShareOverride[];
 }
 
-// ─── Notification ────────────────────────────────────────────────────────────
+
 
 export enum NotificationType {
   VERIFICATION = "VERIFICATION",
@@ -478,7 +478,7 @@ export interface Notification {
   createdAt: string;
 }
 
-// ─── Subscription / Billing ──────────────────────────────────────────────────
+
 
 export interface SubscriptionPlan {
   id: string;
@@ -520,7 +520,7 @@ export interface Invoice {
   createdAt: string;
 }
 
-// ─── Verification ────────────────────────────────────────────────────────────
+
 
 export interface VerificationRequest {
   id: string;
@@ -536,7 +536,7 @@ export interface VerificationRequest {
   updatedAt: string;
 }
 
-// ─── Institution ─────────────────────────────────────────────────────────────
+
 
 export interface InstitutionProfile {
   id: string;
@@ -564,9 +564,9 @@ export interface Department {
   createdAt: string;
 }
 
-// ─── Analytics ───────────────────────────────────────────────────────────────
 
-// ─── API Response Helpers ─────────────────────────────────────────────────────
+
+
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -584,7 +584,7 @@ export interface PaginatedResponse<T> {
   totalPages: number;
 }
 
-// ─── UI Helpers ───────────────────────────────────────────────────────────────
+
 
 export interface Toast {
   id: string;

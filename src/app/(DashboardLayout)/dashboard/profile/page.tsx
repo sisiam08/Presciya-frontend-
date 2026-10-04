@@ -29,7 +29,7 @@ import {
   normalizeBangladeshPhone,
 } from "@/lib/utils";
 
-// ─── Verification banner ──────────────────────────────────────────────────────
+
 function VerificationBanner({ status }: { status: VerificationStatus }) {
   const cfg = VERIFICATION_STATUS_CONFIG[status];
   const iconMap: Record<VerificationStatus, React.ElementType> = {
@@ -57,12 +57,12 @@ function VerificationBanner({ status }: { status: VerificationStatus }) {
   );
 }
 
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
+
 function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`animate-pulse rounded-xl bg-outline-variant/30 ${className}`} />;
 }
 
-// ─── Section card ─────────────────────────────────────────────────────────────
+
 function SectionCard({
   title,
   icon: Icon,
@@ -83,7 +83,7 @@ function SectionCard({
   );
 }
 
-// ─── Field ────────────────────────────────────────────────────────────────────
+
 function Field({
   label,
   value,
@@ -139,7 +139,7 @@ export default function ProfilePage() {
   const [uploadingSignature, setUploadingSignature] = useState(false);
   const signatureInputRef = useRef<HTMLInputElement>(null);
 
-  // Editable fields
+  
   const [profileForm, setProfileForm] = useState({ name: "", email: "", phone: "" });
   const [doctorForm, setDoctorForm] = useState({
     bmdcNumber: "",
@@ -158,7 +158,7 @@ export default function ProfilePage() {
           apiClient.get<any>(API_ROUTES.DOCTOR.PROFILE).catch(() => ({ data: null })),
         ]);
 
-        // /auth/me returns { user, profile, workspaces }; unwrap the user.
+        
         const payload = userRes.data?.data || userRes.data;
         const u = payload?.user ?? payload;
         setUser(u);
@@ -180,7 +180,7 @@ export default function ProfilePage() {
           });
         }
       } catch {
-        // silent
+        
       } finally {
         setLoading(false);
       }
@@ -194,7 +194,7 @@ export default function ProfilePage() {
   };
 
   const saveProfile = async () => {
-    // Optional — but a provided value must be a Bangladesh mobile.
+    
     if (profileForm.phone.trim() && !isValidBangladeshPhone(profileForm.phone)) {
       setProfileErrors({ phone: BD_PHONE_MESSAGE });
       return;
@@ -204,7 +204,7 @@ export default function ProfilePage() {
     try {
       const res = await apiClient.patch<any>(API_ROUTES.AUTH.UPDATE_ME, {
         name: profileForm.name.trim(),
-        // Canonical domestic form (+8801712345678 -> 01712345678).
+        
         phone: profileForm.phone.trim()
           ? normalizeBangladeshPhone(profileForm.phone)
           : "",
@@ -239,8 +239,8 @@ export default function ProfilePage() {
   const saveDoctor = async () => {
     setSaving(true);
     try {
-      // Map the form fields to the API contract (bmdcNumber -> registrationNo,
-      // qualifications -> qualification). Unsupported extras are omitted.
+      
+      
       const payload: Record<string, any> = {};
       if (doctorForm.bmdcNumber?.trim())
         payload.registrationNo = doctorForm.bmdcNumber.trim();
@@ -262,9 +262,9 @@ export default function ProfilePage() {
     }
   };
 
-  // Digital signature upload. This uses the EXISTING multipart doctor-profile
-  // endpoint (which resizes the image, stores it in Cloudinary, replaces the old
-  // signature and persists `signatureUrl`) rather than a new upload path.
+  
+  
+  
   const handleSignatureUpload = async (file: File | undefined) => {
     if (!file) return;
 
@@ -326,7 +326,7 @@ export default function ProfilePage() {
           : null;
 
       await apiClient.post(API_ROUTES.VERIFICATION.SUBMIT, {
-        // Backend expects PERSONAL / INSTITUTION.
+        
         type: "PERSONAL",
         ...(workspaceId ? { workspaceId } : {}),
         submittedData: {
@@ -341,7 +341,7 @@ export default function ProfilePage() {
           bio: doctorForm.bio || undefined,
         },
       });
-      // Refresh doctor profile to get updated status
+      
       const res = await apiClient.get<any>(API_ROUTES.DOCTOR.PROFILE);
       setDoctor(res.data?.data || res.data);
       toast({
@@ -373,7 +373,7 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      {/* Page header */}
+      {}
       <div>
         <h1 className="text-2xl font-bold text-on-surface">Profile</h1>
         <p className="text-sm text-on-surface-variant mt-0.5">
@@ -381,12 +381,12 @@ export default function ProfilePage() {
         </p>
       </div>
 
-      {/* Verification banner */}
+      {}
       {doctor && (
         <VerificationBanner status={doctor.verificationStatus} />
       )}
 
-      {/* Account Info */}
+      {}
       <SectionCard title="Account Information" icon={User}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Field
@@ -450,7 +450,7 @@ export default function ProfilePage() {
         </div>
       </SectionCard>
 
-      {/* Doctor Profile */}
+      {}
       <SectionCard title="Professional Information" icon={Stethoscope}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Field
@@ -497,7 +497,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Signature */}
+        {}
         <div className="mt-4">
           <label className="block text-xs text-on-surface-variant mb-1.5 font-medium">
             Digital Signature
@@ -591,7 +591,7 @@ export default function ProfilePage() {
         </div>
       </SectionCard>
 
-      {/* Membership info */}
+      {}
       {user && (
         <SectionCard title="System Information" icon={Shield}>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">

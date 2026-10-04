@@ -7,15 +7,7 @@ interface UseNotificationOptions {
   duration?: number;
 }
 
-/**
- * Maps an error message to a MEANINGFUL toast title.
- *
- * The default title used to be the bare word "Error" for every failure, which
- * tells the user nothing. The category is inferred from the (backend-generated)
- * message rather than replaced by one blanket string, so a quota problem reads
- * as "Plan Limit Reached" while a validation problem reads as "Validation
- * Failed". Call sites can still pass an explicit title to override.
- */
+
 export const errorTitleFor = (message: string): string => {
   const m = (message || "").toLowerCase();
 

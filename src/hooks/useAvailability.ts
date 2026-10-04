@@ -10,12 +10,7 @@ export interface AvailabilityEntry {
 
 export type Availability = Record<string, AvailabilityEntry>;
 
-/**
- * Public feature availability (GET /system/availability). These are features
- * that exist in the product but are not yet part of the public release — the
- * enabled state is admin-controlled (FeatureFlag), never hardcoded in the
- * client. Fails closed: if the request fails, gated surfaces stay unavailable.
- */
+
 export function useAvailability() {
   const [availability, setAvailability] = useState<Availability | null>(null);
   const [loading, setLoading] = useState(true);
@@ -38,7 +33,7 @@ export function useAvailability() {
     };
   }, []);
 
-  /** True only when the backend explicitly reports the surface as enabled. */
+  
   const isEnabled = (key: string): boolean =>
     availability?.[key]?.enabled === true;
 

@@ -2,19 +2,19 @@
 
 import React, { useEffect, useRef, useState } from "react";
 
-// A4 at 96dpi, matching the document's @page margins (15mm sides/top, 20mm
-// bottom). The preview renders the FULL A4 page — white margins included — so
-// the content never sits flush against the edges and the page size is correct.
+
+
+
 const MM = 96 / 25.4;
-const A4_PAGE_WIDTH = Math.round(210 * MM); // 794px
-const A4_MARGIN_X = Math.round(15 * MM); // 57px
-const A4_MARGIN_TOP = Math.round(15 * MM); // 57px
-const A4_MARGIN_BOTTOM = Math.round(20 * MM); // 76px
-const A4_CONTENT_WIDTH = A4_PAGE_WIDTH - A4_MARGIN_X * 2; // 680px (180mm)
-const A4_CONTENT_MIN_HEIGHT = Math.round(262 * MM); // 990px (262mm)
+const A4_PAGE_WIDTH = Math.round(210 * MM); 
+const A4_MARGIN_X = Math.round(15 * MM); 
+const A4_MARGIN_TOP = Math.round(15 * MM); 
+const A4_MARGIN_BOTTOM = Math.round(20 * MM); 
+const A4_CONTENT_WIDTH = A4_PAGE_WIDTH - A4_MARGIN_X * 2; 
+const A4_CONTENT_MIN_HEIGHT = Math.round(262 * MM); 
 
 interface A4PreviewFrameProps {
-  /** Full HTML document to render (rendered by the backend, same as print). */
+  
   html?: string | null;
   title?: string;
   className?: string;
@@ -22,11 +22,7 @@ interface A4PreviewFrameProps {
   onReady?: () => void;
 }
 
-/**
- * Renders a full A4 page (with margins) scaled to fit its container. The page
- * keeps its true A4 proportions; only the visual scale adapts, so left/right/
- * top/bottom are always fully visible and never cropped or distorted.
- */
+
 export default function A4PreviewFrame({
   html,
   title = "Prescription preview",
@@ -39,8 +35,8 @@ export default function A4PreviewFrame({
   const [scale, setScale] = useState(1);
   const [contentHeight, setContentHeight] = useState(A4_CONTENT_MIN_HEIGHT);
 
-  // Fit-to-width scaling against the full A4 page width. Never upscale past
-  // 100% (avoids blurry rendering).
+  
+  
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -58,8 +54,8 @@ export default function A4PreviewFrame({
     return () => observer.disconnect();
   }, []);
 
-  // Measure the document height so a multi-page prescription is shown in full
-  // (scrollable) rather than clipped inside a single A4 viewport.
+  
+  
   const measureContent = () => {
     const frame = internalRef.current;
     try {
@@ -72,7 +68,7 @@ export default function A4PreviewFrame({
       );
       setContentHeight(height);
     } catch {
-      // Cross-origin content cannot be measured; fall back to one A4 page.
+      
     }
   };
 
